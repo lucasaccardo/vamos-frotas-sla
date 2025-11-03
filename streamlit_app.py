@@ -14,117 +14,220 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from passlib.context import CryptContext
-from PIL import Image # <--- ADICIONADO DE VOLTA
+from PIL import Image
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from streamlit.components.v1 import html as components_html
 import json
+import uuid  # Importado para gerar IDs únicos
 
-ANALISES_PATH = os.path.join(os.path.dirname(__file__), "analises.csv") if "__file__" in globals() else os.path.join(os.getcwd(), "analises.csv")
-PDFS_DIR = os.path.join(os.path.dirname(__file__), "pdfs") if "__file__" in globals() else os.path.join(os.getcwd(), "pdfs")
+# --- INICIALIZAÇÃO DO SUPABASE ---
+from supabase import create_client, Client
+
+url = st.secrets.get("SUPABASE_URL")
+key = st.secrets.get("SUPABASE_KEY")
+
+if not url or not key:
+    st.error("Credenciais do Supabase (URL ou KEY) não encontradas. Verifique seus Secrets.")
+    st.stop()
+
+supabase: Client = create_client(url, key)
+# ---------------------------------
+
+# --- Caminhos de Arquivos e Pastas ---
+# PDFS_DIR agora usa um diretório temporário
+PDFS_DIR = os.path.join(tempfile.gettempdir(), "pdfs")
 os.makedirs(PDFS_DIR, exist_ok=True)
 
+# Definição das colunas (ainda útil para validação)
 ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
+REQUIRED_USER_COLUMNS = [
+    "username", "password", "role", "full_name", "matricula",
+    "email", "status", "accepted_terms_on", "reset_token", "reset_expires_at",
+    "last_password_change", "force_password_reset"
+]
+TICKET_COLUMNS = ["id", "username", "full_name", "email", "assunto", "descricao", "status", "resposta", "data_criacao", "data_resposta"]
+SUPERADMIN_USERNAME = st.secrets.get("SUPERADMIN_USERNAME", "lucas.sureira")
 
-@st.cache_data
+
+# =========================
+# Funções de Dados (Refatoradas para Supabase)
+# =========================
+
+# --- Análises ---
+@st.cache_data(ttl=60) # Cache de 60 segundos
 def load_analises():
-    if not os.path.exists(ANALISES_PATH) or os.path.getsize(ANALISES_PATH) == 0:
-        # Cria o arquivo com cabeçalho se não existir ou estiver vazio
-        df = pd.DataFrame(columns=ANALISES_COLS)
-        df.to_csv(ANALISES_PATH, index=False)
-        return df
     try:
-        return pd.read_csv(ANALISES_PATH, dtype=str).fillna("")
-    except pd.errors.EmptyDataError:
-        # Se der erro de arquivo vazio, recria com cabeçalho
-        df = pd.DataFrame(columns=ANALISES_COLS)
-        df.to_csv(ANALISES_PATH, index=False)
-        return df
+        response = supabase.table('analises').select("*").execute()
+        return pd.DataFrame(response.data).fillna("")
+    except Exception as e:
+        st.error(f"Erro ao carregar análises do Supabase: {e}")
+        return pd.DataFrame(columns=ANALISES_COLS)
 
 def save_analises(df):
-    for col in ANALISES_COLS:
-        if col not in df.columns:
-            df[col] = ""
-    df = df[ANALISES_COLS]
-    df.to_csv(ANALISES_PATH, index=False)
-    st.cache_data.clear()
-    
-# === Helpers para registro de análises e PDFs ===
+    """
+    Salva o DataFrame inteiro no Supabase.
+    'upsert' atualiza linhas existentes ou insere novas.
+    """
+    try:
+        # Garante que todas as colunas necessárias existem
+        for col in ANALISES_COLS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[ANALISES_COLS]
+        
+        supabase.table('analises').upsert(df.to_dict('records')).execute()
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Erro ao salvar análises no Supabase: {e}")
 
 def registrar_analise(username, tipo, dados, pdf_bytes):
-    df = load_analises()
-    novo_id = str(int(df["id"].max())+1) if not df.empty else "1"
+    # Use UUID para garantir um ID único, em vez de max(id)+1
+    novo_id = str(uuid.uuid4())
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Salva PDF
-    
+    # Salva PDF (temporariamente)
     pdf_filename = f"{tipo}_{username}_{novo_id}_{data_hora.replace(' ','_').replace(':','-')}.pdf"
     pdf_path = os.path.join(PDFS_DIR, pdf_filename)
     with open(pdf_path, "wb") as f:
         f.write(pdf_bytes.getbuffer())
         
-    # --- INÍCIO DA CORREÇÃO DE INDENTAÇÃO ---
-    # Este bloco foi movido para dentro da função 'registrar_analise'
-    
-    # --- Adicione este bloco ANTES de montar o dict 'novo' ---
+    # Converte dados se forem DataFrame/Series
     if isinstance(dados, pd.DataFrame):
         dados = dados.to_dict(orient="records")
     elif isinstance(dados, pd.Series):
         dados = dados.to_dict()
-    # --------------------------------------------------------
 
-    novo = {
+    # Salva registro no Supabase
+    novo_registro = {
         "id": novo_id,
         "username": username,
         "tipo": tipo,
         "data_hora": data_hora,
-        # Corrigido: Removido 'default=converter_json' que causaria outro NameError
-        "dados_json": json.dumps(dados, ensure_ascii=False), 
-        "pdf_path": pdf_path
+        "dados_json": json.dumps(dados, ensure_ascii=False), # Salva como string JSON
+        "pdf_path": pdf_path # O caminho salvo é temporário
     }
-    df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
-    save_analises(df)
-    # --- FIM DA CORREÇÃO DE INDENTAÇÃO ---
     
-# <<< CORREÇÃO NameError: 'get_query_params' is not defined >>>
-def get_query_params():
-    """
-    Obtém os parâmetros da URL (query params) de forma compatível
-    com diferentes versões do Streamlit.
-    """
     try:
-        # Tenta a forma moderna (st.query_params)
+        supabase.table('analises').insert(novo_registro).execute()
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Erro ao registrar análise no Supabase: {e}")
+
+# --- Tickets ---
+@st.cache_data(ttl=60)
+def load_tickets():
+    try:
+        response = supabase.table('tickets').select("*").execute()
+        return pd.DataFrame(response.data).fillna("")
+    except Exception as e:
+        st.error(f"Erro ao carregar tickets do Supabase: {e}")
+        return pd.DataFrame(columns=TICKET_COLUMNS)
+
+def save_tickets(df):
+    try:
+        # Garante que todas as colunas necessárias existem
+        for col in TICKET_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[TICKET_COLUMNS]
+        
+        supabase.table('tickets').upsert(df.to_dict('records')).execute()
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Erro ao salvar tickets no Supabase: {e}")
+
+# --- Usuários ---
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # Ainda necessário para o seu login manual
+
+def hash_password(password: str) -> str:
+    try:
+        return pwd_context.hash(password)
+    except Exception:
+        return hashlib.sha256(password.encode()).hexdigest()
+
+@st.cache_data(ttl=60)
+def load_user_db() -> pd.DataFrame:
+    try:
+        response = supabase.table('users').select("*").execute()
+        df = pd.DataFrame(response.data).fillna("")
+    except Exception as e:
+        st.error(f"Erro ao carregar usuários do Supabase: {e}")
+        st.info("Tentando criar tabela de usuários inicial...")
+        df = pd.DataFrame(columns=REQUIRED_USER_COLUMNS)
+
+    # Lógica para garantir que o superadmin exista
+    if df.empty or SUPERADMIN_USERNAME not in df["username"].values:
+        st.warning("Nenhum usuário encontrado, criando SuperAdmin padrão...")
+        tmp_pwd = (st.secrets.get("SUPERADMIN_DEFAULT_PASSWORD", "") or "").strip()
+        admin_defaults = {
+            "username": SUPERADMIN_USERNAME,
+            "password": hash_password(tmp_pwd) if tmp_pwd else "",
+            "role": "superadmin",
+            "full_name": "Lucas Mateus Sureira",
+            "matricula": "30159179",
+            "email": st.secrets.get("SUPERADMIN_EMAIL", "lucas.sureira@grupovamos.com.br"),
+            "status": "aprovado",
+            "accepted_terms_on": "",
+            "reset_token": "",
+            "reset_expires_at": "",
+            "last_password_change": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if tmp_pwd else "",
+            "force_password_reset": "" if tmp_pwd else "1",
+        }
+        
+        # Insere o admin no Supabase
+        try:
+            supabase.table('users').insert(admin_defaults).execute()
+            st.cache_data.clear()
+            return pd.DataFrame([admin_defaults])
+        except Exception as e:
+            st.error(f"FALHA CRÍTICA: Não foi possível criar o SuperAdmin no Supabase. {e}")
+            st.stop()
+            
+    return df
+
+def save_user_db(df_users: pd.DataFrame):
+    try:
+        # Garante que todas as colunas necessárias existem
+        for col in REQUIRED_USER_COLUMNS:
+            if col not in df_users.columns:
+                df_users[col] = ""
+        df_users = df_users[REQUIRED_USER_COLUMNS]
+
+        # Converte colunas que podem ser booleanas/int para string
+        for col in ['force_password_reset']:
+             if col in df_users.columns:
+                df_users[col] = df_users[col].astype(str)
+
+        # 'upsert' é a combinação de INSERT + UPDATE
+        supabase.table('users').upsert(df_users.to_dict('records'), on_conflict="username").execute()
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Erro ao salvar usuários no Supabase: {e}")
+
+# =========================
+# Helpers (Otimizados)
+# =========================
+
+def get_query_params():
+    try:
         return dict(st.query_params)
     except Exception:
         try:
-            # Tenta a forma antiga (experimental_get_query_params)
             params = st.experimental_get_query_params()
-            # Converte lista de valores para valor único
             return {k: (v[0] if isinstance(v, list) else v) for k, v in params.items()}
         except Exception:
-            # Retorna vazio se ambos falharem
             return {}
-# <<< FIM DA CORREÇÃO >>>
 
-# =========================
-# Resource helpers
-# =========================
 def resource_path(filename: str) -> str:
-    """
-    Resolve a path relative to this file or current working dir.
-    Works on Streamlit Cloud and locally.
-    """
     try:
         base = os.path.dirname(__file__)
     except Exception:
         base = os.getcwd()
     return os.path.join(base, filename)
 
-# =========================
-# Page config (MOVIDO PARA CÁ)
-# =========================
 try:
     st.set_page_config(
         page_title="Frotas Vamos SLA",
@@ -132,21 +235,13 @@ try:
         layout="centered",
         initial_sidebar_state="expanded"
     )
-    # <<< CORREÇÃO ERRO 'Bad message format': O st.markdown FOI REMOVIDO DAQUI >>>
 except Exception:
     pass
-# <<< FIM DA MUDANÇA 1 >>>
-
 
 # =========================
-# Background helpers (login-only)
-# Single, robust implementation to avoid layout shifts and wide-mode stretching.
+# Background helpers (Login)
 # =========================
 def set_login_background(png_path: str):
-    """
-    Background for login only: fixed pseudo-element + force block-container to behave as viewport
-    so the login is centered and there is no extra scroll/duplicated view.
-    """
     try:
         path = png_path if os.path.isabs(png_path) else resource_path(png_path)
         if not os.path.exists(path):
@@ -154,13 +249,9 @@ def set_login_background(png_path: str):
         with open(path, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
 
-        # CSS simplificado que aplica apenas o background
         css = f"""
         <style id="login-bg-fixed">
-        /* Reset possible app backgrounds and remove extra margins */
         html, body, .stApp {{ background: transparent !important; margin:0; padding:0; height:100%; }}
-
-        /* Fixed pseudo-element background (doesn't influence layout/height) */
         .login-wrapper::before {{
             content: "";
             position: fixed;
@@ -174,30 +265,20 @@ def set_login_background(png_path: str):
             transform: translateZ(0);
             opacity: 1;
         }}
-
-        /* <<< CORREÇÃO (DIMINUIR CARD): Bloco .login-card removido daqui >>> */
-
-        /* Do not alter sidebar positioning - preserve collapse X */
         [data-testid="stSidebar"] {{ position: relative; z-index: 9999; }}
         </style>
         """
-
         st.markdown(css, unsafe_allow_html=True)
-        st.session_state["login_bg_applied"] = True # Mantém a flag caso precise dela no futuro
+        st.session_state["login_bg_applied"] = True
         return True
     except Exception:
         return False
 
-# <<< CORREÇÃO (FUNDO BRANCO): Regra 'html, body, .stApp' removida daqui >>>
 def clear_login_background():
-    """
-    Remove/hide login background pseudo-element and clear flag.
-    """
     try:
         css = """
         <style id="login-bg-clear">
         .login-wrapper::before { display: none !important; opacity: 0 !important; }
-        /* A REGRA QUE DEFINIA O FUNDO COMO TRANSPARENTE FOI REMOVIDA DAQUI */
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -208,21 +289,17 @@ def clear_login_background():
     except Exception:
         pass
 
-# <<< FUNÇÃO ADICIONADA DA ÚLTIMA INSTRUÇÃO >>>
 def limpar_todos_backgrounds():
-    # Remove todos os estilos de fundo possíveis (sobrescrevendo com tags vazias)
     st.markdown('<style id="login-bg-fixed"></style>', unsafe_allow_html=True)
     st.markdown('<style id="app-auth-style"></style>', unsafe_allow_html=True)
     st.markdown('<style id="login-bg-clear"></style>', unsafe_allow_html=True)
 
-# Função original do show_logo_file (já estava correta)
 def show_logo_file(path: str, width: int = 140):
     try:
         p = path if os.path.isabs(path) else resource_path(path)
         if os.path.exists(p):
-            img = Image.open(p) # Usa PIL
+            img = Image.open(p)
             st.image(img, width=width)
-            # Adiciona CSS para remover botão de expandir imagem do Streamlit
             st.markdown("""
             <style>
             button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
@@ -236,30 +313,25 @@ def show_logo_file(path: str, width: int = 140):
     return False
 
 # =========================
-# Utilities & password helpers
+# Utilities & Password (Mantido como estava)
 # =========================
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def safe_rerun():
-    """Wrapper for st.experimental_rerun with fallback (avoids errors in some envs)."""
     try:
         st.experimental_rerun()
-    except AttributeError: # Se 'experimental_rerun' não existir
+    except AttributeError:
         try:
-            st.rerun() # Tenta a nova 'rerun'
+            st.rerun()
         except Exception:
-            pass # Ignora se ambos falharem
+            pass
     except Exception:
-        pass # Ignora outros erros
-
-# (get_query_params já foi movida para o topo)
+        pass
 
 def clear_all_query_params():
     try:
-        st.query_params.clear() # Tenta o novo
+        st.query_params.clear()
     except AttributeError:
         try:
-            st.experimental_set_query_params() # Tenta o antigo
+            st.experimental_set_query_params()
         except Exception:
             pass
     except Exception:
@@ -277,16 +349,7 @@ def get_app_base_url():
 def is_bcrypt_hash(s: str) -> bool:
     return isinstance(s, str) and s.startswith("$2")
 
-def hash_password(password: str) -> str:
-    try:
-        return pwd_context.hash(password)
-    except Exception:
-        return hashlib.sha256(password.encode()).hexdigest()
-
 def verify_password(stored_hash: str, provided_password: str) -> Tuple[bool, bool]:
-    """
-    Returns (valid, needs_upgrade)
-    """
     if is_bcrypt_hash(stored_hash):
         try:
             ok = pwd_context.verify(provided_password, stored_hash)
@@ -297,9 +360,8 @@ def verify_password(stored_hash: str, provided_password: str) -> Tuple[bool, boo
     ok = (stored_hash == legacy)
     return ok, bool(ok)
 
-
 # =========================
-# Authenticated theme (neutral)
+# Tema Autenticado
 # =========================
 def aplicar_estilos_authenticated():
     badge_css = ""
@@ -340,10 +402,7 @@ def aplicar_estilos_authenticated():
         padding: 20px !important;
         border: 1px solid var(--border) !important;
     }}
-    
-    /* <<< CORREÇÃO DO ERRO 'Bad message format': CSS DE OCULTAR MENU MOVIDO PARA CÁ >>> */
     header[data-testid="stHeader"], #MainMenu, footer {{ display: none !important; }}
-
     {badge_css}
     </style>
     """
@@ -356,7 +415,7 @@ def aplicar_estilos_authenticated():
     clear_login_background()
 
 # =========================
-# Password policy
+# Política de Senha (Mantido)
 # =========================
 PASSWORD_MIN_LEN = 10
 SPECIAL_CHARS = r"!@#$%^&*()_+\-=\[\]{};':\",.<>/?\\|`~"
@@ -382,7 +441,7 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
     return (len(errors) == 0), errors
 
 # =========================
-# Email / SMTP helpers
+# Helpers de E-mail (Mantido)
 # =========================
 def smtp_available():
     host = st.secrets.get("EMAIL_HOST", "")
@@ -445,7 +504,6 @@ def build_email_html(title: str, subtitle: str, body_lines: List[str], cta_label
     </body>
 </html>"""
 
-# <<< CORREÇÃO DO SYNTAXERROR: Bloco try/except restaurado >>>
 def send_email(dest_email: str, subject: str, body_plain: str, body_html: Optional[str] = None) -> bool:
     host = st.secrets.get("EMAIL_HOST", "")
     port = int(st.secrets.get("EMAIL_PORT", 587) or 587)
@@ -482,7 +540,6 @@ def send_email(dest_email: str, subject: str, body_plain: str, body_html: Option
             print("Falha ao enviar e-mail:", e)
         st.code(f"Para: {dest_email}\nAssunto: {subject}\n\n{body_plain}", language="text")
         return False
-# <<< FIM DA CORREÇÃO DO SYNTAXERROR >>>
 
 def send_reset_email(dest_email: str, reset_link: str) -> bool:
     subject = "Redefinição de senha - Frotas Vamos SLA"
@@ -545,80 +602,8 @@ Bom trabalho!
     return send_email(dest_email, subject, plain, html)
 
 # =========================
-# Users DB handling
+# Lógica de Senha (Mantida)
 # =========================
-REQUIRED_USER_COLUMNS = [
-    "username", "password", "role", "full_name", "matricula",
-    "email", "status", "accepted_terms_on", "reset_token", "reset_expires_at",
-    "last_password_change", "force_password_reset"
-]
-SUPERADMIN_USERNAME = st.secrets.get("SUPERADMIN_USERNAME", "lucas.sureira")
-_default_users_path = os.path.join(os.path.dirname(__file__), "users.csv") if "__file__" in globals() else os.path.join(os.getcwd(), "users.csv")
-USERS_PATH = st.secrets.get("USERS_PATH", _default_users_path) or _default_users_path
-
-@st.cache_data
-def load_user_db() -> pd.DataFrame:
-    tmp_pwd = (st.secrets.get("SUPERADMIN_DEFAULT_PASSWORD", "") or "").strip()
-    admin_defaults = {
-        "username": SUPERADMIN_USERNAME,
-        "password": hash_password(tmp_pwd) if tmp_pwd else "",
-        "role": "superadmin",
-        "full_name": "Lucas Mateus Sureira",
-        "matricula": "30159179",
-        "email": st.secrets.get("SUPERADMIN_EMAIL", "lucas.sureira@grupovamos.com.br"),
-        "status": "aprovado",
-        "accepted_terms_on": "",
-        "reset_token": "",
-        "reset_expires_at": "",
-        "last_password_change": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if tmp_pwd else "",
-        "force_password_reset": "" if tmp_pwd else "1",
-    }
-    users_file = USERS_PATH
-    try:
-        if os.path.exists(users_file) and os.path.getsize(users_file) > 0:
-            df = pd.read_csv(users_file, dtype=str).fillna("")
-        else:
-            df = pd.DataFrame([admin_defaults])
-            df.to_csv(users_file, index=False)
-            return df
-    except Exception:
-        try:
-            bak_path = os.path.join(os.path.dirname(users_file), f"users.csv.bak.{int(datetime.utcnow().timestamp())}")
-            os.replace(users_file, bak_path)
-        except Exception:
-            pass
-        df = pd.DataFrame([admin_defaults])
-        try:
-            df.to_csv(users_file, index=False)
-        except Exception:
-            pass
-        return df
-    for col in REQUIRED_USER_COLUMNS:
-        if col not in df.columns:
-            df[col] = ""
-    if SUPERADMIN_USERNAME in df["username"].values:
-        idx = df.index[df["username"] == SUPERADMIN_USERNAME][0]
-        df.loc[idx, "role"] = "superadmin"
-        df.loc[idx, "status"] = "aprovado"
-    else:
-        df = pd.concat([df, pd.DataFrame([admin_defaults])], ignore_index=True)
-    try:
-        df.to_csv(users_file, index=False)
-    except Exception:
-        pass
-    return df
-
-def save_user_db(df_users: pd.DataFrame):
-    for col in REQUIRED_USER_COLUMNS:
-        if col not in df_users.columns:
-            df_users[col] = ""
-    df_users = df_users[REQUIRED_USER_COLUMNS]
-    try:
-        df_users.to_csv(USERS_PATH, index=False)
-    except Exception:
-        pass
-    st.cache_data.clear()
-
 def is_password_expired(row) -> bool:
     try:
         last = row.get("last_password_change", "")
@@ -630,33 +615,12 @@ def is_password_expired(row) -> bool:
     except Exception:
         return True
         
-# === BLOCO DE TICKETS ===
-TICKETS_PATH = os.path.join(os.path.dirname(__file__), "tickets.csv") if "__file__" in globals() else os.path.join(os.getcwd(), "tickets.csv")
-TICKET_COLUMNS = ["id", "username", "full_name", "email", "assunto", "descricao", "status", "resposta", "data_criacao", "data_resposta"]
-
-@st.cache_data
-def load_tickets():
-    if not os.path.exists(TICKETS_PATH) or os.path.getsize(TICKETS_PATH) == 0:
-        df = pd.DataFrame(columns=TICKET_COLUMNS)
-        df.to_csv(TICKETS_PATH, index=False)
-        return df
-    return pd.read_csv(TICKETS_PATH, dtype=str).fillna("")
-
-def save_tickets(df):
-    # Assegura que todas as colunas existem antes de salvar
-    for col in TICKET_COLUMNS:
-        if col not in df.columns:
-            df[col] = ""
-    df = df[TICKET_COLUMNS]
-    df.to_csv(TICKETS_PATH, index=False)
-    st.cache_data.clear()
-# === FIM DO BLOCO DE TICKETS ===
-
 # =========================
-# Base / calculations / PDFs
+# Base / calculations / PDFs (Excel)
 # =========================
 @st.cache_data
 def carregar_base() -> Optional[pd.DataFrame]:
+    # Esta função está correta, ela lê um arquivo do repositório.
     try:
         return pd.read_excel(resource_path("Base De Clientes Faturamento.xlsx"))
     except Exception:
@@ -746,7 +710,6 @@ def calcular_sla_simples(data_entrada, data_saida, prazo_sla, valor_mensalidade,
         desconto = (valor_mensalidade / 30) * dias_excedente
     return dias, status, desconto, dias_excedente
 
-# <<< CORREÇÃO: ADICIONADO DE VOLTA A FUNÇÃO 'gerar_pdf_sla_simples' >>>
 def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
@@ -768,8 +731,6 @@ def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_
     for line in text_lines:
         c.drawString(50, y, line); y -= 20
     c.showPage(); c.save(); buffer.seek(0); return buffer
-# <<< FIM DA CORREÇÃO >>>
-
 
 # =========================
 # Navigation helpers & sidebar
@@ -783,9 +744,7 @@ def ir_para_register(): st.session_state.tela = "register"
 def ir_para_forgot(): st.session_state.tela = "forgot_password"
 def ir_para_reset(): st.session_state.tela = "reset_password"
 def ir_para_force_change(): st.session_state.tela = "force_change_password"
-# >>> INÍCIO DA CORREÇÃO <<<
 def ir_para_relatorio_analises(): st.session_state.tela = "relatorio_analises"
-# >>> FIM DA CORREÇÃO <<<
 def ir_para_terms(): st.session_state.tela = "terms_consent"
 
 
@@ -806,7 +765,6 @@ def user_is_admin():
 def user_is_superadmin():
     return st.session_state.get("username") == SUPERADMIN_USERNAME or st.session_state.get("role") == "superadmin"
 
-# >>> INÍCIO DA REORDENAÇÃO <<<
 def renderizar_sidebar():
     with st.sidebar:
         st.markdown("<div style='text-align:center;padding-top:8px'>", unsafe_allow_html=True)
@@ -830,17 +788,13 @@ def renderizar_sidebar():
 
         st.header("Menu de Navegação")
         
-        # 1. Navegação Principal
         st.button("🏠 Voltar para Home", on_click=ir_para_home, use_container_width=True)
         
-        # 2. Ação de Cálculo Condicional
         if st.session_state.tela in ("calc_comparativa", "calc_simples"):
             st.button("🔄 Limpar Cálculo", on_click=limpar_dados_comparativos, use_container_width=True)
         
-        # 3. Suporte (Todos)
         st.button("💬 Abrir Ticket", on_click=lambda: st.session_state.update({"tela": "tickets"}), use_container_width=True)
 
-        # 4. Administração (Agrupado)
         if user_is_admin():
             st.button("👤 Gerenciar Usuários", on_click=ir_para_admin, use_container_width=True)
             
@@ -850,9 +804,7 @@ def renderizar_sidebar():
         if user_is_superadmin():
             st.button("📋 Gerenciar Tickets", on_click=lambda: st.session_state.update({"tela": "admin_tickets"}), use_container_width=True)
 
-        # 5. Sair (Sempre por último)
         st.button("🚪 Sair (Logout)", on_click=logout, type="secondary", use_container_width=True)
-# >>> FIM DA REORDENAÇÃO <<<
 
 # =========================
 # Initial state & routing
@@ -877,73 +829,50 @@ if st.session_state.get('__do_logout'):
 # SCREENS
 # =========================
 if st.session_state.tela == "login":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO
-    set_login_background(resource_path("background.png")) # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO
+    limpar_todos_backgrounds()
+    set_login_background(resource_path("background.png"))
     
-    # CSS seguro para a tela de login
     st.markdown("""
     <style id="login-card-safe">
-    /* Limita a largura do container principal mesmo em Wide mode */
-    section.main > div.block-container { max-width: 920px !important; margin: 0 auto !important; padding-top: 0 !important; padding-bottom: 0 !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; } /* Adicionado flexbox para centralizar verticalmente */
-
-    /* Wrapper */
+    section.main > div.block-container { max-width: 920px !important; margin: 0 auto !important; padding-top: 0 !important; padding-bottom: 0 !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .login-wrapper { width:100%; max-width:920px; margin:0 auto; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:24px 0; }
-
-    /* <<< MUDANÇA: CARD DIMINUÍDO PARA 400px (era 300px, ajustei p/ caber) >>> */
     .login-card { width:400px; max-width:calc(100% - 48px); padding: 24px 22px; border-radius:12px; background: rgba(6,8,12,0.88); box-shadow:0 18px 40px rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.04); color:#E5E7EB; position:relative; z-index:2; }
-
     .brand-title { text-align:center; font-weight:700; font-size:22px; color:#E5E7EB; margin-bottom:6px; }
     .brand-subtitle { text-align:center; color: rgba(255,255,255,0.78); font-size:13px; margin-bottom:14px; }
-
-    /* Garante que o app view não tenha outro background que empurre o conteúdo */
     html, body, .stApp { background: transparent !important; margin: 0; padding: 0; height: 100%; }
-
-    /* Mantém o sidebar intacto */
     [data-testid="stSidebar"] { position: relative; z-index: 9999; }
-    
-    /* <<< CORREÇÃO DO ERRO 'Bad message format': CSS DE OCULTAR MENU MOVIDO PARA CÁ >>> */
     header[data-testid="stHeader"] {display: none !important;}
     footer {display: none !important;}
     #MainMenu {display: none !important;}
     </style>
     """, unsafe_allow_html=True)
     
-    # <<< CORREÇÃO "MANCHA PRETA": Bloco cols_top REMOVIDO daqui >>>
-    
-    # wrapper e card
-    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True) # Wrapper agora centraliza
-
-    # Logo centralizado DENTRO do card
+    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
     st.markdown("<div style='text-align: center; margin-bottom: 12px;'>", unsafe_allow_html=True)
-    show_logo_file(resource_path("logo.png"), width=140) # Usa resource_path aqui
+    show_logo_file(resource_path("logo.png"), width=140)
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='brand-title'>Frotas Vamos SLA</div>", unsafe_allow_html=True)
     st.markdown("<div class='brand-subtitle'>| Soluções inteligentes para frotas |</div>", unsafe_allow_html=True)
 
-    # Formulário de login
     with st.form("login_form"):
         username = st.text_input("Usuário", placeholder="Usuário", label_visibility="collapsed")
         password = st.text_input("Senha", type="password", placeholder="Senha", label_visibility="collapsed")
         submit_login = st.form_submit_button("Login", use_container_width=True)
 
-    # Ações auxiliares
     col1, col2, col3, col4, col5 = st.columns([1, 2, 2, 2, 1])
     with col2:
-        # <<< CORREÇÃO APLICADA: removido use_container_width=True >>>
         if st.button("Sign up"):
             ir_para_register(); safe_rerun()
     with col4:
-        # <<< CORREÇÃO APLICADA: removido use_container_width=True >>>
         if st.button("Reset Password"):
             ir_para_forgot(); safe_rerun()
 
-    # Fecha card e wrapper
-    st.markdown("</div>", unsafe_allow_html=True) # Fecha login-card
-    st.markdown("</div>", unsafe_allow_html=True) # Fecha login-wrapper
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tratamento do submit
     if submit_login:
+        # A lógica de login permanece a mesma, pois estamos usando seu sistema de hash
         df_users = load_user_db()
         user_data = df_users[df_users["username"] == username]
         if user_data.empty:
@@ -966,27 +895,25 @@ if st.session_state.tela == "login":
                 if row.get("status", "") != "aprovado":
                     st.warning("⏳ Seu cadastro ainda está pendente de aprovação pelo administrador.")
                 else:
-                    # Login bem-sucedido
                     st.session_state.logado = True
                     st.session_state.username = row["username"]
                     st.session_state.role = row.get("role", "user")
                     st.session_state.email = row.get("email", "")
                     st.session_state.full_name = row.get("full_name", "")
-                    # Redireciona para tela correta pós-login
                     if not str(row.get("accepted_terms_on", "")).strip():
                         st.session_state.tela = "terms_consent"
                     elif is_password_expired(row) or str(row.get("force_password_reset", "")).strip():
                         st.session_state.tela = "force_change_password"
                     else:
                         st.session_state.tela = "home"
-                    safe_rerun() # Roda o script novamente para ir para a nova tela
+                    safe_rerun()
 
 # ---------------------------
 # Register
 # ---------------------------
 elif st.session_state.tela == "register":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO (implícito)
-    aplicar_estilos_authenticated() # Aplica o tema padrão
+    limpar_todos_backgrounds()
+    aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🆕 Sign up")
     st.info("Se a sua empresa já realizou um pré-cadastro, informe seu e-mail para pré-preencher os dados.")
@@ -1024,7 +951,6 @@ elif st.session_state.tela == "register":
     st.button("⬅️ Voltar ao login", on_click=ir_para_login)
     if submit_reg:
         df = load_user_db()
-        # Coleta dados dos inputs ou do prefill
         uname = (username or (pre.get("username") if pre else "")).strip()
         fname = (full_name or (pre.get("full_name") if pre else "")).strip()
         mail = (email or (pre.get("email") if pre else "")).strip()
@@ -1039,12 +965,10 @@ elif st.session_state.tela == "register":
             if not valid:
                 st.error("Regras de senha não atendidas:\n- " + "\n- ".join(errs))
             else:
-                # Verifica se o email já existe
                 idxs = df.index[df["email"].str.strip().str.lower() == mail.lower()]
                 if len(idxs) > 0:
                     idx = idxs[0]
-                    # Se já existe (pré-cadastro), atualiza os campos
-                    if not df.loc[idx, "username"]: # Se não tinha username, define agora
+                    if not df.loc[idx, "username"]:
                         if (uname in df["username"].values) and (df.loc[idx, "username"] != uname):
                             st.error("Nome de usuário já existe."); st.stop()
                         df.loc[idx, "username"] = uname
@@ -1057,11 +981,10 @@ elif st.session_state.tela == "register":
                     save_user_db(df)
                     st.success("Cadastro atualizado! Aguarde aprovação (se pendente).")
                 else:
-                    # Se não existe, cria novo (mas verifica username)
                     if uname in df["username"].values:
                         st.error("Nome de usuário já existe."); st.stop()
                     
-                    new_user = {col: "" for col in REQUIRED_USER_COLUMNS} # Garante todas as colunas
+                    new_user = {col: "" for col in REQUIRED_USER_COLUMNS}
                     new_user.update({
                         "username": uname,
                         "password": hash_password(password),
@@ -1076,14 +999,14 @@ elif st.session_state.tela == "register":
                     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
                     save_user_db(df)
                     st.success("✅ Cadastro enviado! Aguarde aprovação.")
-    st.markdown("</div>", unsafe_allow_html=True) # Fecha main-container
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =========================
 # Screens: Forgot/Reset/Force/Terms
 # =========================
 elif st.session_state.tela == "forgot_password":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO (implícito)
+    limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔐 Reset Password")
@@ -1116,7 +1039,7 @@ elif st.session_state.tela == "forgot_password":
 
 
 elif st.session_state.tela == "reset_password":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO (implícito)
+    limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔁 Redefinir senha")
@@ -1167,7 +1090,7 @@ elif st.session_state.tela == "reset_password":
                     df.loc[idx, "reset_token"] = ""
                     df.loc[idx, "reset_expires_at"] = ""
                     df.loc[idx, "last_password_change"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    df.loc[idx, "force_password_reset"] = ""
+                    df.loc[idx, "force_password_reset"] = "False" # Corrigido para string
                     save_user_db(df)
                     st.success("Senha redefinida com sucesso! Faça login novamente.")
                     if st.button("Ir para login", type="primary"):
@@ -1180,7 +1103,7 @@ elif st.session_state.tela == "reset_password":
 
 
 elif st.session_state.tela == "force_change_password":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO (implícito)
+    limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔒 Alteração obrigatória de senha")
@@ -1209,7 +1132,7 @@ elif st.session_state.tela == "force_change_password":
                 st.error("A nova senha não pode ser igual à senha atual."); st.stop()
             df.loc[idx, "password"] = hash_password(new_pass)
             df.loc[idx, "last_password_change"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-            df.loc[idx, "force_password_reset"] = ""
+            df.loc[idx, "force_password_reset"] = "False" # Corrigido para string
             save_user_db(df)
             st.success("Senha atualizada com sucesso.")
             if not str(df.loc[idx, "accepted_terms_on"]).strip():
@@ -1224,7 +1147,7 @@ elif st.session_state.tela == "force_change_password":
 # Terms / LGPD (full)
 # =========================
 elif st.session_state.tela == "terms_consent":
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO (implícito)
+    limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("Termos e Condições de Uso e Política de Privacidade (LGPD)")
@@ -1232,19 +1155,16 @@ elif st.session_state.tela == "terms_consent":
     terms_html = dedent("""
     <div class="terms-box" style="color:#fff;font-family:Segoe UI,Arial,sans-serif;">
         <p><b>Última atualização:</b> 28 de Setembro de 2025</p>
-
         <h3>1. Finalidade da Ferramenta</h3>
         <p>Esta plataforma é um sistema interno para simulação e referência de cálculos de
         Service Level Agreement (SLA) e apoio operacional. Os resultados são estimativas
         destinadas ao uso profissional e não substituem documentos contratuais, fiscais
         ou aprovados formalmente pela empresa.</p>
-
         <h3>2. Base Legal e Conformidade com a LGPD</h3>
         <p>O tratamento de dados pessoais nesta plataforma observa a Lei nº 13.709/2018
         (Lei Geral de Proteção de Dados Pessoais – LGPD), adotando medidas técnicas e
         administrativas para proteger os dados contra acessos não autorizados e situações
         acidentais ou ilícitas de destruição, perda, alteração, comunicação ou difusão.</p>
-
         <h3>3. Dados Coletados e Tratados</h3>
         <ul>
             <li>Dados de autenticação: usuário (login), senha (armazenada de forma irreversível via hash), perfil de acesso (user/admin).</li>
@@ -1252,7 +1172,6 @@ elif st.session_state.tela == "terms_consent":
             <li>Dados operacionais: clientes, placas, valores de mensalidade e informações utilizadas nos cálculos de SLA.</li>
             <li>Registros de aceite: data/hora do aceite dos termos.</li>
         </ul>
-
         <h3>4. Finalidades do Tratamento</h3>
         <ul>
             <li>Autenticação e autorização de acesso à plataforma.</li>
@@ -1260,40 +1179,33 @@ elif st.session_state.tela == "terms_consent":
             <li>Gestão de usuários (aprovação de cadastro por administradores).</li>
             <li>Comunicações operacionais, como e-mail de redefinição de senha e avisos de aprovação de conta.</li>
         </ul>
-
         <h3>5. Compartilhamento e Acesso</h3>
         <p>Os dados processados são de uso interno e não são compartilhados com terceiros,
         exceto quando necessários para cumprimento de obrigações legais ou ordem de
         autoridades competentes.</p>
-
         <h3>6. Segurança da Informação</h3>
         <ul>
             <li>Senhas armazenadas com algoritmo de hash (não reversível).</li>
             <li>Acesso restrito a usuários autorizados e administradores.</li>
             <li>Envio de e-mails mediante configurações autenticadas de SMTP corporativo.</li>
         </ul>
-
         <h3>7. Direitos dos Titulares</h3>
         <p>Nos termos da LGPD, o titular possui direitos como confirmação de tratamento,
         acesso, correção, anonimização, bloqueio, eliminação de dados desnecessários,
         portabilidade (quando aplicável) e informação sobre compartilhamentos.</p>
-
         <h3>8. Responsabilidades do Usuário</h3>
         <ul>
             <li>Manter a confidencialidade de suas credenciais de acesso.</li>
             <li>Utilizar a plataforma apenas para fins profissionais internos.</li>
             <li>Respeitar as políticas internas e as legislações aplicáveis.</li>
         </ul>
-
         <h3>9. Retenção e Eliminação</h3>
         <p>Os dados são mantidos pelo período necessário ao atendimento das finalidades
         acima e das políticas internas. Após esse período, poderão ser eliminados ou
         anonimizados, salvo obrigações legais de retenção.</p>
-
         <h3>10. Alterações dos Termos</h3>
         <p>Estes termos podem ser atualizados a qualquer tempo, mediante publicação
         de nova versão na própria plataforma. Recomenda-se a revisão periódica.</p>
-
         <h3>11. Contato</h3>
         <p>Em caso de dúvidas sobre estes Termos ou sobre o tratamento de dados pessoais,
         procure o time responsável pela ferramenta ou o canal corporativo de Privacidade/DPD.</p>
@@ -1312,7 +1224,7 @@ elif st.session_state.tela == "terms_consent":
                 df_users.loc[user_index[0], 'accepted_terms_on'] = now
                 save_user_db(df_users)
         row = df_users[df_users['username'] == username].iloc[0]
-        if is_password_expired(row) or str(row.get("force_password_reset", "")).strip():
+        if is_password_expired(row) or str(row.get("force_password_reset", "")).strip() not in ["", "False"]:
             st.session_state.tela = "force_change_password"
         else:
             st.session_state.tela = "home"
@@ -1321,18 +1233,16 @@ elif st.session_state.tela == "terms_consent":
 
 
 # =========================
-# Authenticated area
-# includes Home, Admin (full), SLA Mensal, Análise de Cenários
+# Área Autenticada
 # =========================
 else:
-    # Garante que está logado para acessar aqui
     if not st.session_state.get("logado"):
         ir_para_login()
         safe_rerun()
-        st.stop() # Interrompe a renderização
+        st.stop()
         
-    limpar_todos_backgrounds()  # <<< ADICIONADO DA ÚLTIMA INSTRUÇÃO
-    aplicar_estilos_authenticated() # Aplica tema
+    limpar_todos_backgrounds()
+    aplicar_estilos_authenticated()
     renderizar_sidebar()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
 
@@ -1351,12 +1261,10 @@ else:
             st.button("Acessar SLA Mensal", on_click=ir_para_calc_simples, use_container_width=True)
 
     elif st.session_state.tela == "admin_users":
-        # Full admin UI
         if not user_is_admin(): st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
         st.title("👤 Gerenciamento de Usuários")
         df_users = load_user_db()
 
-        # SMTP test and status
         with st.expander("✉️ Testar envio de e-mail (SMTP)", expanded=False):
             st.write("Use este teste para validar rapidamente as credenciais de e-mail em st.secrets.")
             test_to = st.text_input("Enviar e-mail de teste para:")
@@ -1384,7 +1292,6 @@ else:
 
         st.markdown("---")
 
-        # Pending approvals
         pendentes = df_users[df_users["status"] == "pendente"]
         st.subheader("Cadastros pendentes")
         if pendentes.empty:
@@ -1428,7 +1335,6 @@ else:
 
         st.markdown("---")
 
-        # List all users and actions
         st.subheader("Todos os usuários")
         st.dataframe(df_users[["username", "full_name", "email", "role", "status", "accepted_terms_on"]], use_container_width=True)
 
@@ -1463,14 +1369,18 @@ else:
                     if df_users.loc[idx,"username"] == SUPERADMIN_USERNAME:
                         st.warning("Não é possível remover o superadmin.")
                     else:
-                        df_users = df_users[df_users["username"] != df_users.loc[idx,"username"]]
-                        save_user_db(df_users)
-                        st.success("Usuário removido.")
-                        safe_rerun()
+                        # No Supabase, é melhor não apagar a linha, mas sim "desativar"
+                        # Mas para manter a lógica do CSV, vamos apagar
+                        try:
+                            supabase.table('users').delete().eq('username', df_users.loc[idx,"username"]).execute()
+                            st.cache_data.clear()
+                            st.success("Usuário removido.")
+                            safe_rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao remover usuário do Supabase: {e}")
 
         st.markdown("---")
 
-        # Add / Edit user
         st.subheader("Adicionar / Editar usuário")
         with st.form("admin_add_user_form", clear_on_submit=True):
             new_username = st.text_input("Usuário (login)")
@@ -1497,7 +1407,6 @@ else:
                                 st.stop()
                             pwd_hash = hash_password(pwd)
                         
-                        # Garante que todas as colunas existem
                         new_row = {col: "" for col in REQUIRED_USER_COLUMNS}
                         new_row.update({
                             "username": new_username.strip(),
@@ -1508,11 +1417,16 @@ else:
                             "email": new_email.strip(),
                             "status": status,
                             "last_password_change": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if pwd_hash else "",
-                            "force_password_reset": "" if pwd_hash else "1"
+                            "force_password_reset": "False" if pwd_hash else "True"
                         })
-                        df_users = pd.concat([df_u, pd.DataFrame([new_row])], ignore_index=True)
-                        save_user_db(df_users)
-                        st.success("Usuário adicionado com sucesso!")
+                        
+                        try:
+                            supabase.table('users').insert(new_row).execute()
+                            st.cache_data.clear()
+                            st.success("Usuário adicionado com sucesso!")
+                        except Exception as e:
+                            st.error(f"Erro ao adicionar usuário no Supabase: {e}")
+                            st.stop()
                         
                         if status == "aprovado" and not pwd_hash and new_email.strip():
                             # Recarrega o df para garantir que o índice existe
@@ -1531,7 +1445,7 @@ else:
                             else:
                                 st.warning("Não foi possível enviar link de definição de senha para novo usuário.")
                         
-                        safe_rerun() # Roda novamente para limpar o form
+                        safe_rerun()
 
     # SLA Mensal screen
     elif st.session_state.tela == "calc_simples":
@@ -1543,7 +1457,7 @@ else:
         with st.expander("🔍 Consultar Clientes e Placas"):
             if df_base is not None and not df_base.empty:
                 df_display = df_base[['CLIENTE', 'PLACA', 'VALOR MENSALIDADE']].copy()
-                df_display['VALOR MENSALidade'] = df_display['VALOR MENSALIDADE'].apply(formatar_moeda)
+                df_display['VALOR MENSALIDADE'] = df_display['VALOR MENSALIDADE'].apply(formatar_moeda)
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
             else:
                 st.info("Base De Clientes Faturamento.xlsx não encontrada. Você poderá digitar os dados manualmente abaixo.")
@@ -1559,7 +1473,7 @@ else:
                     mensalidade = moeda_para_float(hit.iloc[0]["VALOR MENSALIDADE"])
                     st.success(f"Cliente: {cliente} | Mensalidade: {formatar_moeda(mensalidade)}")
                 else:
-                    st.warning("Placa não encontrada na base. Preencha os dados manually abaixo.")
+                    st.warning("Placa não encontrada na base. Preencha os dados manualmente abaixo.")
             cliente = st.text_input("Cliente (caso não tenha sido localizado)", value=cliente)
             mensalidade = st.number_input("Mensalidade (R$)", min_value=0.0, step=0.01, format="%.2f", value=float(mensalidade) if mensalidade else 0.0)
             st.subheader("2) Período e Serviço")
@@ -1598,8 +1512,6 @@ else:
                         "status": status
                     }
                     st.success("Cálculo realizado com sucesso!")
-
-                    #Gerar PDF
                     
                     pdf_buf = gerar_pdf_sla_simples(
                         cliente,
@@ -1611,7 +1523,6 @@ else:
                         float(mensalidade),
                         float(desconto)
                     )
-                    #Salvar registro da análise
                     
                     registrar_analise(
                         username=st.session_state.get("username"),
@@ -1633,26 +1544,7 @@ else:
                 st.write(f"- Mensalidade: {formatar_moeda(res['mensalidade'])}")
                 st.write(f"- Desconto: {formatar_moeda(res['desconto'])}")
 
-                # Tenta gerar o PDF.
                 try:
-                    # Adicionada definição aqui para garantir que exista
-                    def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto):
-                        buffer = BytesIO()
-                        c = canvas.Canvas(buffer, pagesize=letter)
-                        largura, altura = letter
-                        c.setFont("Helvetica-Bold", 14)
-                        c.drawString(50, altura - 50, "Resultado SLA - Vamos Locação")
-                        c.setFont("Helvetica", 12)
-                        y = altura - 80
-                        text_lines = [
-                            f"Cliente: {cliente}", f"Placa: {placa}", f"Tipo de serviço: {tipo_servico}",
-                            f"Dias úteis da manutenção: {dias_uteis_manut} dias", f"Prazo SLA: {prazo_sla} dias",
-                            f"Dias excedido de SLA: {dias_excedente} dias", f"Valor Mensalidade: {formatar_moeda(valor_mensalidade)}",
-                            f"Valor do desconto: {formatar_moeda(desconto)}"
-                        ]
-                        for line in text_lines: c.drawString(50, y, line); y -= 20
-                        c.showPage(); c.save(); buffer.seek(0); return buffer
-                    
                     pdf_buf = gerar_pdf_sla_simples(res["cliente"], res["placa"], res["tipo_servico"], res["dias_uteis_manut"], res["prazo_sla"], res["dias_excedente"], res["mensalidade"], res["desconto"])
                     st.download_button("📥 Baixar PDF do Resultado", data=pdf_buf, file_name=f"sla_{res['placa'] or 'veiculo'}.pdf", mime="application/pdf")
                 
@@ -1698,8 +1590,6 @@ else:
             st.success(f"🏆 Melhor cenário: {melhor['Serviço']} | Placa {melhor['Placa']} | Total Final: {melhor['Total Final (R$)']}")
             pdf_buffer = gerar_pdf_comparativo(df_cenarios, melhor)
 
-            # Salvar registro da análise comparativa
-            
             registrar_analise(
                 username=st.session_state.get("username"),
                 tipo="cenarios",
@@ -1787,7 +1677,6 @@ else:
         st.title("💬 Abrir Ticket de Suporte")
         st.info("Use este canal para reportar erros, dúvidas ou sugerir melhorias.")
 
-        # Formulário para abrir ticket
         with st.form("abrir_ticket"):
             assunto = st.text_input("Assunto")
             descricao = st.text_area("Descreva o problema ou sugestão")
@@ -1796,10 +1685,11 @@ else:
             if not assunto.strip() or not descricao.strip():
                 st.error("Preencha todos os campos.")
             else:
-                df = load_tickets()
-                novo_id = str(int(df["id"].max())+1) if not df.empty else "1"
+                df = load_tickets() # Carrega dados atuais
+                novo_id = str(uuid.uuid4()) # Gera ID único
                 now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                novo = {
+                
+                novo_ticket = {
                     "id": novo_id,
                     "username": st.session_state.get("username"),
                     "full_name": st.session_state.get("full_name"),
@@ -1811,12 +1701,15 @@ else:
                     "data_criacao": now,
                     "data_resposta": ""
                 }
-                df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
-                save_tickets(df)
-                st.success("Ticket enviado com sucesso!")
-                safe_rerun()
+                
+                try:
+                    supabase.table('tickets').insert(novo_ticket).execute()
+                    st.cache_data.clear()
+                    st.success("Ticket enviado com sucesso!")
+                    safe_rerun()
+                except Exception as e:
+                    st.error(f"Erro ao salvar ticket no Supabase: {e}")
 
-        # Listar tickets do usuário
         df = load_tickets()
         meus = df[df["username"] == st.session_state.get("username")]
         if not meus.empty:
@@ -1834,29 +1727,40 @@ else:
         else:
             st.info("Você ainda não abriu nenhum ticket.")
 
-    # >>> INÍCIO DA CORREÇÃO <<<
     # =========================
     # Tela: Relatório de Análises
     # =========================
     elif st.session_state.tela == "relatorio_analises":
         if not user_is_admin() and not user_is_superadmin():
-            st.error("Acesso negado.")
-            ir_para_home()
-            safe_rerun()
-            st.stop()
+            st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
+            
         st.title("📑 Relatório de Análises Realizadas")
         df = load_analises()
+        
+        if df.empty:
+            st.info("Nenhuma análise encontrada.")
+            st.stop()
+            
         usuarios = ["Todos"] + sorted(df["username"].unique())
         usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
         if usuario_sel != "Todos":
             df = df[df["username"] == usuario_sel]
+            
         tipo_sel = st.selectbox("Tipo de análise:", ["Todos", "cenarios", "sla_mensal"])
         if tipo_sel != "Todos":
             df = df[df["tipo"] == tipo_sel]
+            
         st.write(f"Total de análises: {len(df)}")
+        
         if not df.empty:
             for _, row in df.sort_values("data_hora", ascending=False).iterrows():
-                dados = json.loads(row["dados_json"])
+                try:
+                    # Tenta carregar o JSON
+                    dados = json.loads(row["dados_json"])
+                except Exception:
+                    # Se falhar (ex: já é um dict), apenas usa o dado
+                    dados = row["dados_json"]
+                    
                 st.markdown(f"""
                 <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
                 <b>ID:</b> {row['id']}<br>
@@ -1865,26 +1769,33 @@ else:
                 <b>Data/Hora:</b> {row['data_hora']}<br>
                 <b>Dados:</b> <pre style="font-size:12px">{json.dumps(dados, indent=2, ensure_ascii=False)}</pre>
                 """, unsafe_allow_html=True)
-                # Botão para baixar PDF
-                if os.path.exists(row["pdf_path"]):
-                    with open(row["pdf_path"], "rb") as f:
-                        pdf_bytes = f.read()
-                    st.download_button(
-                        label="📥 Baixar PDF",
-                        data=pdf_bytes,
-                        file_name=os.path.basename(row["pdf_path"]),
-                        mime="application/pdf"
-                    )
+                
+                # Botão para baixar PDF (lendo do caminho temporário)
+                pdf_path = row["pdf_path"]
+                if pdf_path and os.path.exists(pdf_path):
+                    try:
+                        with open(pdf_path, "rb") as f:
+                            pdf_bytes = f.read()
+                        st.download_button(
+                            label="📥 Baixar PDF",
+                            data=pdf_bytes,
+                            file_name=os.path.basename(pdf_path),
+                            mime="application/pdf"
+                        )
+                    except Exception as e:
+                        st.warning(f"Não foi possível ler o arquivo PDF: {e}")
+                else:
+                    st.caption("PDF não disponível (pode ter expirado)")
+                    
                 st.markdown("</div>", unsafe_allow_html=True)
-            # Download CSV geral
+                
             csv_bytes = df.to_csv(index=False).encode("utf-8")
             st.download_button("⬇️ Baixar relatório CSV", data=csv_bytes, file_name="relatorio_analises.csv", mime="text/csv")
         else:
             st.info("Nenhuma análise encontrada para o filtro selecionado.")
+            
         if st.button("Voltar para Home"):
-            ir_para_home()
-            safe_rerun()
-    # >>> FIM DA CORREÇÃO <<<
+            ir_para_home(); safe_rerun()
         
     # =========================
     # Tela: Gerenciar Tickets (superadmin)
@@ -1896,7 +1807,6 @@ else:
         st.title("📋 Gerenciar Tickets de Suporte")
         df = load_tickets()
 
-        # Tickets abertos
         abertos = df[df["status"] == "aberto"]
         if abertos.empty:
             st.info("Nenhum ticket aberto.")
@@ -1917,17 +1827,16 @@ else:
                     responder = col1.form_submit_button("Responder e Fechar", type="primary")
                     ignorar = col2.form_submit_button("Ignorar (Fechar sem resposta)")
                 if responder or ignorar:
+                    # Atualiza o DataFrame local
                     df.loc[df["id"] == row["id"], "resposta"] = resposta if responder else "Ticket fechado sem resposta."
                     df.loc[df["id"] == row["id"], "status"] = "fechado"
                     df.loc[df["id"] == row["id"], "data_resposta"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                    # Salva o DataFrame inteiro de volta no Supabase
                     save_tickets(df)
                     st.success("Ticket fechado!")
                     safe_rerun()
-                # Fechamento do 'div' de borda
                 st.markdown("</div>", unsafe_allow_html=True)
 
-
-        # Tickets fechados
         fechados = df[df["status"] == "fechado"]
         if not fechados.empty:
             with st.expander("Ver tickets fechados"):
@@ -1947,12 +1856,10 @@ else:
             st.warning("Nenhum ticket fechado encontrado.")
         
     else:
-        # fallback
         st.error("Tela não encontrada ou ainda não implementada.")
         if st.button("Voltar para Home"):
-            ir_para_home()
-            safe_rerun()
+            ir_para_home(); safe_rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True) # <-- DIV FECHADA AQUI
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # End of file
