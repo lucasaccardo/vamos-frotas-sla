@@ -66,18 +66,23 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
     with open(pdf_path, "wb") as f:
         f.write(pdf_bytes.getbuffer())
         
-    # Salva registro
-    
-    novo = {
-        "id": novo_id,
-        "username": username,
-        "tipo": tipo,
-        "data_hora": data_hora,
-        "dados_json": json.dumps(dados, ensure_ascii=False),
-        "pdf_path": pdf_path
-    }
-    df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
-    save_analises(df)
+# --- Adicione este bloco ANTES de montar o dict 'novo' ---
+if isinstance(dados, pd.DataFrame):
+    dados = dados.to_dict(orient="records")
+elif isinstance(dados, pd.Series):
+    dados = dados.to_dict()
+# --------------------------------------------------------
+
+novo = {
+    "id": novo_id,
+    "username": username,
+    "tipo": tipo,
+    "data_hora": data_hora,
+    "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json),
+    "pdf_path": pdf_path
+}
+df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
+save_analises(df)
     
 # <<< CORREÇÃO NameError: 'get_query_params' is not defined >>>
 def get_query_params():
