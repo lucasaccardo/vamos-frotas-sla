@@ -1,6 +1,6 @@
 /* === Fundo da tela de login === */
 .stApp {
-  background-image: url('https://i.imgur.com/QbZzxrX.png'); /* link direto da imagem do seu álbum */
+  background-image: url('https://i.imgur.com/QbZzxrX.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -8,14 +8,13 @@
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-/* === Card de login === */
+/* === Card de login (totalmente transparente, sem sombra nem borda) === */
 .login-card {
-  background: rgba(20, 24, 32, 0.92);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  padding: 32px 28px;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
   color: #E5E7EB;
-  border: 1px solid rgba(255,255,255,0.08);
+  padding: 32px 28px;
 }
 
 /* === Logo centralizada na tela de login === */
