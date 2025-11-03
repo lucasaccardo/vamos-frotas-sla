@@ -21,7 +21,57 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from streamlit.components.v1 import html as components_html
+import json
 
+ANALISES_PATH = os.path.join(os.path.dirname(__file__), "analises.csv") if "__file__" in globals() else os.path.join(os.getcwd(), "analises.csv")
+PDFS_DIR = os.path.join(os.path.dirname(__file__), "pdfs") if "__file__" in globals() else os.path.join(os.getcwd(), "pdfs")
+os.makedirs(PDFS_DIR, exist_ok=True)
+
+ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
+
+@st.cache_data
+def load_analises():
+    if not os.path.exists(ANALISES_PATH) or os.path.getsize(ANALISES_PATH) == 0:
+        df = pd.DataFrame(columns=ANALISES_COLS)
+        df.to_csv(ANALISES_PATH, index=False)
+        return df
+    return pd.read_csv(ANALISES_PATH, dtype=str).fillna("")
+
+def save_analises(df):
+    for col in ANALISES_COLS:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[ANALISES_COLS]
+    df.to_csv(ANALISES_PATH, index=False)
+    st.cache_data.clear()
+    
+# === Helpers para registro de análises e PDFs ===
+
+def registrar_analise(username, tipo, dados, pdf_bytes):
+    df = load_analises()
+    novo_id = str(int(df["id"].max())+1) if not df.empty else "1"
+    data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Salva PDF
+    
+    pdf_filename = f"{tipo}_{username}_{novo_id}_{data_hora.replace(' ','_').replace(':','-')}.pdf"
+    pdf_path = os.path.join(PDFS_DIR, pdf_filename)
+    with open(pdf_path, "wb") as f:
+        f.write(pdf_bytes.getbuffer())
+        
+    # Salva registro
+    
+    novo = {
+        "id": novo_id,
+        "username": username,
+        "tipo": tipo,
+        "data_hora": data_hora,
+        "dados_json": json.dumps(dados, ensure_ascii=False),
+        "pdf_path": pdf_path
+    }
+    df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
+    save_analises(df)
+    
 # <<< CORREÇÃO NameError: 'get_query_params' is not defined >>>
 def get_query_params():
     """
@@ -717,7 +767,9 @@ def ir_para_register(): st.session_state.tela = "register"
 def ir_para_forgot(): st.session_state.tela = "forgot_password"
 def ir_para_reset(): st.session_state.tela = "reset_password"
 def ir_para_force_change(): st.session_state.tela = "force_change_password"
-# Adicionado ir_para_terms que estava faltando na definição
+# >>> INÍCIO DA CORREÇÃO <<<
+def ir_para_relatorio_analises(): st.session_state.tela = "relatorio_analises"
+# >>> FIM DA CORREÇÃO <<<
 def ir_para_terms(): st.session_state.tela = "terms_consent"
 
 
@@ -738,30 +790,25 @@ def user_is_admin():
 def user_is_superadmin():
     return st.session_state.get("username") == SUPERADMIN_USERNAME or st.session_state.get("role") == "superadmin"
 
+# >>> INÍCIO DA CORREÇÃO <<<
 def renderizar_sidebar():
     with st.sidebar:
         st.markdown("<div style='text-align:center;padding-top:8px'>", unsafe_allow_html=True)
         try:
-            # Tenta carregar logo_sidebar.png primeiro
             sidebar_logo_path = resource_path("logo_sidebar.png")
             if os.path.exists(sidebar_logo_path):
                 st.image(sidebar_logo_path, width=100)
-            # Se não existir, tenta carregar logo.png
             elif os.path.exists(resource_path("logo.png")):
                 st.image(resource_path("logo.png"), width=100)
-            # Adiciona CSS para remover botão de expandir imagem do Streamlit na sidebar
             st.markdown("""
             <style>
-            .css-17l3k35 { /* Seletor pode precisar de ajuste dependendo da versão do Streamlit */
-                display: none !important;
-            }
+            .css-17l3k35 { display: none !important; }
             button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
                 display: none !important;
             }
             </style>
             """, unsafe_allow_html=True)
         except Exception as e:
-            # st.error(f"Erro ao carregar logo da sidebar: {e}") # Descomente para depurar
             pass
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -773,8 +820,11 @@ def renderizar_sidebar():
             st.button("🔄 Limpar Cálculo", on_click=limpar_dados_comparativos, use_container_width=True)
         st.button("🚪 Sair (Logout)", on_click=logout, type="secondary", use_container_width=True)
         st.button("💬 Abrir Ticket", on_click=lambda: st.session_state.update({"tela": "tickets"}), use_container_width=True)
+        if user_is_admin() or user_is_superadmin():
+            st.button("📑 Relatório de Análises", on_click=ir_para_relatorio_analises, use_container_width=True)
         if user_is_superadmin():
             st.button("📋 Gerenciar Tickets", on_click=lambda: st.session_state.update({"tela": "admin_tickets"}), use_container_width=True)
+# >>> FIM DA CORREÇÃO <<<
 
 # =========================
 # Initial state & routing
@@ -1520,6 +1570,28 @@ else:
                         "status": status
                     }
                     st.success("Cálculo realizado com sucesso!")
+
+                    #Gerar PDF
+                    
+                    pdf_buf = gerar_pdf_sla_simples(
+                        cliente,
+                        placa_in,
+                        tipo_servico,
+                        int(dias_uteis_manut),
+                        int(prazo_sla),
+                        int(dias_exc),
+                        float(mensalidade),
+                        float(desconto)
+                    )
+                    #Salvar registro da análise
+                    
+                    registrar_analise(
+                        username=st.session_state.get("username"),
+                        tipo="sla_mensal",
+                        dados=st.session_state.resultado_sla,
+                        pdf_bytes=pdf_buf
+                    )
+        
         with col_right:
             st.subheader("Resultado")
             res = st.session_state.get("resultado_sla")
@@ -1597,6 +1669,18 @@ else:
             melhor = df_cenarios.loc[idx_min]
             st.success(f"🏆 Melhor cenário: {melhor['Serviço']} | Placa {melhor['Placa']} | Total Final: {melhor['Total Final (R$)']}")
             pdf_buffer = gerar_pdf_comparativo(df_cenarios, melhor)
+
+            # Salvar registro da análise comparativa
+            
+            registrar_analise(
+                username=st.session_state.get("username"),
+                tipo="cenarios",
+                dados={
+                    "cenarios": st.session_state.cenarios,
+                    "melhor": melhor.to_dict()
+                },
+                pdf_bytes=pdf_buffer
+            )
             st.download_button("📥 Baixar Relatório PDF", pdf_buffer, "comparacao_cenarios_sla.pdf", "application/pdf")
             if st.button("🔄 Reiniciar Comparação", on_click=limpar_dados_comparativos, use_container_width=True, type="primary"):
                 safe_rerun()
@@ -1721,8 +1805,59 @@ else:
                 """, unsafe_allow_html=True)
         else:
             st.info("Você ainda não abriu nenhum ticket.")
-        # st.markdown("</div>", unsafe_allow_html=True) # <-- Removido daqui
 
+    # >>> INÍCIO DA CORREÇÃO <<<
+    # =========================
+    # Tela: Relatório de Análises
+    # =========================
+    elif st.session_state.tela == "relatorio_analises":
+        if not user_is_admin() and not user_is_superadmin():
+            st.error("Acesso negado.")
+            ir_para_home()
+            safe_rerun()
+            st.stop()
+        st.title("📑 Relatório de Análises Realizadas")
+        df = load_analises()
+        usuarios = ["Todos"] + sorted(df["username"].unique())
+        usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
+        if usuario_sel != "Todos":
+            df = df[df["username"] == usuario_sel]
+        tipo_sel = st.selectbox("Tipo de análise:", ["Todos", "cenarios", "sla_mensal"])
+        if tipo_sel != "Todos":
+            df = df[df["tipo"] == tipo_sel]
+        st.write(f"Total de análises: {len(df)}")
+        if not df.empty:
+            for _, row in df.sort_values("data_hora", ascending=False).iterrows():
+                dados = json.loads(row["dados_json"])
+                st.markdown(f"""
+                <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
+                <b>ID:</b> {row['id']}<br>
+                <b>Usuário:</b> {row['username']}<br>
+                <b>Tipo:</b> {row['tipo']}<br>
+                <b>Data/Hora:</b> {row['data_hora']}<br>
+                <b>Dados:</b> <pre style="font-size:12px">{json.dumps(dados, indent=2, ensure_ascii=False)}</pre>
+                """, unsafe_allow_html=True)
+                # Botão para baixar PDF
+                if os.path.exists(row["pdf_path"]):
+                    with open(row["pdf_path"], "rb") as f:
+                        pdf_bytes = f.read()
+                    st.download_button(
+                        label="📥 Baixar PDF",
+                        data=pdf_bytes,
+                        file_name=os.path.basename(row["pdf_path"]),
+                        mime="application/pdf"
+                    )
+                st.markdown("</div>", unsafe_allow_html=True)
+            # Download CSV geral
+            csv_bytes = df.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Baixar relatório CSV", data=csv_bytes, file_name="relatorio_analises.csv", mime="text/csv")
+        else:
+            st.info("Nenhuma análise encontrada para o filtro selecionado.")
+        if st.button("Voltar para Home"):
+            ir_para_home()
+            safe_rerun()
+    # >>> FIM DA CORREÇÃO <<<
+        
     # =========================
     # Tela: Gerenciar Tickets (superadmin)
     # =========================
@@ -1783,8 +1918,6 @@ else:
         else:
             st.warning("Nenhum ticket fechado encontrado.")
         
-        # st.markdown("</div>", unsafe_allow_html=True) # <-- Removido daqui
-    
     else:
         # fallback
         st.error("Tela não encontrada ou ainda não implementada.")
