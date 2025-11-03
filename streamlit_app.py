@@ -4,7 +4,7 @@ import hashlib
 import secrets
 import smtplib
 import re
-import tempfile
+import tempfile # Ainda usado por 'resource_path' em alguns ambientes
 from io import BytesIO
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -37,9 +37,7 @@ supabase: Client = create_client(url, key)
 # ---------------------------------
 
 # --- Caminhos de Arquivos e Pastas ---
-# PDFS_DIR agora usa um diretório temporário
-PDFS_DIR = os.path.join(tempfile.gettempdir(), "pdfs")
-os.makedirs(PDFS_DIR, exist_ok=True)
+# PDFS_DIR não é mais necessário, pois usaremos o Supabase Storage.
 
 # Definição das colunas (ainda útil para validação)
 ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
@@ -83,31 +81,41 @@ def save_analises(df):
     except Exception as e:
         st.error(f"Erro ao salvar análises no Supabase: {e}")
 
+# --- 🚀 FUNÇÃO MODIFICADA PARA USAR SUPABASE STORAGE 🚀 ---
 def registrar_analise(username, tipo, dados, pdf_bytes):
-    # Use UUID para garantir um ID único, em vez de max(id)+1
     novo_id = str(uuid.uuid4())
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Salva PDF (temporariamente)
+    # 1. Define o nome do arquivo no Storage
     pdf_filename = f"{tipo}_{username}_{novo_id}_{data_hora.replace(' ','_').replace(':','-')}.pdf"
-    pdf_path = os.path.join(PDFS_DIR, pdf_filename)
-    with open(pdf_path, "wb") as f:
-        f.write(pdf_bytes.getbuffer())
+    
+    try:
+        # 2. Faz o upload dos bytes do PDF para o bucket 'pdfs'
+        supabase.storage.from_("pdfs").upload(
+            path=pdf_filename,
+            file=pdf_bytes.getbuffer(),
+            file_options={"content-type": "application/pdf"}
+        )
+    except Exception as e:
+        st.error(f"Falha ao fazer upload do PDF para o Supabase Storage: {e}")
+        # Mesmo se o PDF falhar, o registro da análise será salvo.
+        # O pdf_path ficará apenas com o nome, mas o upload falhou.
+        pass
         
-    # Converte dados se forem DataFrame/Series
+    # 3. Converte dados se forem DataFrame/Series
     if isinstance(dados, pd.DataFrame):
         dados = dados.to_dict(orient="records")
     elif isinstance(dados, pd.Series):
         dados = dados.to_dict()
 
-    # Salva registro no Supabase
+    # 4. Salva o registro no banco de dados, apontando para o arquivo no Storage
     novo_registro = {
         "id": novo_id,
         "username": username,
         "tipo": tipo,
         "data_hora": data_hora,
-        "dados_json": json.dumps(dados, ensure_ascii=False), # Salva como string JSON
-        "pdf_path": pdf_path # O caminho salvo é temporário
+        "dados_json": json.dumps(dados, ensure_ascii=False),
+        "pdf_path": pdf_filename  # Salva apenas o NOME do arquivo
     }
     
     try:
@@ -115,6 +123,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         st.cache_data.clear()
     except Exception as e:
         st.error(f"Erro ao registrar análise no Supabase: {e}")
+# --- FIM DA MODIFICAÇÃO ---
 
 # --- Tickets ---
 @st.cache_data(ttl=60)
@@ -128,7 +137,6 @@ def load_tickets():
 
 def save_tickets(df):
     try:
-        # Garante que todas as colunas necessárias existem
         for col in TICKET_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
@@ -140,7 +148,7 @@ def save_tickets(df):
         st.error(f"Erro ao salvar tickets no Supabase: {e}")
 
 # --- Usuários ---
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # Ainda necessário para o seu login manual
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     try:
@@ -158,7 +166,6 @@ def load_user_db() -> pd.DataFrame:
         st.info("Tentando criar tabela de usuários inicial...")
         df = pd.DataFrame(columns=REQUIRED_USER_COLUMNS)
 
-    # Lógica para garantir que o superadmin exista
     if df.empty or SUPERADMIN_USERNAME not in df["username"].values:
         st.warning("Nenhum usuário encontrado, criando SuperAdmin padrão...")
         tmp_pwd = (st.secrets.get("SUPERADMIN_DEFAULT_PASSWORD", "") or "").strip()
@@ -177,7 +184,6 @@ def load_user_db() -> pd.DataFrame:
             "force_password_reset": "" if tmp_pwd else "1",
         }
         
-        # Insere o admin no Supabase
         try:
             supabase.table('users').insert(admin_defaults).execute()
             st.cache_data.clear()
@@ -190,18 +196,15 @@ def load_user_db() -> pd.DataFrame:
 
 def save_user_db(df_users: pd.DataFrame):
     try:
-        # Garante que todas as colunas necessárias existem
         for col in REQUIRED_USER_COLUMNS:
             if col not in df_users.columns:
                 df_users[col] = ""
         df_users = df_users[REQUIRED_USER_COLUMNS]
 
-        # Converte colunas que podem ser booleanas/int para string
         for col in ['force_password_reset']:
              if col in df_users.columns:
                 df_users[col] = df_users[col].astype(str)
 
-        # 'upsert' é a combinação de INSERT + UPDATE
         supabase.table('users').upsert(df_users.to_dict('records'), on_conflict="username").execute()
         st.cache_data.clear()
     except Exception as e:
@@ -620,7 +623,6 @@ def is_password_expired(row) -> bool:
 # =========================
 @st.cache_data
 def carregar_base() -> Optional[pd.DataFrame]:
-    # Esta função está correta, ela lê um arquivo do repositório.
     try:
         return pd.read_excel(resource_path("Base De Clientes Faturamento.xlsx"))
     except Exception:
@@ -872,7 +874,6 @@ if st.session_state.tela == "login":
     st.markdown("</div>", unsafe_allow_html=True)
 
     if submit_login:
-        # A lógica de login permanece a mesma, pois estamos usando seu sistema de hash
         df_users = load_user_db()
         user_data = df_users[df_users["username"] == username]
         if user_data.empty:
@@ -902,7 +903,7 @@ if st.session_state.tela == "login":
                     st.session_state.full_name = row.get("full_name", "")
                     if not str(row.get("accepted_terms_on", "")).strip():
                         st.session_state.tela = "terms_consent"
-                    elif is_password_expired(row) or str(row.get("force_password_reset", "")).strip():
+                    elif is_password_expired(row) or str(row.get("force_password_reset", "")).strip() not in ["", "False", "0"]:
                         st.session_state.tela = "force_change_password"
                     else:
                         st.session_state.tela = "home"
@@ -1090,7 +1091,7 @@ elif st.session_state.tela == "reset_password":
                     df.loc[idx, "reset_token"] = ""
                     df.loc[idx, "reset_expires_at"] = ""
                     df.loc[idx, "last_password_change"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    df.loc[idx, "force_password_reset"] = "False" # Corrigido para string
+                    df.loc[idx, "force_password_reset"] = "" # Pode ser string vazia
                     save_user_db(df)
                     st.success("Senha redefinida com sucesso! Faça login novamente.")
                     if st.button("Ir para login", type="primary"):
@@ -1132,7 +1133,7 @@ elif st.session_state.tela == "force_change_password":
                 st.error("A nova senha não pode ser igual à senha atual."); st.stop()
             df.loc[idx, "password"] = hash_password(new_pass)
             df.loc[idx, "last_password_change"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-            df.loc[idx, "force_password_reset"] = "False" # Corrigido para string
+            df.loc[idx, "force_password_reset"] = "" # Pode ser string vazia
             save_user_db(df)
             st.success("Senha atualizada com sucesso.")
             if not str(df.loc[idx, "accepted_terms_on"]).strip():
@@ -1224,7 +1225,7 @@ elif st.session_state.tela == "terms_consent":
                 df_users.loc[user_index[0], 'accepted_terms_on'] = now
                 save_user_db(df_users)
         row = df_users[df_users['username'] == username].iloc[0]
-        if is_password_expired(row) or str(row.get("force_password_reset", "")).strip() not in ["", "False"]:
+        if is_password_expired(row) or str(row.get("force_password_reset", "")).strip() not in ["", "False", "0"]:
             st.session_state.tela = "force_change_password"
         else:
             st.session_state.tela = "home"
@@ -1369,8 +1370,6 @@ else:
                     if df_users.loc[idx,"username"] == SUPERADMIN_USERNAME:
                         st.warning("Não é possível remover o superadmin.")
                     else:
-                        # No Supabase, é melhor não apagar a linha, mas sim "desativar"
-                        # Mas para manter a lógica do CSV, vamos apagar
                         try:
                             supabase.table('users').delete().eq('username', df_users.loc[idx,"username"]).execute()
                             st.cache_data.clear()
@@ -1417,7 +1416,7 @@ else:
                             "email": new_email.strip(),
                             "status": status,
                             "last_password_change": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if pwd_hash else "",
-                            "force_password_reset": "False" if pwd_hash else "True"
+                            "force_password_reset": "" if pwd_hash else "1"
                         })
                         
                         try:
@@ -1429,7 +1428,6 @@ else:
                             st.stop()
                         
                         if status == "aprovado" and not pwd_hash and new_email.strip():
-                            # Recarrega o df para garantir que o índice existe
                             df_users_reloaded = load_user_db()
                             idx_list = df_users_reloaded.index[df_users_reloaded["username"] == new_username.strip()].tolist()
                             if idx_list:
@@ -1438,7 +1436,7 @@ else:
                                 expires = (datetime.utcnow() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                                 df_users_reloaded.loc[idx2,"reset_token"] = token
                                 df_users_reloaded.loc[idx2,"reset_expires_at"] = expires
-                                save_user_db(df_users_reloaded) # Salva o token
+                                save_user_db(df_users_reloaded)
                                 base_url = get_app_base_url() or "https://SEU_DOMINIO"
                                 reset_link = f"{base_url}?reset_token={token}"
                                 send_invite_to_set_password(new_email.strip(), reset_link)
@@ -1685,8 +1683,7 @@ else:
             if not assunto.strip() or not descricao.strip():
                 st.error("Preencha todos os campos.")
             else:
-                df = load_tickets() # Carrega dados atuais
-                novo_id = str(uuid.uuid4()) # Gera ID único
+                novo_id = str(uuid.uuid4())
                 now = datetime.now().strftime("%Y-%m-%d %H:%M")
                 
                 novo_ticket = {
@@ -1755,11 +1752,10 @@ else:
         if not df.empty:
             for _, row in df.sort_values("data_hora", ascending=False).iterrows():
                 try:
-                    # Tenta carregar o JSON
+                    # O dado 'dados_json' vem como string do banco
                     dados = json.loads(row["dados_json"])
                 except Exception:
-                    # Se falhar (ex: já é um dict), apenas usa o dado
-                    dados = row["dados_json"]
+                    dados = row["dados_json"] # Fallback se já for um dict
                     
                 st.markdown(f"""
                 <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
@@ -1770,22 +1766,26 @@ else:
                 <b>Dados:</b> <pre style="font-size:12px">{json.dumps(dados, indent=2, ensure_ascii=False)}</pre>
                 """, unsafe_allow_html=True)
                 
-                # Botão para baixar PDF (lendo do caminho temporário)
-                pdf_path = row["pdf_path"]
-                if pdf_path and os.path.exists(pdf_path):
+                # --- 🚀 LÓGICA DE DOWNLOAD MODIFICADA 🚀 ---
+                pdf_filename = row["pdf_path"]
+                if pdf_filename:
                     try:
-                        with open(pdf_path, "rb") as f:
-                            pdf_bytes = f.read()
+                        # 1. Baixa os bytes do PDF do Supabase Storage
+                        pdf_bytes_data = supabase.storage.from_("pdfs").download(pdf_filename)
+                        
+                        # 2. Oferece o botão de download com esses bytes
                         st.download_button(
                             label="📥 Baixar PDF",
-                            data=pdf_bytes,
-                            file_name=os.path.basename(pdf_path),
+                            data=pdf_bytes_data,
+                            file_name=pdf_filename,
                             mime="application/pdf"
                         )
                     except Exception as e:
-                        st.warning(f"Não foi possível ler o arquivo PDF: {e}")
+                        st.warning(f"PDF registrado, mas não encontrado no Storage: {pdf_filename}")
+                        st.caption(f"Erro: {e}")
                 else:
-                    st.caption("PDF não disponível (pode ter expirado)")
+                    st.caption("Nenhum PDF associado a esta análise.")
+                # --- FIM DA MODIFICAÇÃO ---
                     
                 st.markdown("</div>", unsafe_allow_html=True)
                 
