@@ -766,21 +766,26 @@ def renderizar_sidebar():
         st.button("🚪 Sair (Logout)", on_click=logout, type="secondary", use_container_width=True)
 # --- FIM DA ATUALIZAÇÃO ---
 
-print("DEBUG: Chegou no teste do __do_logout")
-if st.session_state.get('__do_logout'):
-
 # =========================
 # Initial state & routing
 # =========================
+
+# 1. Inicializa a tela padrão se não existir
 if "tela" not in st.session_state:
     st.session_state.tela = "login"
 
+# 2. Inicializa o controle de logout se não existir
+if '__do_logout' not in st.session_state:
+    st.session_state['__do_logout'] = False
+
+# 3. Verifica se há token de redefinição de senha na URL
 qp = get_query_params()
 incoming_token = qp.get("reset_token") or qp.get("token") or ""
 if incoming_token and not st.session_state.get("ignore_reset_qp"):
     st.session_state.incoming_reset_token = incoming_token
     st.session_state.tela = "reset_password"
-    
+
+# 4. Se for logout, limpa tudo e volta para login
 if st.session_state.get('__do_logout'):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
