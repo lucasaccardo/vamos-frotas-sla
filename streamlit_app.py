@@ -21,17 +21,22 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from streamlit.components.v1 import html as components_html
 import json
-import uuid
+import uuid  # Corrigido
 
 # --- CONSTANTES DE IMAGEM (URLs) ---
+# 👇 URLs que você forneceu 👇
 FAVICON_URL = "https://i.imgur.com/qiAtZJP.png" 
-LOGO_URL_LOGIN = "https://i.imgur.com/twdegw4.png"
-LOGO_URL_SIDEBAR = "https://i.imgur.com/twdegw4.png"
-BACKGROUND_URL_LOGIN = "https://i.imgur.com/0Qw7Q1A.jpg"
+LOGO_URL_LOGIN = "https://i.imgur.com/qiAtZJP.png"
+LOGO_URL_SIDEBAR = "https://i.imgur.com/qiAtZJP.png"
+BACKGROUND_URL_LOGIN = "https://i.imgur.com/QbZzxrX.png" # Do seu estilo.css
 # ------------------------------------
 
-# --- DEFINIÇÃO DE HELPERS MOVIDA PARA O TOPO ---
+# --- 💡 CORREÇÃO: Funções movidas para o topo ---
 def resource_path(filename: str) -> str:
+    """
+    Resolve a path relative to this file or current working dir.
+    Works on Streamlit Cloud and locally.
+    """
     try:
         base = os.path.dirname(__file__)
     except Exception:
@@ -39,15 +44,20 @@ def resource_path(filename: str) -> str:
     return os.path.join(base, filename)
 
 def load_css(file_path):
+    """
+    Carrega um arquivo CSS local de forma robusta.
+    """
     full_path = resource_path(file_path)
     try:
         if os.path.exists(full_path):
             with open(full_path) as f:
                 st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
         else:
+            # Não emite aviso se o arquivo simplesmente não existir
             pass 
     except Exception as e:
         st.warning(f"Não foi possível carregar o 'estilo.css': {e}")
+# --- FIM DA CORREÇÃO ---
 
 
 # --- INICIALIZAÇÃO DO SUPABASE ---
@@ -63,8 +73,7 @@ if not url or not key:
 supabase: Client = create_client(url, key)
 # ---------------------------------
 
-# --- 💡 INÍCIO DA CORREÇÃO 1: Conversor de JSON 💡 ---
-# Esta função ensina o JSON a lidar com tipos de dados do Numpy/Pandas
+# --- 💡 CORREÇÃO 1: Conversor de JSON 💡 ---
 def converter_json(obj):
     """Converte tipos não-serializáveis (como numpy) para o JSON."""
     if isinstance(obj, (np.integer, np.int64)):
@@ -75,7 +84,6 @@ def converter_json(obj):
         return obj.tolist()
     if isinstance(obj, (datetime, pd.Timestamp)):
         return obj.isoformat()
-    # Se não for um tipo conhecido, levanta o erro
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 # --- FIM DA CORREÇÃO 1 ---
 
@@ -92,12 +100,12 @@ SUPERADMIN_USERNAME = st.secrets.get("SUPERADMIN_USERNAME", "lucas.sureira")
 
 
 # =========================
-# Page config (ATUALIZADO)
+# Page config (ATUALIZADO E MOVIDO)
 # =========================
 try:
     st.set_page_config(
         page_title="Frotas Vamos SLA",
-        page_icon=FAVICON_URL,
+        page_icon=FAVICON_URL,  # <-- ATUALIZADO
         layout="centered",
         initial_sidebar_state="expanded"
     )
@@ -109,6 +117,7 @@ except Exception as e:
         initial_sidebar_state="expanded"
     )
 
+# Carregue o CSS (agora 'resource_path' está definida)
 load_css("estilo.css")
 
 # =========================
@@ -137,7 +146,7 @@ def save_analises(df):
     except Exception as e:
         st.error(f"Erro ao salvar análises no Supabase: {e}")
 
-# --- 💡 INÍCIO DA CORREÇÃO 2: registrar_analise 💡 ---
+# --- 💡 CORREÇÃO 2: registrar_analise 💡 ---
 def registrar_analise(username, tipo, dados, pdf_bytes):
     novo_id = str(uuid.uuid4())
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -152,7 +161,6 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
             file_options={"content-type": "application/pdf"}
         )
     except Exception as e:
-        # Mostra o aviso que você viu, mas não quebra o app
         st.warning(f"Falha ao fazer upload do PDF para o Supabase Storage: {e}")
         pass
         
@@ -266,7 +274,7 @@ def save_user_db(df_users: pd.DataFrame):
 # =========================
 # Background helpers (Login) - ATUALIZADO
 # =========================
-def set_login_background_url(url: str):
+def setup_login_background():
     """
     Esta função agora só garante que o .stApp seja transparente,
     permitindo que o 'estilo.css' controle o fundo.
@@ -278,24 +286,12 @@ def set_login_background_url(url: str):
         html, body, .stApp {{ 
             background: transparent !important; 
         }}
-        /* Define o fundo do login via CSS se o 'estilo.css' falhar */
-        body:has(div[data-testid="stForm"]) {{
-            background-image: url("{url}") !important;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            min-height: 100vh;
-        }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
-        st.session_state["login_bg_applied"] = True
     except Exception as e:
         st.warning(f"Não foi possível aplicar estilos de fundo: {e}")
 
-
-def clear_login_background():
-    pass
 
 def limpar_todos_backgrounds():
     st.markdown('<style id="login-bg-setup"></style>', unsafe_allow_html=True)
@@ -304,6 +300,7 @@ def limpar_todos_backgrounds():
 def show_logo_url(url: str, width: int = 140):
     """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
+    # Esconde o botão 'expandir' que o Streamlit coloca nas imagens
     st.markdown("""
         <style>
         button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
@@ -802,15 +799,15 @@ if st.session_state.get('__do_logout'):
 if st.session_state.tela == "login":
     limpar_todos_backgrounds()
     # Chama a função que prepara o CSS para o 'estilo.css' funcionar
-    # O 'estilo.css' define a imagem de fundo, esta função só ajuda.
-    set_login_background_url(BACKGROUND_URL_LOGIN) 
+    # O 'estilo.css' define a imagem de fundo.
+    setup_login_background() 
     
+    # Removemos o CSS inline, pois ele agora está no 'estilo.css'
+    # Deixamos apenas o 'wrapper' para centralizar
     st.markdown("""
     <style id="login-card-safe">
-    /* A maioria dos estilos (fundo, etc.) vem do 'estilo.css' */
     section.main > div.block-container { max-width: 920px !important; margin: 0 auto !important; padding-top: 0 !important; padding-bottom: 0 !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .login-wrapper { width:100%; max-width:920px; margin:0 auto; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:24px 0; }
-    /* .login-card { ... } (Vem do estilo.css) */
     .brand-title { text-align:center; font-weight:700; font-size:22px; color:#E5E7EB; margin-bottom:6px; }
     .brand-subtitle { text-align:center; color: rgba(255,255,255,0.78); font-size:13px; margin-bottom:14px; }
     </style>
@@ -821,7 +818,6 @@ if st.session_state.tela == "login":
     st.markdown('<div class="login-card">', unsafe_allow_html=True) 
     
     st.markdown("<div style='text-align: center; margin-bottom: 12px;'>", unsafe_allow_html=True)
-    # --- ATUALIZADO para usar URL ---
     show_logo_url(LOGO_URL_LOGIN, width=140)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1634,7 +1630,8 @@ else:
                     st.markdown("---")
                     st.write("Peças adicionadas:")
                     opcoes_pecas = [f"{p['nome']} - {formatar_moeda(p['valor'])}" for p in st.session_state.pecas_atuais]
-                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas)
+                    # --- 💡 CORREÇÃO DE BUG 💡 ---
+                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas) # Corrigido de opcoes_locas
                     if st.button("🗑️ Remover Selecionadas", type="secondary", use_container_width=True):
                         if pecas_para_remover:
                             nomes_para_remover = [item.split(' - ')[0] for item in pecas_para_remover]
@@ -1712,7 +1709,7 @@ else:
         if df.empty:
             st.info("Nenhuma análise encontrada.")
         else:
-            usuarios = ["Todos"] + sorted(df["username"].unique())
+            usuarios = ["Todos"] + sorted(list(df["username"].unique()))
             usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
             if usuario_sel != "Todos":
                 df = df[df["username"] == usuario_sel]
