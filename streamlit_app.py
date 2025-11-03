@@ -4,7 +4,7 @@ import hashlib
 import secrets
 import smtplib
 import re
-import tempfile # Ainda usado por 'resource_path' em alguns ambientes
+import tempfile 
 from io import BytesIO
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -21,22 +21,17 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from streamlit.components.v1 import html as components_html
 import json
-import uuid  # Corrigido
+import uuid
 
 # --- CONSTANTES DE IMAGEM (URLs) ---
-# 👇 URLs que você forneceu 👇
 FAVICON_URL = "https://i.imgur.com/qiAtZJP.png" 
 LOGO_URL_LOGIN = "https://i.imgur.com/twdegw4.png"
-LOGO_URL_SIDEBAR = "https://i.imgur.com/twdegw4.png" # Usando a mesma logo, mude se for diferente
-BACKGROUND_URL_LOGIN = "https://i.imgur.com/0Qw7Q1A.jpg" # URL do seu estilo.css (para fallback)
+LOGO_URL_SIDEBAR = "https://i.imgur.com/twdegw4.png"
+BACKGROUND_URL_LOGIN = "https://i.imgur.com/0Qw7Q1A.jpg"
 # ------------------------------------
 
 # --- DEFINIÇÃO DE HELPERS MOVIDA PARA O TOPO ---
 def resource_path(filename: str) -> str:
-    """
-    Resolve a path relative to this file or current working dir.
-    Works on Streamlit Cloud and locally.
-    """
     try:
         base = os.path.dirname(__file__)
     except Exception:
@@ -44,16 +39,12 @@ def resource_path(filename: str) -> str:
     return os.path.join(base, filename)
 
 def load_css(file_path):
-    """
-    Carrega um arquivo CSS local de forma robusta.
-    """
     full_path = resource_path(file_path)
     try:
         if os.path.exists(full_path):
             with open(full_path) as f:
                 st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
         else:
-            # Não emite aviso se o arquivo simplesmente não existir
             pass 
     except Exception as e:
         st.warning(f"Não foi possível carregar o 'estilo.css': {e}")
@@ -72,6 +63,23 @@ if not url or not key:
 supabase: Client = create_client(url, key)
 # ---------------------------------
 
+# --- 💡 INÍCIO DA CORREÇÃO 1: Conversor de JSON 💡 ---
+# Esta função ensina o JSON a lidar com tipos de dados do Numpy/Pandas
+def converter_json(obj):
+    """Converte tipos não-serializáveis (como numpy) para o JSON."""
+    if isinstance(obj, (np.integer, np.int64)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float64)):
+        return float(obj)
+    if isinstance(obj, (np.ndarray)):
+        return obj.tolist()
+    if isinstance(obj, (datetime, pd.Timestamp)):
+        return obj.isoformat()
+    # Se não for um tipo conhecido, levanta o erro
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+# --- FIM DA CORREÇÃO 1 ---
+
+
 # --- Definição das colunas ---
 ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
 REQUIRED_USER_COLUMNS = [
@@ -89,12 +97,11 @@ SUPERADMIN_USERNAME = st.secrets.get("SUPERADMIN_USERNAME", "lucas.sureira")
 try:
     st.set_page_config(
         page_title="Frotas Vamos SLA",
-        page_icon=FAVICON_URL,  # <-- ATUALIZADO
+        page_icon=FAVICON_URL,
         layout="centered",
         initial_sidebar_state="expanded"
     )
 except Exception as e:
-    # Fallback para caso a URL da imagem falhe
     st.set_page_config(
         page_title="Frotas Vamos SLA",
         page_icon="🚛",
@@ -102,8 +109,6 @@ except Exception as e:
         initial_sidebar_state="expanded"
     )
 
-# Carregue o CSS (agora 'resource_path' está definida)
-# Fazemos isso *depois* do set_page_config
 load_css("estilo.css")
 
 # =========================
@@ -111,7 +116,7 @@ load_css("estilo.css")
 # =========================
 
 # --- Análises ---
-@st.cache_data(ttl=60) # Cache de 60 segundos
+@st.cache_data(ttl=60)
 def load_analises():
     try:
         response = supabase.table('analises').select("*").execute()
@@ -132,6 +137,7 @@ def save_analises(df):
     except Exception as e:
         st.error(f"Erro ao salvar análises no Supabase: {e}")
 
+# --- 💡 INÍCIO DA CORREÇÃO 2: registrar_analise 💡 ---
 def registrar_analise(username, tipo, dados, pdf_bytes):
     novo_id = str(uuid.uuid4())
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -139,13 +145,15 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
     pdf_filename = f"{tipo}_{username}_{novo_id}_{data_hora.replace(' ','_').replace(':','-')}.pdf"
     
     try:
+        # CORRIGIDO: Trocado .getbuffer() por .getvalue()
         supabase.storage.from_("pdfs").upload(
             path=pdf_filename,
-            file=pdf_bytes.getbuffer(),
+            file=pdf_bytes.getvalue(), # <--- CORREÇÃO AQUI
             file_options={"content-type": "application/pdf"}
         )
     except Exception as e:
-        st.error(f"Falha ao fazer upload do PDF para o Supabase Storage: {e}")
+        # Mostra o aviso que você viu, mas não quebra o app
+        st.warning(f"Falha ao fazer upload do PDF para o Supabase Storage: {e}")
         pass
         
     if isinstance(dados, pd.DataFrame):
@@ -158,7 +166,8 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         "username": username,
         "tipo": tipo,
         "data_hora": data_hora,
-        "dados_json": json.dumps(dados, ensure_ascii=False),
+        # CORRIGIDO: Adicionado o 'default=converter_json'
+        "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json), # <--- CORREÇÃO AQUI
         "pdf_path": pdf_filename
     }
     
@@ -167,6 +176,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         st.cache_data.clear()
     except Exception as e:
         st.error(f"Erro ao registrar análise no Supabase: {e}")
+# --- FIM DA CORREÇÃO 2 ---
 
 # --- Tickets ---
 @st.cache_data(ttl=60)
@@ -268,6 +278,14 @@ def set_login_background_url(url: str):
         html, body, .stApp {{ 
             background: transparent !important; 
         }}
+        /* Define o fundo do login via CSS se o 'estilo.css' falhar */
+        body:has(div[data-testid="stForm"]) {{
+            background-image: url("{url}") !important;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+        }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -277,8 +295,6 @@ def set_login_background_url(url: str):
 
 
 def clear_login_background():
-    # Esta função agora não precisa fazer nada, 
-    # pois 'aplicar_estilos_authenticated' vai sobrescrever o fundo.
     pass
 
 def limpar_todos_backgrounds():
@@ -288,7 +304,6 @@ def limpar_todos_backgrounds():
 def show_logo_url(url: str, width: int = 140):
     """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
-    # Esconde o botão 'expandir' que o Streamlit coloca nas imagens
     st.markdown("""
         <style>
         button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
@@ -359,12 +374,8 @@ def verify_password(stored_hash: str, provided_password: str) -> Tuple[bool, boo
 # Tema Autenticado (ATUALIZADO)
 # =========================
 def aplicar_estilos_authenticated():
-    # Badge (logo no canto) é desnecessário se o sidebar e o CSS já o têm.
-    # Vamos focar em garantir o fundo gradiente para telas logadas.
     css = """
     <style id="app-auth-style">
-    /* Seu estilo.css já define .main-container, etc. */
-    
     /* Esta função SÓ vai sobrescrever o fundo para as telas logadas,
        anulando o fundo de login do estilo.css */
     .stApp {
@@ -769,23 +780,15 @@ def renderizar_sidebar():
 # =========================
 # Initial state & routing
 # =========================
-
-# 1. Inicializa a tela padrão se não existir
 if "tela" not in st.session_state:
     st.session_state.tela = "login"
 
-# 2. Inicializa o controle de logout se não existir
-if '__do_logout' not in st.session_state:
-    st.session_state['__do_logout'] = False
-
-# 3. Verifica se há token de redefinição de senha na URL
 qp = get_query_params()
 incoming_token = qp.get("reset_token") or qp.get("token") or ""
 if incoming_token and not st.session_state.get("ignore_reset_qp"):
     st.session_state.incoming_reset_token = incoming_token
     st.session_state.tela = "reset_password"
-
-# 4. Se for logout, limpa tudo e volta para login
+    
 if st.session_state.get('__do_logout'):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -798,7 +801,9 @@ if st.session_state.get('__do_logout'):
 # =========================
 if st.session_state.tela == "login":
     limpar_todos_backgrounds()
-    load_css("estilo.css") 
+    # Chama a função que prepara o CSS para o 'estilo.css' funcionar
+    # O 'estilo.css' define a imagem de fundo, esta função só ajuda.
+    set_login_background_url(BACKGROUND_URL_LOGIN) 
     
     st.markdown("""
     <style id="login-card-safe">
@@ -1629,7 +1634,7 @@ else:
                     st.markdown("---")
                     st.write("Peças adicionadas:")
                     opcoes_pecas = [f"{p['nome']} - {formatar_moeda(p['valor'])}" for p in st.session_state.pecas_atuais]
-                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas) # Corrigido de opcoes_locas
+                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas)
                     if st.button("🗑️ Remover Selecionadas", type="secondary", use_container_width=True):
                         if pecas_para_remover:
                             nomes_para_remover = [item.split(' - ')[0] for item in pecas_para_remover]
