@@ -1,6 +1,6 @@
 /* === Fundo da tela de login === */
 .stApp {
-  background-image: url('https://i.imgur.com/QbZzxrX.png');
+  background-image: url('https://raw.githubusercontent.com/lucasaccardo/vamos-frotas-sla/main/assets/background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -30,7 +30,7 @@
 
 /* Se quiser forçar a logo em todas as telas (opcional) */
 .brand-badge, .sidebar .stImage img {
-  background-image: url('https://i.imgur.com/qiAtZJP.png');
+  background-image: url('https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true');
   background-size: contain;
   background-repeat: no-repeat;
 }
@@ -63,9 +63,7 @@ button:hover, .stButton>button:hover {
 h1, h2, h3, h4, h5 {
   color: #fff !important;
 }
-.stApp {
-  color: #E5E7EB !important;
-}
+/* A cor do .stApp já é definida na primeira regra */
 
 /* === Esconde header/footer do Streamlit (opcional) === */
 header[data-testid="stHeader"], #MainMenu, footer {
