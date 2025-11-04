@@ -5,3 +5,4 @@ openpyxl
 reportlab
 passlib[bcrypt]
 supabase
+xlsxwriter
