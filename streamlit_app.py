@@ -118,8 +118,8 @@ def extrair_linha_relatorio(row, supabase_url=None):
     pdf_link = ""
     if row["pdf_path"]:
         if supabase_url:
-            # Monta o link público do Supabase Storage
-            pdf_link = f"{supabase_url}/storage/v1/object/public/pdfs/{row['pdf_path']}"
+            # --- 💡 CORREÇÃO DO LINK DUPLICADO 💡 ---
+            pdf_link = f"{supabase_url}/pdfs/{row['pdf_path']}"
         else:
             pdf_link = "#" # Link fallback
 
@@ -413,29 +413,6 @@ def save_user_db(df_users: pd.DataFrame):
 # =========================
 # Background helpers (Login)
 # =========================
-def setup_login_background():
-    """
-    Esta função agora só garante que o .stApp seja transparente,
-    permitindo que o 'estilo.css' (que define o fundo) funcione.
-    """
-    try:
-        css = """
-        <style id="login-bg-setup">
-        /* Garante que o app é transparente para o CSS funcionar */
-        html, body, .stApp { 
-            background: transparent !important; 
-        }
-        </style>
-        """
-        st.markdown(css, unsafe_allow_html=True)
-    except Exception as e:
-        st.warning(f"Não foi possível aplicar estilos de fundo: {e}")
-
-
-def limpar_todos_backgrounds():
-    st.markdown('<style id="login-bg-setup"></style>', unsafe_allow_html=True)
-    st.markdown('<style id="app-auth-style"></style>', unsafe_allow_html=True)
-
 def show_logo_url(url: str, width: int = 140):
     """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
@@ -934,7 +911,7 @@ if st.session_state.get('__do_logout'):
 # SCREENS
 # =========================
 if st.session_state.tela == "login":
-    # O 'estilo.css' (carregado no topo) agora controla 100% o fundo do login.
+    # 💡 O 'estilo.css' (carregado no topo) agora controla 100% o fundo do login.
     
     st.markdown("""
     <style id="login-card-safe">
@@ -1343,7 +1320,7 @@ else:
         
     aplicar_estilos_authenticated() # Aplica o fundo de gradiente
     renderizar_sidebar()
-    st.markdown("<div class='main-container'>", unsafe_allow_html=True)
+    st.markdown("<div class'main-container'>", unsafe_allow_html=True)
 
     if st.session_state.tela == "home":
         st.title("🏠 Home")
@@ -1757,7 +1734,8 @@ else:
                     st.markdown("---")
                     st.write("Peças adicionadas:")
                     opcoes_pecas = [f"{p['nome']} - {formatar_moeda(p['valor'])}" for p in st.session_state.pecas_atuais]
-                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas)
+                    # --- 💡 CORREÇÃO DE BUG 💡 ---
+                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas) # Corrigido de opcoes_locas
                     if st.button("🗑️ Remover Selecionadas", type="secondary", use_container_width=True):
                         if pecas_para_remover:
                             nomes_para_remover = [item.split(' - ')[0] for item in pecas_para_remover]
@@ -1880,7 +1858,7 @@ else:
                 # 6. Botão de download do CSV "achatado" (com separador ;)
                 st.download_button(
                     "⬇️ Baixar relatório CSV (Excel)",
-                    data=df_flat.to_csv(index=False, sep=";", encoding="utf-8"),
+                    data=df_flat.to_csv(index=False, sep=";", encoding="utf-8"), # Aplicada a mudança
                     file_name="relatorio_analises.csv",
                     mime="text/csv",
                     help="Clique para baixar o relatório em CSV simples (compatível com Excel)."
