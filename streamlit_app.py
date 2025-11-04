@@ -108,7 +108,6 @@ def extrair_linha_relatorio(row, supabase_url=None):
     pdf_link = ""
     if row["pdf_path"]:
         if supabase_url:
-            # --- 💡 CORREÇÃO DO LINK DUPLICADO 💡 ---
             pdf_link = f"{supabase_url}/pdfs/{row['pdf_path']}"
         else:
             pdf_link = "#" 
@@ -816,7 +815,7 @@ def ir_para_reset(): st.session_state.tela = "reset_password"
 def ir_para_force_change(): st.session_state.tela = "force_change_password"
 def ir_para_relatorio_analises(): st.session_state.tela = "relatorio_analises"
 def ir_para_terms(): st.session_state.tela = "terms_consent"
-def ir_para_dashboard(): st.session_state.tela = "dashboard" # --- 💡 NOVA ADIÇÃO 💡 ---
+def ir_para_dashboard(): st.session_state.tela = "dashboard"
 
 
 def limpar_dados_comparativos():
@@ -856,7 +855,6 @@ def renderizar_sidebar():
         st.button("💬 Abrir Ticket", on_click=lambda: st.session_state.update({"tela": "tickets"}), use_container_width=True)
 
         if user_is_admin():
-            # --- 💡 NOVA ADIÇÃO 💡 ---
             st.button("📊 Dashboard de Análises", on_click=ir_para_dashboard, use_container_width=True)
             st.button("👤 Gerenciar Usuários", on_click=ir_para_admin, use_container_width=True)
             
@@ -1919,7 +1917,7 @@ else:
             # --- 💡 INÍCIO DA NOVA LÓGICA DE FILTRO 💡 ---
             opcoes_ano = ["Todos"]
             meses_map = {
-                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, # <-- CORRIGIDO
+                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
                 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
             }
             opcoes_mes = ["Todos"] + list(meses_map.keys())
@@ -2002,10 +2000,12 @@ else:
                 
                 st.markdown("---") # Divisor
 
-                # 7. Mostrar os dados na tela com links HTML (e Economia)
+                # 7. --- 💡 INÍCIO DA CORREÇÃO DO HTML 💡 ---
                 for idx, row in df_flat.iterrows():
                     economia_html = f"<b>Economia:</b> {row['Economia']}<br>" if row['Economia'] else ""
-                    st.markdown(f"""
+                    
+                    # Monta a string HTML primeiro
+                    html_string = f"""
                     <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
                         <b>Cliente:</b> {row['Cliente']}<br>
                         <b>Placa:</b> {row['Placa']}<br>
@@ -2016,7 +2016,10 @@ else:
                         <b>Data/Hora:</b> {row['Data/Hora']}<br>
                         <a href="{row['PDF']}" target="_blank" style="color: #60a5fa; text-decoration: none;">📥 Baixar PDF</a>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """
+                    # Passa a string pronta para o markdown
+                    st.markdown(html_string, unsafe_allow_html=True)
+                # --- 💡 FIM DA CORREÇÃO DO HTML 💡 ---
                 
             else:
                 st.info("Nenhuma análise encontrada para o filtro selecionado.")
