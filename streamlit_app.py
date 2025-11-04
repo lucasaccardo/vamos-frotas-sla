@@ -24,11 +24,11 @@ import json
 import uuid  # Corrigido
 
 # --- CONSTANTES DE IMAGEM (URLs) ---
-# 👇 URLs que você forneceu 👇
-FAVICON_URL = "https://i.imgur.com/qiAtZJP.png" 
-LOGO_URL_LOGIN = "https://i.imgur.com/twdegw4.png"
-LOGO_URL_SIDEBAR = "https://i.imgur.com/twdegw4.png"
-BACKGROUND_URL_LOGIN = "https://i.imgur.com/0Qw7Q1A.jpg"
+# 👇 URLs corretas do GitHub que você forneceu 👇
+FAVICON_URL = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+LOGO_URL_LOGIN = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+LOGO_URL_SIDEBAR = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+# O background agora é controlado 100% pelo 'estilo.css'
 # ------------------------------------
 
 # --- 💡 CORREÇÃO: Funções movidas para o topo ---
@@ -131,7 +131,7 @@ def extrair_linha_relatorio(row, supabase_url=None):
         "PDF": pdf_link,
     }
 
-# --- 💡 INÍCIO: Nova Função de Economia 💡 ---
+# --- Nova Função de Economia ---
 def calcular_economia(row):
     """
     Calcula a economia entre o cenário mais caro e o mais barato.
@@ -238,7 +238,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
     try:
         supabase.storage.from_("pdfs").upload(
             path=pdf_filename,
-            file=pdf_bytes.getvalue(), 
+            file=pdf_bytes.getvalue(), # Corrigido: .getbuffer() -> .getvalue()
             file_options={"content-type": "application/pdf"}
         )
     except Exception as e:
@@ -255,7 +255,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         "username": username,
         "tipo": tipo,
         "data_hora": data_hora,
-        "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json),
+        "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json), # Corrigido: usa o conversor
         "pdf_path": pdf_filename
     }
     
@@ -366,7 +366,7 @@ def save_user_db(df_users: pd.DataFrame):
         st.error(f"Erro ao salvar usuários no Supabase: {e}")
 
 # =========================
-# Background helpers (Login) - ATUALIZADO
+# Background helpers (Login)
 # =========================
 def setup_login_background():
     """
@@ -461,7 +461,7 @@ def verify_password(stored_hash: str, provided_password: str) -> Tuple[bool, boo
     return ok, bool(ok)
 
 # =========================
-# Tema Autenticado (ATUALIZADO)
+# Tema Autenticado
 # =========================
 def aplicar_estilos_authenticated():
     css = """
@@ -473,8 +473,7 @@ def aplicar_estilos_authenticated():
         background: radial-gradient(circle at 10% 10%, rgba(15,23,42,0.96) 0%, rgba(11,17,24,1) 50%) !important;
     }
     
-    /* Garante que o CSS de esconder o menu seja aplicado 
-       (seu estilo.css já faz isso, mas é bom garantir) */
+    /* Garante que o CSS de esconder o menu seja aplicado */
     header[data-testid="stHeader"], #MainMenu, footer {
         display: none !important;
     }
@@ -1816,8 +1815,7 @@ else:
                 # 2. Criar o DataFrame "achatado"
                 df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
 
-                # 3. Adiciona coluna Economia
-                # (Corrigido para iterar sobre 'df' original, como 'calcular_economia' espera)
+                # 3. Adiciona coluna Economia (usando o 'df' original)
                 df_flat["Economia"] = [calcular_economia(row) for _, row in df.iterrows()]
                 
                 # 4. Reordena as colunas
@@ -1827,11 +1825,10 @@ else:
                 ]
                 df_flat = df_flat[[c for c in colunas if c in df_flat.columns]]
 
-                # 5. Botão de download do CSV "achatado"
-                csv_bytes = df_flat.to_csv(index=False).encode("utf-8")
+                # 5. Botão de download do CSV "achatado" (com separador ;)
                 st.download_button(
                     "⬇️ Baixar relatório CSV (Excel)",
-                    data=csv_bytes,
+                    data=df_flat.to_csv(index=False, sep=";", encoding="utf-8"), # Aplicada a mudança
                     file_name="relatorio_analises.csv",
                     mime="text/csv",
                     help="Clique para baixar o relatório já formatado para Excel!"
@@ -1839,7 +1836,7 @@ else:
                 
                 st.markdown("---") # Divisor
 
-                # 6. Mostrar os dados na tela com links HTML
+                # 6. Mostrar os dados na tela com links HTML (e Economia)
                 for idx, row in df_flat.iterrows():
                     st.markdown(f"""
                     <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
