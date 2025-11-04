@@ -24,13 +24,14 @@ import json
 import uuid  # Corrigido
 
 # --- CONSTANTES DE IMAGEM (URLs) ---
-# 👇 URLs que você forneceu 👇
-FAVICON_URL = "https://i.imgur.com/qiAtZJP.png" 
-LOGO_URL_LOGIN = "https://i.imgur.com/qiAtZJP.png"
-LOGO_URL_SIDEBAR = "https://i.imgur.com/qiAtZJP.png"
+# 👇 URLs corretas do GitHub que você forneceu 👇
+FAVICON_URL = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+LOGO_URL_LOGIN = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+LOGO_URL_SIDEBAR = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
+# O background agora é controlado 100% pelo 'estilo.css'
 # ------------------------------------
 
-# --- DEFINIÇÃO DE HELPERS MOVIDA PARA O TOPO ---
+# --- 💡 CORREÇÃO: Funções movidas para o topo ---
 def resource_path(filename: str) -> str:
     """
     Resolve a path relative to this file or current working dir.
@@ -295,6 +296,7 @@ def limpar_todos_backgrounds():
 def show_logo_url(url: str, width: int = 140):
     """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
+    # Esconde o botão 'expandir' que o Streamlit coloca nas imagens
     st.markdown("""
         <style>
         button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
@@ -1093,7 +1095,7 @@ elif st.session_state.tela == "force_change_password":
                 st.error("As senhas não conferem."); st.stop()
             ok, errs = validate_password_policy(new_pass, username=uname, email=email)
             if not ok:
-                st.error("Regras de senha não atendidas:\n- " + "\n- ".join(errs)); st.stop()
+                st.error("Regras de senha não atendidas:\n- "D" + "\n- ".join(errs)); st.stop()
             same, _ = verify_password(df.loc[idx, "password"], new_pass)
             if same:
                 st.error("A nova senha não pode ser igual à senha atual."); st.stop()
