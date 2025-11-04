@@ -24,11 +24,11 @@ import json
 import uuid  # Corrigido
 
 # --- CONSTANTES DE IMAGEM (URLs) ---
-# 👇 URLs corretas do GitHub que você forneceu 👇
-FAVICON_URL = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
-LOGO_URL_LOGIN = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
-LOGO_URL_SIDEBAR = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
-# O background agora é controlado 100% pelo 'estilo.css'
+# 👇 URLs que você forneceu 👇
+FAVICON_URL = "https://i.imgur.com/qiAtZJP.png" 
+LOGO_URL_LOGIN = "https://i.imgur.com/twdegw4.png"
+LOGO_URL_SIDEBAR = "https://i.imgur.com/twdegw4.png"
+BACKGROUND_URL_LOGIN = "https://i.imgur.com/0Qw7Q1A.jpg"
 # ------------------------------------
 
 # --- 💡 CORREÇÃO: Funções movidas para o topo ---
@@ -87,7 +87,7 @@ def converter_json(obj):
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 # --- FIM ---
 
-# --- 💡 INÍCIO: Nova Função de Relatório 💡 ---
+# --- Função de Relatório (Achatada) ---
 def extrair_linha_relatorio(row, supabase_url=None):
     """
     Recebe uma linha do DataFrame de análises e retorna um dicionário 'achatado' com os campos principais.
@@ -130,7 +130,39 @@ def extrair_linha_relatorio(row, supabase_url=None):
         "Data/Hora": row["data_hora"],
         "PDF": pdf_link,
     }
-# --- FIM: Nova Função de Relatório ---
+
+# --- 💡 INÍCIO: Nova Função de Economia 💡 ---
+def calcular_economia(row):
+    """
+    Calcula a economia entre o cenário mais caro e o mais barato.
+    """
+    # Só calcula para tipo "cenarios"
+    if row.get("tipo") == "cenarios":
+        try:
+            dados = json.loads(row["dados_json"])
+        except Exception:
+            dados = row["dados_json"]
+        
+        cenarios = dados.get("cenarios", [])
+        valores = []
+        for c in cenarios:
+            v = c.get("Total Final (R$)")
+            if isinstance(v, str):
+                v = v.replace("R$", "").replace(".", "").replace(",", ".")
+            try:
+                valores.append(float(v))
+            except:
+                pass
+        
+        if len(valores) > 1: # Só calcula se houver mais de 1 cenário
+            menor = min(valores)
+            maior = max(valores)
+            economia = maior - menor
+            if economia > 0:
+                return f"R${economia:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return "" # Retorna vazio se não for 'cenarios' ou não houver economia
+# --- FIM: Nova Função de Economia ---
+
 
 # --- Definição das colunas ---
 ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
@@ -206,7 +238,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
     try:
         supabase.storage.from_("pdfs").upload(
             path=pdf_filename,
-            file=pdf_bytes.getvalue(), # Corrigido: .getbuffer() -> .getvalue()
+            file=pdf_bytes.getvalue(), 
             file_options={"content-type": "application/pdf"}
         )
     except Exception as e:
@@ -223,7 +255,7 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         "username": username,
         "tipo": tipo,
         "data_hora": data_hora,
-        "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json), # Corrigido: usa o conversor
+        "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json),
         "pdf_path": pdf_filename
     }
     
@@ -858,8 +890,9 @@ if st.session_state.get('__do_logout'):
 # SCREENS
 # =========================
 if st.session_state.tela == "login":
-    # 💡 REMOVIDO: limpar_todos_backgrounds() e setup_login_background()
-    # Agora o 'estilo.css' controla 100% o fundo do login.
+    # 💡 REMOVIDO: limpar_todos_backgrounds()
+    # 💡 REMOVIDO: setup_login_background()
+    # 'estilo.css' (carregado no topo) agora controla 100% o fundo do login.
     
     st.markdown("""
     <style id="login-card-safe">
@@ -873,7 +906,6 @@ if st.session_state.tela == "login":
     """, unsafe_allow_html=True)
     
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-    # Adicionando o 'login-card' que seu CSS espera
     st.markdown('<div class="login-card">', unsafe_allow_html=True) 
     
     st.markdown("<div style='text-align: center; margin-bottom: 12px;'>", unsafe_allow_html=True)
@@ -939,7 +971,6 @@ if st.session_state.tela == "login":
 # Register
 # ---------------------------
 elif st.session_state.tela == "register":
-    # 💡 REMOVIDO: limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🆕 Sign up")
@@ -1037,7 +1068,6 @@ elif st.session_state.tela == "register":
 # Screens: Forgot/Reset/Force/Terms
 # =========================
 elif st.session_state.tela == "forgot_password":
-    # 💡 REMOVIDO: limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔐 Reset Password")
@@ -1070,7 +1100,6 @@ elif st.session_state.tela == "forgot_password":
 
 
 elif st.session_state.tela == "reset_password":
-    # 💡 REMOVIDO: limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔁 Redefinir senha")
@@ -1134,7 +1163,6 @@ elif st.session_state.tela == "reset_password":
 
 
 elif st.session_state.tela == "force_change_password":
-    # 💡 REMOVIDO: limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("🔒 Alteração obrigatória de senha")
@@ -1178,7 +1206,6 @@ elif st.session_state.tela == "force_change_password":
 # Terms / LGPD (full)
 # =========================
 elif st.session_state.tela == "terms_consent":
-    # 💡 REMOVIDO: limpar_todos_backgrounds()
     aplicar_estilos_authenticated()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     st.title("Termos e Condições de Uso e Política de Privacidade (LGPD)")
@@ -1789,7 +1816,30 @@ else:
                 # 2. Criar o DataFrame "achatado"
                 df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
 
-                # 3. Mostrar os dados na tela com links HTML
+                # 3. Adiciona coluna Economia
+                # (Corrigido para iterar sobre 'df' original, como 'calcular_economia' espera)
+                df_flat["Economia"] = [calcular_economia(row) for _, row in df.iterrows()]
+                
+                # 4. Reordena as colunas
+                colunas = [
+                    "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
+                    "Usuário", "Data/Hora", "PDF"
+                ]
+                df_flat = df_flat[[c for c in colunas if c in df_flat.columns]]
+
+                # 5. Botão de download do CSV "achatado"
+                csv_bytes = df_flat.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇️ Baixar relatório CSV (Excel)",
+                    data=csv_bytes,
+                    file_name="relatorio_analises.csv",
+                    mime="text/csv",
+                    help="Clique para baixar o relatório já formatado para Excel!"
+                )
+                
+                st.markdown("---") # Divisor
+
+                # 6. Mostrar os dados na tela com links HTML
                 for idx, row in df_flat.iterrows():
                     st.markdown(f"""
                     <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
@@ -1797,15 +1847,12 @@ else:
                         <b>Placa:</b> {row['Placa']}<br>
                         <b>Serviço:</b> {row['Serviço']}<br>
                         <b>Valor Final:</b> {row['Valor Final']}<br>
+                        <b>Economia:</b> {row['Economia']}<br>
                         <b>Usuário:</b> {row['Usuário']}<br>
                         <b>Data/Hora:</b> {row['Data/Hora']}<br>
                         <a href="{row['PDF']}" target="_blank" style="color: #60a5fa; text-decoration: none;">📥 Baixar PDF</a>
                     </div>
                     """, unsafe_allow_html=True)
-                
-                # 4. Criar o botão de download do CSV "achatado"
-                csv_bytes = df_flat.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Baixar relatório CSV", data=csv_bytes, file_name="relatorio_analises.csv", mime="text/csv")
                 
                 # --- FIM DA NOVA LÓGICA DE RELATÓRIO ---
                 
