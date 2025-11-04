@@ -28,7 +28,7 @@ import uuid  # Corrigido
 FAVICON_URL = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
 LOGO_URL_LOGIN = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
 LOGO_URL_SIDEBAR = "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true"
-# O background agora é controlado 100% pelo 'estilo.css'
+BACKGROUND_URL_LOGIN = "https://raw.githubusercontent.com/lucasaccardo/vamos-frotas-sla/main/assets/background.png"
 # ------------------------------------
 
 # --- 💡 CORREÇÃO: Funções movidas para o topo ---
@@ -86,6 +86,51 @@ def converter_json(obj):
         return obj.isoformat()
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 # --- FIM ---
+
+# --- 💡 INÍCIO: Nova Função de Relatório 💡 ---
+def extrair_linha_relatorio(row, supabase_url=None):
+    """
+    Recebe uma linha do DataFrame de análises e retorna um dicionário 'achatado' com os campos principais.
+    """
+    try:
+        dados = json.loads(row["dados_json"])
+    except Exception:
+        dados = row["dados_json"]
+
+    # Se for simulação de cenários, pega o melhor cenário
+    if row["tipo"] == "cenarios":
+        melhor = dados.get("melhor", {})
+        cliente = melhor.get("Cliente", "-")
+        placa = melhor.get("Placa", "-")
+        servico = melhor.get("Serviço", "-")
+        valor_final = melhor.get("Total Final (R$)", "-")
+    elif row["tipo"] == "sla_mensal":
+        cliente = dados.get("cliente", "-")
+        placa = dados.get("placa", "-")
+        servico = dados.get("tipo_servico", "-")
+        valor_final = f'R${dados.get("mensalidade", 0) - dados.get("desconto", 0):,.2f}'.replace(",", "X").replace(".", ",").replace("X", ".")
+    else:
+        cliente = placa = servico = valor_final = "-"
+
+    # Monta link do PDF se possível
+    pdf_link = ""
+    if row["pdf_path"]:
+        if supabase_url:
+            # Monta o link público do Supabase Storage
+            pdf_link = f"{supabase_url}/storage/v1/object/public/pdfs/{row['pdf_path']}"
+        else:
+            pdf_link = "#" # Link fallback
+
+    return {
+        "Cliente": cliente,
+        "Placa": placa,
+        "Serviço": servico,
+        "Valor Final": valor_final,
+        "Usuário": row["username"],
+        "Data/Hora": row["data_hora"],
+        "PDF": pdf_link,
+    }
+# --- FIM: Nova Função de Relatório ---
 
 
 # --- Definição das colunas ---
@@ -270,6 +315,29 @@ def save_user_db(df_users: pd.DataFrame):
 # =========================
 # Background helpers (Login) - ATUALIZADO
 # =========================
+def setup_login_background():
+    """
+    Esta função agora só garante que o .stApp seja transparente,
+    permitindo que o 'estilo.css' (que define o fundo) funcione.
+    """
+    try:
+        css = """
+        <style id="login-bg-setup">
+        /* Garante que o app é transparente para o CSS funcionar */
+        html, body, .stApp { 
+            background: transparent !important; 
+        }
+        </style>
+        """
+        st.markdown(css, unsafe_allow_html=True)
+    except Exception as e:
+        st.warning(f"Não foi possível aplicar estilos de fundo: {e}")
+
+
+def limpar_todos_backgrounds():
+    st.markdown('<style id="login-bg-setup"></style>', unsafe_allow_html=True)
+    st.markdown('<style id="app-auth-style"></style>', unsafe_allow_html=True)
+
 def show_logo_url(url: str, width: int = 140):
     """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
@@ -785,6 +853,7 @@ if st.session_state.tela == "login":
     """, unsafe_allow_html=True)
     
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
+    # Adicionando o 'login-card' que seu CSS espera
     st.markdown('<div class="login-card">', unsafe_allow_html=True) 
     
     st.markdown("<div style='text-align: center; margin-bottom: 12px;'>", unsafe_allow_html=True)
@@ -1667,7 +1736,7 @@ else:
             st.info("Você ainda não abriu nenhum ticket.")
 
     # =========================
-    # Tela: Relatório de Análises
+    # Tela: Relatório de Análises (ATUALIZADA)
     # =========================
     elif st.session_state.tela == "relatorio_analises":
         if not user_is_admin() and not user_is_superadmin():
@@ -1691,43 +1760,35 @@ else:
             st.write(f"Total de análises: {len(df)}")
             
             if not df.empty:
-                for _, row in df.sort_values("data_hora", ascending=False).iterrows():
-                    try:
-                        dados = json.loads(row["dados_json"])
-                    except Exception:
-                        dados = row["dados_json"]
-                        
+                
+                # --- 💡 INÍCIO DA NOVA LÓGICA DE RELATÓRIO 💡 ---
+                
+                # 1. Construir a URL pública do Supabase
+                supabase_public_url = f"{url}/storage/v1/object/public"
+                
+                # 2. Criar o DataFrame "achatado"
+                df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
+
+                # 3. Mostrar os dados na tela com links HTML
+                for idx, row in df_flat.iterrows():
                     st.markdown(f"""
                     <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
-                    <b>ID:</b> {row['id']}<br>
-                    <b>Usuário:</b> {row['username']}<br>
-                    <b>Tipo:</b> {row['tipo']}<br>
-                    <b>Data/Hora:</b> {row['data_hora']}<br>
-                    <b>Dados:</b> <pre style="font-size:12px">{json.dumps(dados, indent=2, ensure_ascii=False)}</pre>
+                        <b>Cliente:</b> {row['Cliente']}<br>
+                        <b>Placa:</b> {row['Placa']}<br>
+                        <b>Serviço:</b> {row['Serviço']}<br>
+                        <b>Valor Final:</b> {row['Valor Final']}<br>
+                        <b>Usuário:</b> {row['Usuário']}<br>
+                        <b>Data/Hora:</b> {row['Data/Hora']}<br>
+                        <a href="{row['PDF']}" target="_blank" style="color: #60a5fa; text-decoration: none;">📥 Baixar PDF</a>
+                    </div>
                     """, unsafe_allow_html=True)
-                    
-                    pdf_filename = row["pdf_path"]
-                    if pdf_filename:
-                        try:
-                            pdf_bytes_data = supabase.storage.from_("pdfs").download(pdf_filename)
-                            
-                            st.download_button(
-                                label="📥 Baixar PDF",
-                                data=pdf_bytes_data,
-                                file_name=pdf_filename,
-                                mime="application/pdf",
-                                key=f"download_{row['id']}" # Chave única para o botão
-                            )
-                        except Exception as e:
-                            st.warning(f"PDF registrado ({pdf_filename}), mas não encontrado no Storage.")
-                            # st.caption(f"Erro: {e}") # Opcional: debug
-                    else:
-                        st.caption("Nenhum PDF associado a esta análise.")
-                        
-                    st.markdown("</div>", unsafe_allow_html=True)
-                    
-                csv_bytes = df.to_csv(index=False).encode("utf-8")
+                
+                # 4. Criar o botão de download do CSV "achatado"
+                csv_bytes = df_flat.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Baixar relatório CSV", data=csv_bytes, file_name="relatorio_analises.csv", mime="text/csv")
+                
+                # --- FIM DA NOVA LÓGICA DE RELATÓRIO ---
+                
             else:
                 st.info("Nenhuma análise encontrada para o filtro selecionado.")
             
