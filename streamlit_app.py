@@ -108,7 +108,7 @@ def extrair_linha_relatorio(row, supabase_url=None):
     pdf_link = ""
     if row["pdf_path"]:
         if supabase_url:
-            pdf_link = f"{supabase_url}/pdfs/{row['pdf_path']}"
+            pdf_link = f"{supabase_url}/pdfs/{row['pdf_path']}" # Link corrigido
         else:
             pdf_link = "#" 
 
