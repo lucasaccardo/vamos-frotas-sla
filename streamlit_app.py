@@ -1830,7 +1830,7 @@ else:
             # --- 💡 INÍCIO DA NOVA LÓGICA DE FILTRO 💡 ---
             opcoes_ano = ["Todos"]
             meses_map = {
-                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho',
+                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
                 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
             }
             opcoes_mes = ["Todos"] + list(meses_map.keys())
