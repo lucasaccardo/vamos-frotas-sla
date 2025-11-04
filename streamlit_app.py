@@ -343,7 +343,7 @@ def load_user_db() -> pd.DataFrame:
         tmp_pwd = (st.secrets.get("SUPERADMIN_DEFAULT_PASSWORD", "") or "").strip()
         
         # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
-        now_brasilia = datetime.now(tz_brasilia).strftime("%Y-%m-%d %H:%M:%S")
+        now_brasilia_str = datetime.now(tz_brasilia).strftime("%Y-%m-%d %H:%M:%S")
 
         admin_defaults = {
             "username": SUPERADMIN_USERNAME,
@@ -356,7 +356,7 @@ def load_user_db() -> pd.DataFrame:
             "accepted_terms_on": "",
             "reset_token": "",
             "reset_expires_at": "",
-            "last_password_change": now_brasilia if tmp_pwd else "",
+            "last_password_change": now_brasilia_str if tmp_pwd else "",
             "force_password_reset": "" if tmp_pwd else "1",
         }
         
@@ -391,10 +391,6 @@ def save_user_db(df_users: pd.DataFrame):
 # Background helpers (Login)
 # =========================
 def setup_login_background():
-    """
-    Esta função agora só garante que o .stApp seja transparente,
-    permitindo que o 'estilo.css' (que define o fundo) funcione.
-    """
     try:
         css = """
         <style id="login-bg-setup">
@@ -414,7 +410,6 @@ def limpar_todos_backgrounds():
     st.markdown('<style id="app-auth-style"></style>', unsafe_allow_html=True)
 
 def show_logo_url(url: str, width: int = 140):
-    """Mostra uma imagem de uma URL e esconde o botão de expandir."""
     st.image(url, width=width)
     st.markdown("""
         <style>
@@ -703,8 +698,15 @@ def is_password_expired(row) -> bool:
             return True
         last_dt = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
         expiry_days = int(st.secrets.get("PASSWORD_EXPIRY_DAYS", 90))
-        return datetime.utcnow() > (last_dt + timedelta(days=expiry_days))
+        
+        # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
+        # Torna o 'last_dt' ciente do fuso horário para comparação justa
+        last_dt_aware = tz_brasilia.localize(last_dt)
+        now_aware = datetime.now(tz_brasilia)
+        
+        return now_aware > (last_dt_aware + timedelta(days=expiry_days))
     except Exception:
+        # Se last_password_change for inválido, força a redefinição
         return True
         
 # =========================
@@ -861,7 +863,6 @@ def renderizar_sidebar():
     with st.sidebar:
         st.markdown("<div style='text-align:center;padding-top:8px'>", unsafe_allow_html=True)
         try:
-            # Mostra o logo da sidebar a partir da URL
             show_logo_url(LOGO_URL_SIDEBAR, width=100)
         except Exception as e:
             pass
@@ -911,14 +912,12 @@ if st.session_state.get('__do_logout'):
 # SCREENS
 # =========================
 if st.session_state.tela == "login":
-    # O 'estilo.css' (carregado no topo) agora controla 100% o fundo do login.
+    # 'estilo.css' (carregado no topo) agora controla 100% o fundo do login.
     
     st.markdown("""
     <style id="login-card-safe">
-    /* A maioria dos estilos (fundo, etc.) vem do 'estilo.css' */
     section.main > div.block-container { max-width: 920px !important; margin: 0 auto !important; padding-top: 0 !important; padding-bottom: 0 !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .login-wrapper { width:100%; max-width:920px; margin:0 auto; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:24px 0; }
-    /* .login-card { ... } (Vem do estilo.css) */
     .brand-title { text-align:center; font-weight:700; font-size:22px; color:#E5E7EB; margin-bottom:6px; }
     .brand-subtitle { text-align:center; color: rgba(255,255,255,0.78); font-size:13px; margin-bottom:14px; }
     </style>
@@ -1107,6 +1106,7 @@ elif st.session_state.tela == "forgot_password":
                 st.warning("Seu cadastro ainda não foi aprovado pelo administrador.")
             else:
                 token = secrets.token_urlsafe(32)
+                # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                 expires = (datetime.now(tz_brasilia) + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                 df.loc[idx, "reset_token"] = token
                 df.loc[idx, "reset_expires_at"] = expires
@@ -1152,7 +1152,7 @@ elif st.session_state.tela == "reset_password":
                 idx = rows.index[0]
                 try:
                     exp = datetime.strptime(df.loc[idx, "reset_expires_at"], "%Y-%m-%d %H:%M:%S")
-                    # Compara com o fuso horário correto
+                    # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                     exp_aware = tz_brasilia.localize(exp)
                     now_aware = datetime.now(tz_brasilia)
                 except Exception:
@@ -1298,6 +1298,7 @@ elif st.session_state.tela == "terms_consent":
     consent = st.checkbox("Eu li e concordo com os Termos e Condições.")
     if st.button("Continuar", disabled=not consent, type="primary"):
         df_users = load_user_db()
+        # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
         now = datetime.now(tz_brasilia).strftime('%Y-%m-%d %H:%M:%S')
         username = st.session_state.get("username", "")
         if username:
@@ -1394,6 +1395,7 @@ else:
                         if email:
                             if not df_users.loc[idx, "password"]:
                                 token = secrets.token_urlsafe(32)
+                                # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                                 expires = (datetime.now(tz_brasilia) + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                                 df_users.loc[idx, "reset_token"] = token
                                 df_users.loc[idx, "reset_expires_at"] = expires
@@ -1427,6 +1429,7 @@ else:
             with col1:
                 if st.button("🔁 Forçar redefinição de senha (enviar link)"):
                     token = secrets.token_urlsafe(32)
+                    # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                     expires = (datetime.now(tz_brasilia) + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                     df_users.loc[idx,"reset_token"] = token
                     df_users.loc[idx,"reset_expires_at"] = expires
@@ -1495,6 +1498,7 @@ else:
                             "matricula": new_matricula.strip(),
                             "email": new_email.strip(),
                             "status": status,
+                            # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                             "last_password_change": datetime.now(tz_brasilia).strftime("%Y-%m-%d %H:%M:%S") if pwd_hash else "",
                             "force_password_reset": "" if pwd_hash else "1"
                         })
@@ -1513,6 +1517,7 @@ else:
                             if idx_list:
                                 idx2 = idx_list[0]
                                 token = secrets.token_urlsafe(32)
+                                # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
                                 expires = (datetime.now(tz_brasilia) + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                                 df_users_reloaded.loc[idx2,"reset_token"] = token
                                 df_users_reloaded.loc[idx2,"reset_expires_at"] = expires
@@ -1556,8 +1561,10 @@ else:
             mensalidade = st.number_input("Mensalidade (R$)", min_value=0.0, step=0.01, format="%.2f", value=float(mensalidade) if mensalidade else 0.0)
             st.subheader("2) Período e Serviço")
             c1, c2 = st.columns(2)
-            data_entrada = c1.date_input("Data de entrada", datetime.now(tz_brasilia).date())
-            data_saida = c2.date_input("Data de saída", datetime.now(tz_brasilia).date() + timedelta(days=3))
+            # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
+            data_hoje = datetime.now(tz_brasilia).date()
+            data_entrada = c1.date_input("Data de entrada", data_hoje)
+            data_saida = c2.date_input("Data de saída", data_hoje + timedelta(days=3))
             feriados = c1.number_input("Feriados no período:", min_value=0, step=1, value=0)
             tipo_servico = c2.selectbox("Tipo de serviço (SLA)", [
                 "Preventiva – 2 dias úteis",
@@ -1702,8 +1709,10 @@ else:
                 with st.form(key=f"form_cenario_{len(st.session_state.cenarios)}", clear_on_submit=True):
                     st.subheader("2. Detalhes do Serviço")
                     subcol1, subcol2 = st.columns(2)
-                    entrada = subcol1.date_input("📅 Data de entrada:", datetime.now(tz_brasilia).date())
-                    saida = subcol2.date_input("📅 Data de saída:", datetime.now(tz_brasilia).date() + timedelta(days=5))
+                    # --- 💡 NOVA ADIÇÃO: Fuso Horário 💡 ---
+                    data_hoje = datetime.now(tz_brasilia).date()
+                    entrada = subcol1.date_input("📅 Data de entrada:", data_hoje)
+                    saida = subcol2.date_input("📅 Data de saída:", data_hoje + timedelta(days=5))
                     feriados = subcol1.number_input("📌 Feriados no período:", min_value=0, step=1)
                     servico = subcol2.selectbox("🛠️ Tipo de serviço:", ["Preventiva – 2 dias úteis", "Corretiva – 3 dias úteis", "Preventiva + Corretiva – 5 dias úteis", "Motor – 15 dias úteis"])
                     with st.expander("Verificar Peças Adicionadas"):
@@ -1739,7 +1748,7 @@ else:
                     st.markdown("---")
                     st.write("Peças adicionadas:")
                     opcoes_pecas = [f"{p['nome']} - {formatar_moeda(p['valor'])}" for p in st.session_state.pecas_atuais]
-                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas)
+                    pecas_para_remover = st.multiselect("Selecione para remover:", options=opcoes_pecas) 
                     if st.button("🗑️ Remover Selecionadas", type="secondary", use_container_width=True):
                         if pecas_para_remover:
                             nomes_para_remover = [item.split(' - ')[0] for item in pecas_para_remover]
@@ -1818,38 +1827,53 @@ else:
         if df.empty:
             st.info("Nenhuma análise encontrada.")
         else:
-            # --- 💡 INÍCIO DA NOVA LÓGICA DE FILTRO DE MÊS 💡 ---
-            opcoes_mes = ["Todos"]
+            # --- 💡 INÍCIO DA NOVA LÓGICA DE FILTRO 💡 ---
+            opcoes_ano = ["Todos"]
+            meses_map = {
+                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho',
+                'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+            }
+            opcoes_mes = ["Todos"] + list(meses_map.keys())
+
             if not df.empty:
                 df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce')
-                df = df.dropna(subset=['data_hora_dt']) # Remove linhas com datas inválidas
+                df = df.dropna(subset=['data_hora_dt']) 
                 
                 if not df.empty:
-                    df['mes_ano_filtro'] = df['data_hora_dt'].dt.strftime('%Y-%m')
-                    meses_disponiveis = sorted(df['mes_ano_filtro'].unique(), reverse=True)
-                    opcoes_mes = ["Todos"] + meses_disponiveis
+                    df['ano_filtro'] = df['data_hora_dt'].dt.year
+                    df['mes_filtro'] = df['data_hora_dt'].dt.month
+                    
+                    anos_disponiveis = sorted(df['ano_filtro'].unique(), reverse=True)
+                    opcoes_ano = ["Todos"] + [int(a) for a in anos_disponiveis]
             # --- FIM DA NOVA LÓGICA ---
 
             usuarios = ["Todos"] + sorted(list(df["username"].unique()))
-            usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
             
-            mes_sel = st.selectbox("Filtrar por mês:", opcoes_mes) # <-- NOVO FILTRO
-            
+            # --- 💡 NOVOS FILTROS (EM COLUNAS) 💡 ---
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
+            with col2:
+                ano_sel = st.selectbox("Filtrar por ano:", opcoes_ano)
+            with col3:
+                mes_sel = st.selectbox("Filtrar por mês:", opcoes_mes)
+                
             tipo_sel = st.selectbox("Tipo de análise:", ["Todos", "cenarios", "sla_mensal"])
-            
+            # --- FIM DOS NOVOS FILTROS ---
+                
             # Aplicar filtros
             if usuario_sel != "Todos":
                 df = df[df["username"] == usuario_sel]
             if tipo_sel != "Todos":
                 df = df[df["tipo"] == tipo_sel]
+            if ano_sel != "Todos":
+                df = df[df['ano_filtro'] == ano_sel]
             if mes_sel != "Todos":
-                df = df[df['mes_ano_filtro'] == mes_sel]
+                df = df[df['mes_filtro'] == meses_map[mes_sel]]
                 
             st.write(f"Total de análises: {len(df)}")
             
             if not df.empty:
-                
-                # --- 💡 INÍCIO DA NOVA LÓGICA DE RELATÓRIO 💡 ---
                 
                 # 1. Construir a URL pública do Supabase
                 supabase_public_url = f"{url}/storage/v1/object/public"
@@ -1865,7 +1889,6 @@ else:
                     "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
                     "Usuário", "Data/Hora", "PDF"
                 ]
-                # Remove colunas que o df_flat possa não ter (como dados_json, tipo)
                 colunas_finais = [c for c in colunas if c in df_flat.columns]
                 df_flat = df_flat[colunas_finais]
 
@@ -1905,8 +1928,6 @@ else:
                         <a href="{row['PDF']}" target="_blank" style="color: #60a5fa; text-decoration: none;">📥 Baixar PDF</a>
                     </div>
                     """, unsafe_allow_html=True)
-                
-                # --- FIM DA NOVA LÓGICA DE RELATÓRIO ---
                 
             else:
                 st.info("Nenhuma análise encontrada para o filtro selecionado.")
