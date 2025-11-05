@@ -85,7 +85,7 @@ except Exception as e:
         st.error(f"Erro ao configurar a API do Google: {e}")
 # ---------------------------------
 
-# --- 💡 NOVA ADIÇÃO: Helper da I.A. (ATUALIZADO) 💡 ---
+# --- Helper da I.A. (ATUALIZADO) ---
 def get_gemini_model():
     """
     Seleciona automaticamente um modelo compatível com generateContent,
@@ -205,7 +205,7 @@ def extrair_linha_relatorio(row, supabase_url=None):
         cliente = placa = servico = valor_final = "-"
 
     pdf_link = ""
-    if row["pdf_path"]:
+    if row.get("pdf_path"): # .get() para segurança
         if supabase_url:
             pdf_link = f"{supabase_url}/pdfs/{row['pdf_path']}"
         else:
@@ -220,7 +220,9 @@ def extrair_linha_relatorio(row, supabase_url=None):
         "Data/Hora": row["data_hora"],
         "PDF": pdf_link,
         "tipo": row["tipo"],
-        "dados_json": row["dados_json"]
+        "dados_json": row["dados_json"],
+        "db_id": row["id"], # --- 💡 NOVA ADIÇÃO: Deletar 💡 ---
+        "pdf_path": row["pdf_path"] # --- 💡 NOVA ADIÇÃO: Deletar 💡 ---
     }
 
 # --- Função de Economia ---
@@ -261,14 +263,16 @@ def gerar_excel_moderno(df_flat):
     normal_format = workbook.add_format({'border': 1})
     link_format = workbook.add_format({'font_color': 'blue', 'underline': 1, 'border': 1})
 
-    headers = list(df_flat.columns)
+    # Esconde as colunas de ID e path do excel final
+    headers = [h for h in df_flat.columns if h not in ["db_id", "pdf_path", "dados_json"]]
+    
     for col, header in enumerate(headers):
         worksheet.write(0, col, header, header_format)
         worksheet.set_column(col, col, 22)  
 
     for row_idx, row in df_flat.iterrows():
-        for col_idx, value in enumerate(row):
-            col_name = headers[col_idx]
+        for col_idx, col_name in enumerate(headers):
+            value = row[col_name] # Usa o nome da coluna para pegar o valor
             
             if col_name == "PDF" and value and "http" in value:
                 worksheet.write_url(row_idx+1, col_idx, value, link_format, string="Baixar PDF")
@@ -293,7 +297,8 @@ REQUIRED_USER_COLUMNS = [
     "email", "status", "accepted_terms_on", "reset_token", "reset_expires_at",
     "last_password_change", "force_password_reset"
 ]
-TICKET_COLUMNS = ["id", "username", "full_name", "email", "assunto", "descricao", "status", "resposta", "data_criacao", "data_resposta"]
+# --- 💡 NOVA ADIÇÃO: Coluna de anexo 💡 ---
+TICKET_COLUMNS = ["id", "username", "full_name", "email", "assunto", "descricao", "status", "resposta", "data_criacao", "data_resposta", "anexo_path"]
 SUPERADMIN_USERNAME = st.secrets.get("SUPERADMIN_USERNAME", "lucas.sureira")
 
 
@@ -384,6 +389,29 @@ def registrar_analise(username, tipo, dados, pdf_bytes):
         st.cache_data.clear()
     except Exception as e:
         st.error(f"Erro ao registrar análise no Supabase: {e}")
+
+# --- 💡 NOVA ADIÇÃO: Função Deletar 💡 ---
+def delete_analise(analise_id: str, pdf_path: str):
+    try:
+        # 1. Deletar o registro do banco de dados
+        supabase.table('analises').delete().eq('id', analise_id).execute()
+        
+        # 2. Deletar o arquivo do Storage (se existir)
+        if pdf_path and pdf_path.strip():
+            try:
+                supabase.storage.from_("pdfs").remove([pdf_path])
+            except Exception as e:
+                # Não é um erro fatal se o PDF não for encontrado
+                st.warning(f"Erro ao deletar PDF do storage (pode já ter sido removido): {e}")
+        
+        st.toast(f"Análise {analise_id} removida com sucesso!")
+        st.cache_data.clear() # Limpa o cache para atualizar a lista
+        safe_rerun() # Força o recarregamento da página
+        
+    except Exception as e:
+        st.error(f"Erro ao deletar análise: {e}")
+# --- FIM DA NOVA FUNÇÃO ---
+
 
 # --- Tickets ---
 @st.cache_data(ttl=60)
@@ -1404,6 +1432,10 @@ else:
     renderizar_sidebar()
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
 
+    # --- 💡 NOVA ADIÇÃO: Deletar 💡 ---
+    # Define a URL base do storage aqui para que as telas de ticket possam usá-la
+    supabase_public_url = f"{url}/storage/v1/object/public"
+    
     if st.session_state.tela == "home":
         st.title("🏠 Home")
         st.write(f"### Bem-vindo, {st.session_state.get('full_name', st.session_state.get('username',''))}!")
@@ -1956,7 +1988,13 @@ else:
         with st.form("abrir_ticket"):
             assunto = st.text_input("Assunto")
             descricao = st.text_area("Descreva o problema ou sugestão")
+            
+            # --- 💡 NOVA ADIÇÃO: Upload de Anexo 💡 ---
+            anexo = st.file_uploader("Anexar print do erro (opcional)", type=["png", "jpg", "jpeg"])
+            # --- FIM DA NOVA ADIÇÃO ---
+            
             enviar = st.form_submit_button("Enviar Ticket", type="primary")
+            
         if enviar:
             if not assunto.strip() or not descricao.strip():
                 st.error("Preencha todos os campos.")
@@ -1964,6 +2002,25 @@ else:
                 novo_id = str(uuid.uuid4())
                 now = datetime.now(tz_brasilia).strftime("%Y-%m-%d %H:%M")
                 
+                anexo_path = ""
+                # --- 💡 NOVA ADIÇÃO: Lógica de Upload 💡 ---
+                if anexo is not None:
+                    try:
+                        # Garante um nome de arquivo único
+                        anexo_filename = f"{st.session_state.get('username')}_{novo_id}_{anexo.name}"
+                        anexo_path = anexo_filename
+                        
+                        # Faz o upload para o novo bucket 'ticket-anexos'
+                        supabase.storage.from_("ticket-anexos").upload(
+                            path=anexo_filename,
+                            file=anexo,
+                            file_options={"content-type": anexo.type}
+                        )
+                    except Exception as e:
+                        st.error(f"Falha ao enviar anexo: {e}")
+                        anexo_path = "" # Falha no upload, não salva o path
+                # --- FIM DA NOVA LÓGICA ---
+
                 novo_ticket = {
                     "id": novo_id,
                     "username": st.session_state.get("username"),
@@ -1974,7 +2031,8 @@ else:
                     "status": "aberto",
                     "resposta": "",
                     "data_criacao": now,
-                    "data_resposta": ""
+                    "data_resposta": "",
+                    "anexo_path": anexo_path # Salva o path no banco
                 }
                 
                 try:
@@ -1990,12 +2048,21 @@ else:
         if not meus.empty:
             st.markdown("### Meus Tickets")
             for _, row in meus.sort_values("data_criacao", ascending=False).iterrows():
+                
+                # --- 💡 NOVA ADIÇÃO: Mostrar link do anexo 💡 ---
+                anexo_html = ""
+                if row.get('anexo_path'):
+                    anexo_url = f"{supabase_public_url}/ticket-anexos/{row['anexo_path']}"
+                    anexo_html = f'<b>Anexo:</b> <a href="{anexo_url}" target="_blank" style="color: #60a5fa;">Ver Anexo</a><br>'
+                # --- FIM DA NOVA ADIÇÃO ---
+                
                 st.markdown(f"""
                 <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
                 <b>Assunto:</b> {row['assunto']}<br>
                 <b>Status:</b> {row['status'].capitalize()}<br>
                 <b>Data:</b> {row['data_criacao']}<br>
                 <b>Descrição:</b> {row['descricao']}<br>
+                {anexo_html}
                 <b>Resposta:</b> {row['resposta'] if row['resposta'] else '<i>Aguardando resposta</i>'}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2006,7 +2073,7 @@ else:
     # Tela: Relatório de Análises (ATUALIZADA)
     # =========================
     elif st.session_state.tela == "relatorio_analises":
-        if not user_is_admin() and not user_is_superadmin():
+        if not user_is_admin(): # --- 💡 ATUALIZAÇÃO: Deletar 💡 --- (só admin/superadmin)
             st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
             
         st.title("📑 Relatório de Análises Realizadas")
@@ -2015,7 +2082,6 @@ else:
         if df.empty:
             st.info("Nenhuma análise encontrada.")
         else:
-            # --- 💡 INÍCIO DA NOVA LÓGICA DE FILTRO 💡 ---
             opcoes_ano = ["Todos"]
             meses_map = {
                 'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
@@ -2033,11 +2099,9 @@ else:
                     
                     anos_disponiveis = sorted(df['ano_filtro'].unique(), reverse=True)
                     opcoes_ano = ["Todos"] + [int(a) for a in anos_disponiveis]
-            # --- FIM DA NOVA LÓGICA ---
 
             usuarios = ["Todos"] + sorted(list(df["username"].unique()))
             
-            # --- 💡 NOVOS FILTROS (EM COLUNAS) 💡 ---
             col1, col2, col3 = st.columns(3)
             with col1:
                 usuario_sel = st.selectbox("Filtrar por usuário:", usuarios)
@@ -2047,7 +2111,6 @@ else:
                 mes_sel = st.selectbox("Filtrar por mês:", opcoes_mes)
                 
             tipo_sel = st.selectbox("Tipo de análise:", ["Todos", "cenarios", "sla_mensal"])
-            # --- FIM DOS NOVOS FILTROS ---
                 
             # Aplicar filtros
             if usuario_sel != "Todos":
@@ -2055,32 +2118,31 @@ else:
             if tipo_sel != "Todos":
                 df = df[df["tipo"] == tipo_sel]
             if ano_sel != "Todos":
-                df = df[df['ano_filtro'] == ano_sel]
+                if 'ano_filtro' in df.columns:
+                    df = df[df['ano_filtro'] == ano_sel]
             if mes_sel != "Todos":
-                df = df[df['mes_filtro'] == meses_map[mes_sel]]
+                if 'mes_filtro' in df.columns:
+                    df = df[df['mes_filtro'] == meses_map[mes_sel]]
                 
             st.write(f"Total de análises: {len(df)}")
             
             if not df.empty:
                 
-                # 1. Construir a URL pública do Supabase
-                supabase_public_url = f"{url}/storage/v1/object/public"
-                
-                # 2. Criar o DataFrame "achatado"
+                # Criar o DataFrame "achatado"
                 df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
 
-                # 3. Adiciona coluna Economia (usando o 'df' original filtrado)
+                # Adiciona coluna Economia
                 df_flat["Economia"] = [calcular_economia(row) for _, row in df.iterrows()]
                 
-                # 4. Reordena as colunas
+                # Reordena as colunas
                 colunas = [
                     "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
-                    "Usuário", "Data/Hora", "PDF"
+                    "Usuário", "Data/Hora", "PDF", "db_id", "pdf_path" # Mantém IDs para o loop
                 ]
                 colunas_finais = [c for c in colunas if c in df_flat.columns]
                 df_flat = df_flat[colunas_finais]
 
-                # 5. Botão de download do Excel
+                # Botão de download do Excel
                 excel_bytes = gerar_excel_moderno(df_flat)
                 st.download_button(
                     "⬇️ Baixar relatório Excel (moderno)",
@@ -2090,7 +2152,6 @@ else:
                     help="Clique para baixar o relatório já formatado para Excel!"
                 )
                 
-                # 6. Botão de download do CSV "achatado" (com separador ;)
                 st.download_button(
                     "⬇️ Baixar relatório CSV (Excel)",
                     data=df_flat.to_csv(index=False, sep=";", encoding="utf-8"),
@@ -2099,36 +2160,47 @@ else:
                     help="Clique para baixar o relatório em CSV simples (compatível com Excel)."
                 )
                 
-                st.markdown("---") # Divisor
+                st.markdown("---") 
 
-                # 7. --- 💡 INÍCIO DA CORREÇÃO DO HTML (ATUALIZADA) 💡 ---
+                # --- 💡 INÍCIO DA ATUALIZAÇÃO: Deletar 💡 ---
+                # Substitui o loop st.markdown pelo loop de st.container
+                
                 for idx, row in df_flat.iterrows():
-                    economia_html = f"<b>Economia:</b> {row['Economia']}<br>" if row.get('Economia') else ""
-
-                    # Remove a indentação que fazia o Markdown interpretar como bloco de código
-                    html_string = dedent(f"""
-                    <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
-                    <b>Cliente:</b> {row['Cliente']}<br>
-                    <b>Placa:</b> {row['Placa']}<br>
-                    <b>Serviço:</b> {row['Serviço']}<br>
-                    <b>Valor Final:</b> {row['Valor Final']}<br>
-                    {economia_html}
-                    <b>Usuário:</b> {row['Usuário']}<br>
-                    <b>Data/Hora:</b> {row['Data/Hora']}<br>
-                    """).strip() # .strip() remove espaços em branco antes/depois
-
-                    # Só exibe o link se existir URL
-                    pdf_link = row.get("PDF", "")
-                    if pdf_link and "http" in pdf_link: # Verifica se o link é válido
-                        html_string += (
-                            f'<a href="{pdf_link}" target="_blank" rel="noopener noreferrer" '
-                            f'style="color: #60a5fa; text-decoration: none;">📥 Baixar PDF</a>'
-                        )
-
-                    html_string += "</div>"
-
-                    st.markdown(html_string, unsafe_allow_html=True)
-                # --- 💡 FIM DA CORREÇÃO DO HTML (ATUALIZADA) 💡 ---
+                    economia_str = row.get('Economia')
+                    
+                    with st.container(border=True):
+                        st.write(f"**Cliente:** {row['Cliente']}")
+                        st.write(f"**Placa:** {row['Placa']}")
+                        st.write(f"**Serviço:** {row['Serviço']}")
+                        st.write(f"**Valor Final:** {row['Valor Final']}")
+                        if economia_str:
+                            st.write(f"**Economia:** {economia_str}")
+                        st.write(f"**Usuário:** {row['Usuário']}")
+                        st.write(f"**Data/Hora:** {row['Data/Hora']}")
+                        
+                        col1, col2 = st.columns([1, 1])
+                        
+                        # Coluna do Link PDF
+                        with col1:
+                            pdf_link = row.get("PDF", "")
+                            if pdf_link and "http" in pdf_link:
+                                st.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
+                        
+                        # Coluna do Botão Apagar (SÓ PARA ADMINS)
+                        with col2:
+                            if user_is_admin(): # A função já checa admin E superadmin
+                                db_id = row.get("db_id")
+                                pdf_path = row.get("pdf_path")
+                                if st.button("🗑️ Apagar", 
+                                            key=f"del_{db_id}", 
+                                            type="primary", 
+                                            use_container_width=True,
+                                            on_click=delete_analise,
+                                            args=(db_id, pdf_path)):
+                                    
+                                    # O on_click vai rodar antes, o rerun vai atualizar a tela
+                                    pass
+                # --- 💡 FIM DA ATUALIZAÇÃO: Deletar 💡 ---
                 
             else:
                 st.info("Nenhuma análise encontrada para o filtro selecionado.")
@@ -2151,6 +2223,14 @@ else:
             st.info("Nenhum ticket aberto.")
         else:
             for idx, row in abertos.sort_values("data_criacao").iterrows():
+                
+                # --- 💡 NOVA ADIÇÃO: Mostrar link do anexo 💡 ---
+                anexo_html = ""
+                if row.get('anexo_path'):
+                    anexo_url = f"{supabase_public_url}/ticket-anexos/{row['anexo_path']}"
+                    anexo_html = f'<b>Anexo:</b> <a href="{anexo_url}" target="_blank" style="color: #60a5fa;">Ver Anexo</a><br>'
+                # --- FIM DA NOVA ADIÇÃO ---
+
                 st.markdown(f"""
                 <div style="border:1px solid #444;padding:10px;border-radius:8px;margin-bottom:8px;">
                 <b>ID:</b> {row['id']}<br>
@@ -2159,7 +2239,9 @@ else:
                 <b>Assunto:</b> {row['assunto']}<br>
                 <b>Data:</b> {row['data_criacao']}<br>
                 <b>Descrição:</b> {row['descricao']}<br>
+                {anexo_html}
                 """, unsafe_allow_html=True)
+                
                 with st.form(f"responder_{row['id']}"):
                     resposta = st.text_area("Resposta", value=row['resposta'])
                     col1, col2 = st.columns(2)
@@ -2178,6 +2260,14 @@ else:
         if not fechados.empty:
             with st.expander("Ver tickets fechados"):
                 for _, row in fechados.sort_values("data_resposta", ascending=False).iterrows():
+                    
+                    # --- 💡 NOVA ADIÇÃO: Mostrar link do anexo 💡 ---
+                    anexo_html = ""
+                    if row.get('anexo_path'):
+                        anexo_url = f"{supabase_public_url}/ticket-anexos/{row['anexo_path']}"
+                        anexo_html = f'<b>Anexo:</b> <a href="{anexo_url}" target="_blank" style="color: #60a5fa;">Ver Anexo</a><br>'
+                    # --- FIM DA NOVA ADIÇÃO ---
+                    
                     st.markdown(f"""
                     <div style="border:1px solid #888;padding:8px;border-radius:8px;margin-bottom:6px;">
                     <b>ID:</b> {row['id']}<br>
@@ -2185,6 +2275,7 @@ else:
                     <b>Assunto:</b> {row['assunto']}<br>
                     <b>Data:</b> {row['data_criacao']}<br>
                     <b>Descrição:</b> {row['descricao']}<br>
+                    {anexo_html}
                     <b>Resposta:</b> {row['resposta']}<br>
                     <b>Respondido em:</b> {row['data_resposta']}
                     </div>
@@ -2192,7 +2283,7 @@ else:
         else:
             st.warning("Nenhum ticket fechado encontrado.")
         
-    # --- 💡 NOVA PÁGINA: ASSISTENTE I.A. (ATUALIZADA COM ORDENS) 💡 ---
+    # --- 💡 NOVA PÁGINA: ASSISTENTE I.A. (ATUALIZADA) 💡 ---
     elif st.session_state.tela == "assistente_ia":
         st.title("🤖 Assistente I.A.")
         st.caption("Converse de maneira natural. Respondo em pt-BR.")
