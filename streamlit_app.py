@@ -118,9 +118,9 @@ def get_gemini_model():
 
     # 2) Ordem de preferência (chat texto)
     preferred = [
-        "gemini-1.5-flash", # Nome atualizado (2.5 ainda não é padrão)
+        "gemini-1.5-flash",
         "gemini-1.5-pro",
-        "gemini-pro", # legado, mas ainda funcional para texto
+        "gemini-pro",
     ]
 
     # 3) Override opcional via secrets
@@ -2192,7 +2192,7 @@ else:
         else:
             st.warning("Nenhum ticket fechado encontrado.")
         
-    # --- 💡 NOVA PÁGINA: ASSISTENTE I.A. (ATUALIZADA) 💡 ---
+    # --- 💡 NOVA PÁGINA: ASSISTENTE I.A. (ATUALIZADA COM ORDENS) 💡 ---
     elif st.session_state.tela == "assistente_ia":
         st.title("🤖 Assistente I.A.")
         st.caption("Converse de maneira natural. Respondo em pt-BR.")
@@ -2229,7 +2229,7 @@ else:
 
         # Limpar conversa
         if st.button("🧹 Limpar conversa", type="secondary"):
-            for k in ["ia_chat", "ia_history", "ia_model"]:
+            for k in ["ia_chat", "ia_history", "ia_model", "ia_model_name"]: # Limpa o nome do modelo tbm
                 if k in st.session_state:
                     del st.session_state[k]
             st.success("Conversa reiniciada.")
@@ -2238,7 +2238,7 @@ else:
         # Sessão do chat (memória da conversa)
         try:
             if "ia_model" not in st.session_state:
-                st.session_state.ia_model = get_gemini_model()
+                st.session_state.ia_model = get_gemini_model() # Usa a nova função
             if "ia_chat" not in st.session_state:
                 # histórico explícito para controle de renderização
                 st.session_state.ia_history = [] 
@@ -2247,12 +2247,24 @@ else:
 
             # Mostra o modelo em uso
             st.caption(f"Modelo em uso: {st.session_state.get('ia_model_name', '(detectando...)')}")
+            st.caption(f"SDK google-generativeai: {getattr(genai, '__version__', 'desconhecido')}")
+
 
             # Renderizar histórico
             for msg in st.session_state.ia_history:
-                role_emoji = "🧑‍💻" if msg.get("role") == "user" else "🤖"
-                with st.chat_message(role_emoji): # Usando emoji como "role" para o avatar
-                    st.markdown(msg["parts"][0]["text"])
+                # Ajuste para o formato de histórico do Gemini (role: 'user' ou 'model')
+                role_api = msg.get("role", "user")
+                role_emoji = "🧑‍💻" if role_api == "user" else "🤖"
+                
+                # Acessa o texto
+                text_parts = msg.get("parts", [])
+                if text_parts:
+                    text = text_parts[0].get("text", "") if isinstance(text_parts[0], dict) else str(text_parts[0])
+                else:
+                    text = ""
+                    
+                with st.chat_message(role_emoji): 
+                    st.markdown(text)
 
             # Entrada do usuário (mais natural)
             user_text = st.chat_input("Escreva sua mensagem…")
