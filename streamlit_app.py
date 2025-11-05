@@ -76,12 +76,14 @@ supabase: Client = create_client(url, key)
 try:
     GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
     if not GOOGLE_API_KEY:
-        st.error("Chave da API do Google (GOOGLE_API_KEY) não encontrada. Verifique seus Secrets.")
-        # Não paramos o app, mas a IA não vai funcionar
+        # Não mostre o erro para todos, apenas no log (ou para o admin)
+        if st.session_state.get("role") in ("admin", "superadmin"):
+            st.error("Chave da API do Google (GOOGLE_API_KEY) não encontrada. O Assistente de I.A. não funcionará.")
     else:
         genai.configure(api_key=GOOGLE_API_KEY)
 except Exception as e:
-    st.error(f"Erro ao configurar a API do Google: {e}")
+    if st.session_state.get("role") in ("admin", "superadmin"):
+        st.error(f"Erro ao configurar a API do Google: {e}")
 # ---------------------------------
 
 
@@ -830,6 +832,7 @@ def ir_para_force_change(): st.session_state.tela = "force_change_password"
 def ir_para_relatorio_analises(): st.session_state.tela = "relatorio_analises"
 def ir_para_terms(): st.session_state.tela = "terms_consent"
 def ir_para_dashboard(): st.session_state.tela = "dashboard"
+def ir_para_assistente_ia(): st.session_state.tela = "assistente_ia" # --- 💡 NOVA ADIÇÃO: I.A. 💡 ---
 
 
 def limpar_dados_comparativos():
@@ -866,6 +869,8 @@ def renderizar_sidebar():
         if st.session_state.tela in ("calc_comparativa", "calc_simples"):
             st.button("🔄 Limpar Cálculo", on_click=limpar_dados_comparativos, use_container_width=True)
         
+        # --- 💡 NOVA ADIÇÃO: I.A. 💡 ---
+        st.button("🤖 Assistente I.A.", on_click=ir_para_assistente_ia, use_container_width=True)
         st.button("💬 Abrir Ticket", on_click=lambda: st.session_state.update({"tela": "tickets"}), use_container_width=True)
 
         if user_is_admin():
@@ -2104,6 +2109,72 @@ else:
                     """, unsafe_allow_html=True)
         else:
             st.warning("Nenhum ticket fechado encontrado.")
+        
+    # --- 💡 NOVA PÁGINA: ASSISTENTE I.A. 💡 ---
+    elif st.session_state.tela == "assistente_ia":
+        st.title("🤖 Assistente I.A.")
+        st.write("Faça perguntas sobre o cálculo de SLA, prazos ou sobre o funcionamento do aplicativo.")
+
+        # Verifica se a API Key foi carregada
+        if not GOOGLE_API_KEY:
+            st.error("A funcionalidade de I.A. está desabilitada. O administrador precisa configurar a `GOOGLE_API_KEY` nos Secrets do Streamlit.")
+            st.stop()
+
+        # Inicializa o histórico do chat
+        if "ia_messages" not in st.session_state:
+            st.session_state.ia_messages = []
+        
+        # Inicializa o modelo de I.A.
+        try:
+            if "ia_chat" not in st.session_state:
+                model = genai.GenerativeModel('gemini-pro')
+                # Adiciona um "contexto" para a I.A. saber como se comportar
+                contexto_sistema = (
+                    "Você é um assistente virtual chamado 'Frotas IA', especializado no aplicativo 'Frotas Vamos SLA'. "
+                    "Sua função é ajudar os usuários a entender como o aplicativo funciona e tirar dúvidas sobre os cálculos de SLA. "
+                    "Seja amigável e direto ao ponto. Os prazos de SLA são: "
+                    "Preventiva: 2 dias úteis. "
+                    "Corretiva: 3 dias úteis. "
+                    "Preventiva + Corretiva: 5 dias úteis. "
+                    "Motor: 15 dias úteis. "
+                    "O cálculo do desconto é: (Valor da Mensalidade / 30) * (Dias Úteis Totais - Dias de SLA). "
+                    "Responda apenas a perguntas relacionadas a este contexto de SLA, frota e uso do aplicativo."
+                )
+                st.session_state.ia_chat = model.start_chat(history=[
+                    {'role': 'user', 'parts': [contexto_sistema]},
+                    {'role': 'model', 'parts': ["Olá! Eu sou o Frotas IA. Como posso ajudar você a entender nossos cálculos de SLA ou o funcionamento do aplicativo?"]}
+                ])
+            
+            # Mostra o histórico do chat
+            for message in st.session_state.ia_chat.history:
+                if message.role == "user" and "Você é um assistente virtual" in message.parts[0].text:
+                    continue # Pula a instrução do sistema
+                role_emoji = "🧑‍💻" if message.role == "user" else "🤖"
+                with st.chat_message(message.role, avatar=role_emoji):
+                    st.markdown(message.parts[0].text)
+
+            # Input do usuário
+            if prompt := st.chat_input("Qual sua dúvida sobre o SLA?"):
+                # Adiciona a mensagem do usuário na tela
+                with st.chat_message("user", avatar="🧑‍💻"):
+                    st.markdown(prompt)
+                
+                # Envia para a I.A. e mostra a resposta
+                try:
+                    with st.spinner("Pensando..."):
+                        response = st.session_state.ia_chat.send_message(prompt)
+                    with st.chat_message("model", avatar="🤖"):
+                        st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"Desculpe, tive um problema ao processar sua pergunta: {e}")
+
+        except Exception as e:
+            st.error(f"Não foi possível iniciar o assistente de I.A. Verifique se a API Key do Google está correta e habilitada. Erro: {e}")
+            if "ia_chat" in st.session_state:
+                del st.session_state.ia_chat # Força a reinicialização na próxima vez
+
+
+    # --- FIM DA NOVA PÁGINA ---
         
     else:
         st.error("Tela não encontrada ou ainda não implementada.")
