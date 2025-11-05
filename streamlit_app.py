@@ -85,18 +85,13 @@ except Exception as e:
         st.error(f"Erro ao configurar a API do Google: {e}")
 # ---------------------------------
 
-# --- 💡 NOVA ADIÇÃO: Helper da I.A. 💡 ---
+# --- 💡 NOVA ADIÇÃO: Helper da I.A. (ATUALIZADO) 💡 ---
 def get_gemini_model():
     """
-    Inicializa um modelo Gemini com persona natural em pt-BR, usando alias -latest
-    e fallback automático. Ajuste de criatividade pode ser feito depois via
-    model.generation_config.temperature.
+    Seleciona automaticamente um modelo compatível com generateContent,
+    normalizando nomes (remove 'models/') e priorizando 2.5.
+    Aceita override por secrets: MODEL_OVERRIDE.
     """
-    candidates = [
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash-001",
-        "gemini-1.5-pro-latest",
-    ]
     system_ptbr = (
         "Você é o Assistente I.A. do app Frotas Vamos SLA. "
         "Fale em português do Brasil, de forma natural, humana e objetiva. "
@@ -104,18 +99,74 @@ def get_gemini_model():
         "faça perguntas de esclarecimento se faltar contexto e mantenha um tom cordial. "
         "Responda de forma clara e prática, sem parecer robótico."
     )
+
+    # 1) Tente listar modelos disponíveis
+    try:
+        catalog = list(genai.list_models())
+        available_pairs = []
+        for md in catalog:
+            methods = getattr(md, "supported_generation_methods", []) or []
+            if "generateContent" not in methods:
+                continue
+            full = md.name
+            short = full.split("/")[-1]
+            available_pairs.append((full, short))
+        available_short = [s for _, s in available_pairs]
+    except Exception:
+        available_pairs = []
+        available_short = []
+
+    # 2) Ordem de preferência (chat texto)
+    preferred = [
+        "gemini-1.5-flash", # Nome atualizado (2.5 ainda não é padrão)
+        "gemini-1.5-pro",
+        "gemini-pro", # legado, mas ainda funcional para texto
+    ]
+
+    # 3) Override opcional via secrets
+    try:
+        override = str(st.secrets.get("MODEL_OVERRIDE", "")).strip()
+    except Exception:
+        override = ""
+    if override:
+        preferred = [override] + preferred
+
+    # 4) Use somente nomes que realmente existem (se conseguimos listar)
+    candidates = [p for p in preferred if (not available_short) or (p in available_short)]
+    if not candidates and available_short:
+        candidates = [available_short[0]]
+
     last_err = None
-    for m in candidates:
-        try:
-            return genai.GenerativeModel(
-                m,
-                system_instruction=system_ptbr,
-                generation_config={"temperature": 0.8, "top_p": 0.95, "top_k": 40},
-            )
-        except Exception as e:
-            last_err = e
-            continue
-    raise RuntimeError(f"Não foi possível inicializar um modelo Gemini compatível. Último erro: {last_err}")
+    # 5) Tente inicializar com nome "curto", depois tente o "completo"
+    for name in candidates:
+        for variant in (name, f"models/{name}"):
+            try:
+                model = genai.GenerativeModel(
+                    variant,
+                    system_instruction=system_ptbr,
+                    generation_config={"temperature": 0.8, "top_p": 0.95, "top_k": 40},
+                )
+                st.session_state.ia_model_name = name
+                return model
+            except Exception as e:
+                last_err = e
+                continue
+
+    # 6) Último recurso: tente qualquer disponível listado
+    for full, short in available_pairs:
+        for variant in (short, full):
+            try:
+                model = genai.GenerativeModel(variant, system_instruction=system_ptbr)
+                st.session_state.ia_model_name = short
+                return model
+            except Exception as e:
+                last_err = e
+                continue
+
+    raise RuntimeError(
+        "Não foi possível inicializar um modelo Gemini compatível. "
+        f"Último erro: {last_err} | Disponíveis: {available_short or '(não foi possível listar)'}"
+    )
 # ---------------------------------
 
 
@@ -864,7 +915,7 @@ def ir_para_force_change(): st.session_state.tela = "force_change_password"
 def ir_para_relatorio_analises(): st.session_state.tela = "relatorio_analises"
 def ir_para_terms(): st.session_state.tela = "terms_consent"
 def ir_para_dashboard(): st.session_state.tela = "dashboard"
-def ir_para_assistente_ia(): st.session_state.tela = "assistente_ia" # --- 💡 NOVA ADIÇÃO: I.A. 💡 ---
+def ir_para_assistente_ia(): st.session_state.tela = "assistente_ia" 
 
 
 def limpar_dados_comparativos():
@@ -901,7 +952,6 @@ def renderizar_sidebar():
         if st.session_state.tela in ("calc_comparativa", "calc_simples"):
             st.button("🔄 Limpar Cálculo", on_click=limpar_dados_comparativos, use_container_width=True)
         
-        # --- 💡 NOVA ADIÇÃO: I.A. 💡 ---
         st.button("🤖 Assistente I.A.", on_click=ir_para_assistente_ia, use_container_width=True)
         st.button("💬 Abrir Ticket", on_click=lambda: st.session_state.update({"tela": "tickets"}), use_container_width=True)
 
@@ -2153,18 +2203,20 @@ else:
             st.stop()
         
         # Diagnóstico rápido dos modelos + controles de estilo
-        c1, c2, c3 = st.columns([1, 1, 1.2])
+        c1, c2, c3 = st.columns([1.2, 1, 1.2]) # Ajustado para caber o botão
         with c1:
-            if st.button("🔎 Listar modelos suportados"):
-                try:
-                    modelos = [
-                        md.name
-                        for md in genai.list_models()
-                        if "generateContent" in getattr(md, "supported_generation_methods", [])
-                    ]
-                    st.write(modelos)
-                except Exception as e:
-                    st.warning(f"Falhou ao listar modelos: {e}")
+            # Botão de listar modelos SÓ para superadmin
+            if user_is_superadmin():
+                if st.button("🔎 Listar modelos suportados"):
+                    try:
+                        modelos = [
+                            md.name
+                            for md in genai.list_models()
+                            if "generateContent" in getattr(md, "supported_generation_methods", [])
+                        ]
+                        st.write(modelos)
+                    except Exception as e:
+                        st.warning(f"Falhou ao listar modelos: {e}")
         with c2:
             temp = st.slider("Criatividade", 0.0, 1.0, 0.80, 0.05, help="0 = mais objetiva; 1 = mais criativa")
         with c3:
@@ -2176,14 +2228,12 @@ else:
             )
 
         # Limpar conversa
-        cc1, cc2 = st.columns([1, 6])
-        with cc1:
-            if st.button("🧹 Limpar conversa", type="secondary"):
-                for k in ["ia_chat", "ia_history", "ia_model"]:
-                    if k in st.session_state:
-                        del st.session_state[k]
-                st.success("Conversa reiniciada.")
-                safe_rerun() # Adicionado para recarregar a tela limpa
+        if st.button("🧹 Limpar conversa", type="secondary"):
+            for k in ["ia_chat", "ia_history", "ia_model"]:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.success("Conversa reiniciada.")
+            safe_rerun()
 
         # Sessão do chat (memória da conversa)
         try:
@@ -2195,10 +2245,13 @@ else:
                 # sessão de chat do SDK (também mantém histórico internamente)
                 st.session_state.ia_chat = st.session_state.ia_model.start_chat(history=[])
 
+            # Mostra o modelo em uso
+            st.caption(f"Modelo em uso: {st.session_state.get('ia_model_name', '(detectando...)')}")
+
             # Renderizar histórico
             for msg in st.session_state.ia_history:
-                role = "user" if msg.get("role") == "user" else "assistant"
-                with st.chat_message(role):
+                role_emoji = "🧑‍💻" if msg.get("role") == "user" else "🤖"
+                with st.chat_message(role_emoji): # Usando emoji como "role" para o avatar
                     st.markdown(msg["parts"][0]["text"])
 
             # Entrada do usuário (mais natural)
@@ -2216,11 +2269,11 @@ else:
 
                 # Registrar a fala do usuário
                 st.session_state.ia_history.append({"role": "user", "parts": [{"text": user_text}]})
-                with st.chat_message("user"):
+                with st.chat_message("🧑‍💻"):
                     st.markdown(user_text)
 
                 # Resposta em streaming (sensação menos robótica)
-                with st.chat_message("assistant"):
+                with st.chat_message("🤖"):
                     placeholder = st.empty()
                     full = ""
                     try:
