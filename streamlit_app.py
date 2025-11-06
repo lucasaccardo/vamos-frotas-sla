@@ -170,6 +170,98 @@ def get_gemini_model():
 # ---------------------------------
 
 
+# --- 💡 ALTERAÇÃO AQUI (INÍCIO) 💡 ---
+# ADICIONAMOS A FUNÇÃO DE CONTEXTO MELHORADA
+@st.cache_data(ttl=120) # Armazena os dados por 2 minutos para performance
+def get_ia_context_summary():
+    """
+    Carrega dados do app para fornecer contexto à IA, incluindo a base de clientes
+    e resumos de atividade do Supabase.
+    """
+    summary_lines = []
+    
+    # --- 1. Dados da Base de Clientes (Base De Clientes Faturamento.xlsx) ---
+    try:
+        df_base = carregar_base() # A função que já existe e está cacheada
+        if df_base is not None and not df_base.empty:
+            summary_lines.append("--- Contexto: Base de Clientes (Base De Clientes Faturamento.xlsx) ---")
+            
+            # Limite de segurança: Se a base for GIGANTE, envie só um resumo.
+            # Ajuste 500 para o número de linhas que achar razoável.
+            if len(df_base) > 500: 
+                summary_lines.append(f"A base de clientes é grande ({len(df_base)} linhas). Segue um resumo das 10 primeiras linhas:")
+                # Envia só as 10 primeiras linhas como texto
+                summary_lines.append(df_base.head(10).to_string()) 
+            else:
+                summary_lines.append(f"A base de clientes completa ({len(df_base)} linhas) é:")
+                # Envia a base inteira como texto. A I.A. consegue ler isso.
+                summary_lines.append(df_base.to_string()) 
+                
+            summary_lines.append("--------------------------------------------------")
+        else:
+            summary_lines.append("- (Base de Clientes não carregada ou vazia)")
+            
+    except Exception as e:
+        summary_lines.append(f"- (Erro ao carregar Base de Clientes: {e})")
+
+    
+    # --- 2. Dados de Análises (Economia e Atividade) - do Supabase ---
+    try:
+        df_analises = load_analises()
+        if not df_analises.empty:
+            summary_lines.append("--- Contexto: Resumo do Histórico de Análises (Supabase) ---")
+            
+            # Calcula economia (como no dashboard)
+            df_analises['economia_val'] = df_analises.apply(
+                lambda row: float(calcular_economia(row).replace("R$", "").replace(".", "").replace(",", ".")) if row['tipo'] == 'cenarios' and calcular_economia(row) else 0,
+                axis=1
+            )
+            total_economia = df_analises['economia_val'].sum()
+            total_analises = len(df_analises)
+            total_cenarios = len(df_analises[df_analises['tipo'] == 'cenarios'])
+            total_sla_mensal = total_analises - total_cenarios
+            
+            summary_lines.append(f"- Total de economia gerada (histórico): R$ {total_economia:,.2f}")
+            summary_lines.append(f"- Total de análises de cenários feitas: {total_cenarios}")
+            summary_lines.append(f"- Total de análises 'SLA Mensal' feitas: {total_sla_mensal}")
+            
+            # Resumo por usuário (para responder "o que o Lucas fez?")
+            summary_lines.append("- Atividade por usuário (total de análises):")
+            user_activity = df_analises['username'].value_counts()
+            if user_activity.empty:
+                summary_lines.append("  - Nenhuma atividade registrada.")
+            else:
+                for user, count in user_activity.items():
+                    summary_lines.append(f"  - {user}: {count} análises")
+                    
+            summary_lines.append("--------------------------------------------------")
+        else:
+             summary_lines.append("- (Histórico de Análises vazio)")
+             
+    except Exception as e:
+        summary_lines.append(f"- (Erro ao carregar Análises: {e})")
+
+    # --- 3. Dados de Usuários e Tickets (Supabase) ---
+    try:
+        df_users = load_user_db()
+        df_tickets = load_tickets()
+        summary_lines.append("--- Contexto: Usuários e Suporte (Supabase) ---")
+        summary_lines.append(f"- Total de usuários cadastrados: {len(df_users)}")
+        summary_lines.append(f"- Usuários pendentes de aprovação: {len(df_users[df_users['status'] == 'pendente'])}")
+        summary_lines.append(f"- Tickets de suporte abertos: {len(df_tickets[df_tickets['status'] == 'aberto'])}")
+        summary_lines.append("--------------------------------------------------")
+    except Exception as e:
+        summary_lines.append(f"- (Erro ao carregar Usuários/Tickets: {e})")
+
+
+    if not summary_lines:
+        return "Nenhum dado de contexto disponível no momento."
+        
+    # Junta todo o texto de contexto
+    return "Dados de contexto do aplicativo:\n" + "\n".join(summary_lines)
+# --- 💡 ALTERAÇÃO AQUI (FIM) 💡 ---
+
+
 # --- Conversor de JSON para Numpy/Pandas ---
 def converter_json(obj):
     if isinstance(obj, (np.integer, np.int64)):
@@ -505,7 +597,7 @@ def save_user_db(df_users: pd.DataFrame):
 
         for col in ['force_password_reset']:
              if col in df_users.columns:
-                df_users[col] = df_users[col].astype(str)
+                 df_users[col] = df_users[col].astype(str)
 
         supabase.table('users').upsert(df_users.to_dict('records'), on_conflict="username").execute()
         st.cache_data.clear()
@@ -592,13 +684,13 @@ def aplicar_estilos_authenticated():
     /* Esta função SÓ vai sobrescrever o fundo para as telas logadas,
        anulando o fundo de login do estilo.css */
     .stApp {
-        background-image: none !important;
-        background: radial-gradient(circle at 10% 10%, rgba(15,23,42,0.96) 0%, rgba(11,17,24,1) 50%) !important;
+         background-image: none !important;
+         background: radial-gradient(circle at 10% 10%, rgba(15,23,42,0.96) 0%, rgba(11,17,24,1) 50%) !important;
     }
     
     /* Garante que o CSS de esconder o menu seja aplicado */
     header[data-testid="stHeader"], #MainMenu, footer {
-        display: none !important;
+         display: none !important;
     }
     </style>
     """
@@ -1779,7 +1871,7 @@ else:
                     mensalidade = moeda_para_float(hit.iloc[0]["VALOR MENSALIDADE"])
                     st.success(f"Cliente: {cliente} | Mensalidade: {formatar_moeda(mensalidade)}")
                 else:
-                    st.warning("Placa não encontrada na base. Preencha os dados manualmente abaixo.")
+                    st.warning("Placa não encontrada na base. Preencha os dados manually abaixo.")
             cliente = st.text_input("Cliente (caso não tenha sido localizado)", value=cliente)
             mensalidade = st.number_input("Mensalidade (R$)", min_value=0.0, step=0.01, format="%.2f", value=float(mensalidade) if mensalidade else 0.0)
             st.subheader("2) Período e Serviço")
@@ -2368,9 +2460,28 @@ else:
                     "Técnico": "Explique com precisão técnica, em linguagem acessível."
                 }
                 pref = prefixos.get(tom, "")
-                prompt_final = f"{pref}\n\n{user_text}".strip()
+                
+                # --- 💡 ALTERAÇÃO AQUI (INÍCIO) 💡 ---
+                # 1. Buscar o contexto do app (chama a nova função)
+                with st.spinner("Buscando dados do app para dar contexto à I.A...."):
+                    contexto_app = get_ia_context_summary()
+                
+                # 2. Montar o prompt final com o contexto
+                prompt_final = f"""
+{pref}
 
-                # Registrar a fala do usuário
+**Contexto do Aplicativo (Use estes dados para responder):**
+---
+{contexto_app}
+---
+
+**Pergunta do Usuário:**
+{user_text}
+""".strip()
+                # --- 💡 ALTERAÇÃO AQUI (FIM) 💡 ---
+
+
+                # Registrar a fala do usuário (APENAS o texto original)
                 st.session_state.ia_history.append({"role": "user", "parts": [{"text": user_text}]})
                 with st.chat_message("🧑‍💻"):
                     st.markdown(user_text)
@@ -2385,6 +2496,7 @@ else:
                     except Exception:
                         pass
                     try:
+                        # Envia o prompt COMPLETO (com contexto) para a I.A.
                         stream = st.session_state.ia_chat.send_message(prompt_final, stream=True)
                         for chunk in stream:
                             delta = chunk.text or ""
