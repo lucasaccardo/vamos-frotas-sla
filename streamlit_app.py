@@ -691,6 +691,288 @@ def save_user_db(df_users: pd.DataFrame):
         st.error(f"Erro ao salvar usuários no Supabase: {e}")
 
 # =========================
+# Background helpers (Login)
+# =========================
+def show_logo_url(url: str, width: int = 140):
+    st.image(url, width=width)
+    st.markdown("""
+        <style>
+        button[title="Expandir imagem"], button[title="Expand image"], button[aria-label="Expandir imagem"], button[aria-label="Expand image"] {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+# =========================
+# Utilities & Password
+# =========================
+def get_query_params():
+    try:
+        return dict(st.query_params)
+    except Exception:
+        try:
+            params = st.experimental_get_query_params()
+            return {k: (v[0] if isinstance(v, list) else v) for k, v in params.items()}
+        except Exception:
+            return {}
+
+def safe_rerun():
+    try:
+        st.experimental_rerun()
+    except AttributeError:
+        try:
+            st.rerun()
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+def clear_all_query_params():
+    try:
+        st.query_params.clear()
+    except AttributeError:
+        try:
+            st.experimental_set_query_params()
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+def get_app_base_url():
+    try:
+        url = (st.secrets.get("APP_BASE_URL", "") or "").strip()
+    except Exception:
+        url = ""
+    if url.endswith("/"):
+        url = url[:-1]
+    return url
+
+def is_bcrypt_hash(s: str) -> bool:
+    return isinstance(s, str) and s.startswith("$2")
+
+def verify_password(stored_hash: str, provided_password: str) -> Tuple[bool, bool]:
+    if is_bcrypt_hash(stored_hash):
+        try:
+            ok = pwd_context.verify(provided_password, stored_hash)
+            return ok, (ok and pwd_context.needs_update(stored_hash))
+        except Exception:
+            return False, False
+    legacy = hashlib.sha256(provided_password.encode()).hexdigest()
+    ok = (stored_hash == legacy)
+    return ok, bool(ok)
+
+# =========================
+# Tema Autenticado
+# =========================
+def aplicar_estilos_authenticated():
+    css = """
+    <style id="app-auth-style">
+    /* Esta função SÓ vai sobrescrever o fundo para as telas logadas,
+       anulando o fundo de login do estilo.css */
+    .stApp {
+         background-image: none !important;
+         background: radial-gradient(circle at 10% 10%, rgba(15,23,42,0.96) 0%, rgba(11,17,24,1) 50%) !important;
+    }
+    
+    /* Garante que o CSS de esconder o menu seja aplicado */
+    header[data-testid="stHeader"], #MainMenu, footer {
+         display: none !important;
+    }
+    </style>
+    """
+    try:
+        st.markdown(css, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+# =========================
+# Política de Senha
+# =========================
+PASSWORD_MIN_LEN = 10
+SPECIAL_CHARS = r"!@#$%^&*()_+\-=\[\]{};':\",.<>/?\\|`~"
+
+def validate_password_policy(password: str, username: str = "", email: str = ""):
+    errors = []
+    if len(password) < PASSWORD_MIN_LEN:
+        errors.append(f"Senha deve ter pelo menos {PASSWORD_MIN_LEN} caracteres.")
+    if not re.search(r"[A-Z]", password):
+        errors.append("Senha deve conter pelo menos 1 letra maiúscula.")
+    if not re.search(r"[a-z]", password):
+        errors.append("Senha deve conter pelo menos 1 letra minúscula.")
+    if not re.search(r"[0-9]", password):
+        errors.append("Senha deve conter pelo menos 1 número.")
+    if not re.search(rf"[{re.escape(SPECIAL_CHARS)}]", password):
+        errors.append("Senha deve conter pelo menos 1 caractere especial.")
+    uname = (username or "").strip().lower()
+    local_email = (email or "").split("@")[0].strip().lower()
+    if uname and uname in password.lower():
+        errors.append("Senha não pode conter o seu usuário.")
+    if local_email and local_email in password.lower():
+        errors.append("Senha não pode conter a parte local do seu e-mail.")
+    return (len(errors) == 0), errors
+
+# =========================
+# Helpers de E-mail
+# =========================
+def smtp_available():
+    host = st.secrets.get("EMAIL_HOST", "")
+    user = st.secrets.get("EMAIL_USERNAME", "")
+    password = st.secrets.get("EMAIL_PASSWORD", "")
+    return bool(host and user and password)
+
+def build_email_html(title: str, subtitle: str, body_lines: List[str], cta_label: str = "", cta_url: str = "", footer: str = "") -> str:
+    primary = "#2563EB"
+    brand = "#0d1117"
+    text = "#0b1f2a"
+    light = "#f6f8fa"
+    button_html = ""
+    if cta_label and cta_url:
+        button_html = f"""
+        <tr>
+            <td align="center" style="padding: 28px 0 10px 0;">
+                <a href="{cta_url}" style="background:{primary};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:8px;display:inline-block;font-family:Segoe UI,Arial,sans-serif">
+                    {cta_label}
+                </a>
+            </td>
+        </tr>
+        """
+    body_html = "".join([f'<p style="margin:8px 0 8px 0">{line}</p>' for line in body_lines])
+    footer_html = f'<p style="color:#6b7280;font-size:12px">{footer}</p>' if footer else ""
+    return f"""<!DOCTYPE html>
+<html>
+    <body style="margin:0;padding:0;background:{light}">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="background:{light};padding:24px 0">
+            <tr>
+                <td>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="600" style="margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+                        <tr>
+                            <td style="background:{brand};padding:18px 24px;color:#ffffff;">
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <span style="font-weight:700;font-size:18px;font-family:Segoe UI,Arial,sans-serif">Frotas Vamos SLA</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:24px 24px 0 24px;color:{text};font-family:Segoe UI,Arial,sans-serif">
+                                <h2 style="margin:0 0 6px 0;font-weight:700">{title}</h2>
+                                <p style="margin:0 0 12px 0;color:#475569">{subtitle}</p>
+                                {body_html}
+                            </td>
+                        </tr>
+                        {button_html}
+                        <tr>
+                            <td style="padding:12px 24px 24px 24px;color:#334155;font-family:Segoe UI,Arial,sans-serif">
+                                {footer_html}
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="text-align:center;color:#94a3b8;font-size:12px;margin-top:8px;font-family:Segoe UI,Arial,sans-serif">
+                        © {datetime.now().year} Vamos Locação. Todos os direitos reservados.
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>"""
+
+def send_email(dest_email: str, subject: str, body_plain: str, body_html: Optional[str] = None) -> bool:
+    host = st.secrets.get("EMAIL_HOST", "")
+    port = int(st.secrets.get("EMAIL_PORT", 587) or 587)
+    user = st.secrets.get("EMAIL_USERNAME", "")
+    password = st.secrets.get("EMAIL_PASSWORD", "")
+    use_tls = str(st.secrets.get("EMAIL_USE_TLS", "True")).lower() in ("1", "true", "yes")
+    sender = st.secrets.get("EMAIL_FROM", user or "no-reply@example.com")
+    if not host or not user or not password:
+        st.warning("Configurações de e-mail não definidas em st.secrets. Exibindo conteúdo (teste).")
+        st.code(f"Simulated email to: {dest_email}\nSubject: {subject}\n\n{body_plain}", language="text")
+        return False
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = sender
+        msg["To"] = dest_email
+        msg.set_content(body_plain)
+        if body_html:
+            msg.add_alternative(body_html, subtype="html")
+        server = smtplib.SMTP(host, port, timeout=20)
+        server.ehlo()
+        if use_tls:
+            server.starttls()
+            server.ehlo()
+        if user and password:
+            server.login(user, password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        try:
+            st.error(f"Falha ao enviar e-mail: {e}")
+        except Exception:
+            print("Falha ao enviar e-mail:", e)
+        st.code(f"Para: {dest_email}\nAssunto: {subject}\n\n{body_plain}", language="text")
+        return False
+
+def send_reset_email(dest_email: str, reset_link: str) -> bool:
+    subject = "Redefinição de senha - Frotas Vamos SLA"
+    plain = f"""Olá,
+
+Recebemos uma solicitação para redefinir sua senha no Frotas Vamos SLA.
+Use o link abaixo (válido por 30 minutos):
+
+{reset_link}
+
+Se você não solicitou, ignore este e-mail.
+"""
+    html = build_email_html(
+        title="Redefinição de senha",
+        subtitle="Você solicitou redefinir sua senha no Frotas Vamos SLA.",
+        body_lines=["Este link é válido por 30 minutos.", "Se você não solicitou, ignore este e-mail."],
+        cta_label="Redefinir senha",
+        cta_url=reset_link,
+        footer="Este é um e-mail automático. Não responda."
+    )
+    return send_email(dest_email, subject, plain, html)
+
+def send_approved_email(dest_email: str, base_url: str) -> bool:
+    subject = "Conta aprovada - Frotas Vamos SLA"
+    plain = f"""Olá,
+
+Sua conta no Frotas Vamos SLA foi aprovada.
+Acesse a plataforma: {base_url}
+
+Bom trabalho!
+"""
+    html = build_email_html(
+        title="Conta aprovada",
+        subtitle="Seu acesso ao Frotas Vamos SLA foi liberado.",
+        body_lines=["Você já pode acessar a plataforma com seu usuário e senha."],
+        cta_label="Acessar plataforma",
+        cta_url=base_url,
+        footer="Em caso de dúvidas, procure o administrador do sistema."
+    )
+    return send_email(dest_email, subject, plain, html)
+
+def send_invite_to_set_password(dest_email: str, reset_link: str) -> bool:
+    subject = "Sua conta foi aprovada - Defina sua senha"
+    plain = f"""Olá,
+
+Sua conta no Frotas Vamos SLA foi aprovada.
+Para definir sua senha inicial, use o link (válido por 30 minutos):
+{reset_link}
+
+Bom trabalho!
+"""
+    html = build_email_html(
+        title="Defina sua senha",
+        subtitle="Sua conta foi aprovada no Frotas Vamos SLA. Defina sua senha para começar a usar.",
+        body_lines=["O link é válido por 30 minutos."],
+        cta_label="Definir senha",
+        cta_url=reset_link,
+        footer="Se você não reconhece esta solicitação, ignore este e-mail."
+    )
+    return send_email(dest_email, subject, plain, html)
+
+# =========================
 # Lógica de Senha
 # =========================
 def is_password_expired(row) -> bool:
@@ -913,14 +1195,16 @@ def renderizar_sidebar():
             st.button(btn_label, on_click=ir_para_admin_delete_requests, use_container_width=True)
 
         st.button("🚪 Sair (Logout)", on_click=logout, type="secondary", use_container_width=True)
-
+# --- FIM DA ATUALIZAÇÃO ---
 # =========================
 # Initial state & routing
 # =========================
 if "tela" not in st.session_state:
     st.session_state.tela = "login"
 
-qp = get_query_params()
+# --- CORREÇÃO DO ERRO: Movido o get_query_params para ANTES do bloco de telas ---
+# Esta é a linha 834 original que causava o erro
+qp = get_query_params() 
 incoming_token = qp.get("reset_token") or qp.get("token") or ""
 if incoming_token and not st.session_state.get("ignore_reset_qp"):
     st.session_state.incoming_reset_token = incoming_token
@@ -1877,16 +2161,13 @@ else:
                     
                     if protocolo_id_real:
                         st.session_state.resultado_sla["protocolo"] = protocolo_id_real
-                        # Regera o PDF com o ID correto
                         pdf_buf = gerar_pdf_sla_simples(
                             cliente, placa_in, tipo_servico,
                             int(dias_uteis_manut), int(prazo_sla), int(dias_exc),
                             float(mensalidade), float(desconto),
                             protocolo_id=protocolo_id_real
                         )
-                        # Atualiza o PDF no storage
                         try:
-                            # Tenta buscar o pdf_path que foi salvo no registro
                             analise_registrada = supabase.table('analises').select("pdf_path").eq('id', protocolo_id_real).single().execute()
                             pdf_filename = analise_registrada.data['pdf_path']
                             
@@ -2206,13 +2487,9 @@ else:
             
             if not df.empty:
                 
-                # Criar o DataFrame "achatado"
                 df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
-
-                # Adiciona coluna Economia
                 df_flat["Economia"] = [calcular_economia(row) for _, row in df.iterrows()]
                 
-                # Reordena as colunas
                 colunas = [
                     "Protocolo", "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
                     "Usuário", "Data/Hora", "PDF", "pdf_path"
@@ -2220,7 +2497,6 @@ else:
                 colunas_finais = [c for c in colunas if c in df_flat.columns]
                 df_flat = df_flat[colunas_finais]
 
-                # Botão de download do Excel
                 excel_bytes = gerar_excel_moderno(df_flat)
                 st.download_button(
                     "⬇️ Baixar relatório Excel (moderno)",
@@ -2232,7 +2508,6 @@ else:
                 
                 st.markdown("---") 
 
-                # Loop para exibir os cartões de análise
                 for idx, row in df_flat.iterrows():
                     economia_str = row.get('Economia')
                     
@@ -2498,45 +2773,45 @@ else:
             df_flat_list = [extrair_linha_relatorio(row, supabase_public_url) for _, row in df_filtrado.iterrows()]
             if not df_flat_list:
                 st.info("Nenhum resultado encontrado para os filtros selecionados.")
-                st.stop()
+                # st.stop() # Removido para evitar que a tela pare aqui
+            else:    
+                df_flat = pd.DataFrame(df_flat_list)
                 
-            df_flat = pd.DataFrame(df_flat_list)
-            
-            if search_protocolo.strip():
-                df_flat = df_flat[df_flat['Protocolo'].str.contains(search_protocolo.strip(), case=False, na=False)]
-            if search_placa.strip():
-                df_flat = df_flat[df_flat['Placa'].str.contains(search_placa.strip(), case=False, na=False)]
-            
-            st.markdown("---")
-            st.write(f"Resultados encontrados: {len(df_flat)}")
+                if search_protocolo.strip():
+                    df_flat = df_flat[df_flat['Protocolo'].str.contains(search_protocolo.strip(), case=False, na=False)]
+                if search_placa.strip():
+                    df_flat = df_flat[df_flat['Placa'].str.contains(search_placa.strip(), case=False, na=False)]
+                
+                st.markdown("---")
+                st.write(f"Resultados encontrados: {len(df_flat)}")
 
-            if df_flat.empty:
-                st.info("Nenhum resultado encontrado para os filtros selecionados.")
-            else:
-                for _, row in df_flat.iterrows():
-                    with st.container(border=True):
-                        st.markdown(f"**Protocolo:** `{row['Protocolo']}`")
-                        st.write(f"**Tipo:** {row['tipo'].replace('_', ' ').capitalize()}")
-                        st.write(f"**Placa:** {row['Placa']} | **Cliente:** {row['Cliente']}")
-                        st.write(f"**Data:** {row['Data/Hora']}")
-                        
-                        col1, col2 = st.columns([1, 1])
-                        
-                        pdf_link = row.get("PDF", "")
-                        if pdf_link and "http" in pdf_link:
-                            col1.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
+                if df_flat.empty:
+                    st.info("Nenhum resultado encontrado para os filtros selecionados.")
+                else:
+                    for _, row in df_flat.iterrows():
+                        with st.container(border=True):
+                            st.markdown(f"**Protocolo:** `{row['Protocolo']}`")
+                            st.write(f"**Tipo:** {row['tipo'].replace('_', ' ').capitalize()}")
+                            st.write(f"**Placa:** {row['Placa']} | **Cliente:** {row['Cliente']}")
+                            st.write(f"**Data:** {row['Data/Hora']}")
                             
-                        analise_id_atual = row['Protocolo']
-                        
-                        if analise_id_atual in pending_deletion_ids:
-                            col2.button("Solicitação Pendente", key=f"del_{analise_id_atual}", use_container_width=True, disabled=True)
-                        else:
-                            col2.button("🗑️ Solicitar Exclusão", 
-                                        key=f"del_{analise_id_atual}", 
-                                        type="primary", 
-                                        use_container_width=True,
-                                        on_click=create_delete_request,
-                                        args=(analise_id_atual, row['pdf_path'], current_username))
+                            col1, col2 = st.columns([1, 1])
+                            
+                            pdf_link = row.get("PDF", "")
+                            if pdf_link and "http" in pdf_link:
+                                col1.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
+                                
+                            analise_id_atual = row['Protocolo']
+                            
+                            if analise_id_atual in pending_deletion_ids:
+                                col2.button("Solicitação Pendente", key=f"del_{analise_id_atual}", use_container_width=True, disabled=True)
+                            else:
+                                col2.button("🗑️ Solicitar Exclusão", 
+                                            key=f"del_{analise_id_atual}", 
+                                            type="primary", 
+                                            use_container_width=True,
+                                            on_click=create_delete_request,
+                                            args=(analise_id_atual, row['pdf_path'], current_username))
 
     # --- PÁGINA: ADMIN DE EXCLUSÕES (FEATURE 3) ---
     elif st.session_state.tela == "admin_delete_requests":
