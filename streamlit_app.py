@@ -296,8 +296,13 @@ def extrair_linha_relatorio(row, supabase_url=None):
         else:
             pdf_link = "#" 
 
+    # <<< CORREÇÃO 1: PROTOCOLO >>>
+    protocolo_uuid = row["id"]
+    protocolo_display = str(int(protocolo_uuid.split('-')[0], 16))[-8:] # Pega o primeiro bloco, converte para int, e pega os últimos 8 dígitos
+    
     return {
-        "Protocolo": row["id"], 
+        "Protocolo_UUID": protocolo_uuid, # ID real para joins e deletes
+        "Protocolo": protocolo_display,  # ID curto para exibição
         "Cliente": cliente,
         "Placa": placa,
         "Serviço": servico,
@@ -348,6 +353,8 @@ def gerar_excel_moderno(df_flat):
     normal_format = workbook.add_format({'border': 1})
     link_format = workbook.add_format({'font_color': 'blue', 'underline': 1, 'border': 1})
 
+    # <<< CORREÇÃO 1: PROTOCOLO >>>
+    # Define a ordem das colunas (Protocolo já está aqui)
     headers_ordenados = [
         "Protocolo", "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
         "Usuário", "Data/Hora", "PDF"
@@ -360,7 +367,7 @@ def gerar_excel_moderno(df_flat):
         worksheet.write(0, col, header, header_format)
         worksheet.set_column(col, col, 22) 
         if header == "Protocolo":
-             worksheet.set_column(col, col, 38)
+             worksheet.set_column(col, col, 12) # Protocolo mais curto
         if header == "PDF":
              worksheet.set_column(col, col, 12) 
 
@@ -382,34 +389,6 @@ def gerar_excel_moderno(df_flat):
     workbook.close()
     output.seek(0)
     return output
-
-# --- NOVA FUNÇÃO: RENDER_METRIC_BAR ---
-def render_metric_bar(label, value, percentage):
-    """Gera o HTML/CSS para uma barra de métrica customizada."""
-    
-    # Define os gradientes aqui
-    color_style = "background: linear-gradient(90deg, #93c5fd, #3b82f6);" # Azul (Análises)
-    if "Economia" in label:
-        color_style = "background: linear-gradient(90deg, #5eead4, #10b981);" # Verde (Economia)
-    
-    # Formata o valor
-    value_str = f"R$ {value:,.0f}" if "Economia" in label else f"{int(value)}"
-    
-    # Garante que a porcentagem não passe de 100 ou seja menor que 0
-    percentage = max(0, min(percentage, 100))
-    
-    return f"""
-    <div class="metric-bar-container">
-        <div class="metric-bar-label">{label}</div>
-        <div class="metric-bar-wrapper">
-            <div class="metric-bar-fill" style="{color_style} width: {percentage}%;">
-                <span>{value_str}</span>
-            </div>
-        </div>
-    </div>
-    """
-# --- FIM DA NOVA FUNÇÃO ---
-
 
 # --- Definição das colunas ---
 ANALISES_COLS = ["id", "username", "tipo", "data_hora", "dados_json", "pdf_path"]
@@ -477,12 +456,13 @@ def save_analises(df):
     except Exception as e:
         st.error(f"Erro ao salvar análises no Supabase: {e}")
 
-def registrar_analise(username, tipo, dados, pdf_bytes) -> str:
+# <<< CORREÇÃO 1: PROTOCOLO >>>
+def registrar_analise(username, tipo, dados, pdf_bytes) -> str: # Retorna apenas o ID real (UUID)
     """Registra a análise e o PDF, e retorna o ID (protocolo)."""
     novo_id = str(uuid.uuid4())
-    data_hora = datetime.now(tz_brasilia).strftime("%Y-%m-%d %H:%M:%S")
+    data_hora = datetime.now(tz_brasilia).isoformat() # <<< CORREÇÃO 2: USA ISOFORMAT
     
-    pdf_filename = f"{tipo}_{username}_{novo_id}_{data_hora.replace(' ','_').replace(':','-')}.pdf"
+    pdf_filename = f"{tipo}_{username}_{novo_id}_{datetime.now(tz_brasilia).strftime('%Y-%m-%d_%H-%M-%S')}.pdf"
     
     try:
         supabase.storage.from_("pdfs").upload(
@@ -506,12 +486,13 @@ def registrar_analise(username, tipo, dados, pdf_bytes) -> str:
         "data_hora": data_hora,
         "dados_json": json.dumps(dados, ensure_ascii=False, default=converter_json),
         "pdf_path": pdf_filename
+        # O 'protocolo_num' não é mais necessário no banco
     }
     
     try:
         supabase.table('analises').insert(novo_registro).execute()
         st.cache_data.clear()
-        return novo_id # Retorna o ID
+        return novo_id # Retorna o ID real (UUID)
     except Exception as e:
         st.error(f"Erro ao registrar análise no Supabase: {e}")
         return ""
@@ -554,7 +535,7 @@ def create_delete_request(analise_id: str, pdf_path: str, username: str):
     """Cria uma nova solicitação de exclusão."""
     try:
         request_data = {
-            "analise_id": analise_id,
+            "analise_id": analise_id, # Salva o UUID real
             "pdf_path": pdf_path,
             "requested_by": username,
             "status": "pendente"
@@ -706,6 +687,7 @@ def show_logo_url(url: str, width: int = 140):
 # =========================
 # Utilities & Password
 # =========================
+# <<< CORREÇÃO DO ERRO: Função movida para o topo (antes de ser chamada)
 def get_query_params():
     try:
         return dict(st.query_params)
@@ -715,6 +697,7 @@ def get_query_params():
             return {k: (v[0] if isinstance(v, list) else v) for k, v in params.items()}
         except Exception:
             return {}
+# --- FIM DA CORREÇÃO ---
 
 def safe_rerun():
     try:
@@ -1037,15 +1020,19 @@ def calcular_cenario_comparativo(cliente, placa, entrada, saida, feriados, servi
         "Detalhe Peças": pecas or []
     }
 
-def gerar_pdf_comparativo(df_cenarios, melhor_cenario, protocolo_id):
+# <<< CORREÇÃO 1: PROTOCOLO >>>
+def gerar_pdf_comparativo(df_cenarios, melhor_cenario, protocolo_id): # protocolo_id aqui é o UUID
     if df_cenarios is None or df_cenarios.empty:
         return BytesIO()
+    
+    protocolo_display = str(int(protocolo_id.split('-')[0], 16))[-8:] # Transforma o UUID no display
+    
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
     elementos, styles = [], getSampleStyleSheet()
     styles['Normal'].leading = 14
     
-    elementos.append(Paragraph(f"Protocolo: {protocolo_id}", styles['Normal']))
+    elementos.append(Paragraph(f"Protocolo: {protocolo_display}", styles['Normal'])) # Mostra o display
     elementos.append(Paragraph("🚛 Relatório Comparativo de Cenários SLA", styles['Title']))
     elementos.append(Spacer(1, 24))
     
@@ -1087,13 +1074,16 @@ def calcular_sla_simples(data_entrada, data_saida, prazo_sla, valor_mensalidade,
         desconto = (valor_mensalidade / 30) * dias_excedente
     return dias, status, desconto, dias_excedente
 
-def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto, protocolo_id):
+# <<< CORREÇÃO 1: PROTOCOLO >>>
+def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto, protocolo_id): # protocolo_id aqui é o UUID
+    protocolo_display = str(int(protocolo_id.split('-')[0], 16))[-8:] # Transforma o UUID no display
+
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     largura, altura = letter
     
     c.setFont("Helvetica", 10)
-    c.drawString(50, altura - 35, f"Protocolo: {protocolo_id}")
+    c.drawString(50, altura - 35, f"Protocolo: {protocolo_display}") # Mostra o display
     
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, altura - 50, "Resultado SLA - Vamos Locação")
@@ -1203,7 +1193,7 @@ if "tela" not in st.session_state:
     st.session_state.tela = "login"
 
 # --- CORREÇÃO DO ERRO: Movido o get_query_params para ANTES do bloco de telas ---
-# Esta é a linha 834 original que causava o erro
+# Esta é a linha 923 original que causava o erro
 qp = get_query_params() 
 incoming_token = qp.get("reset_token") or qp.get("token") or ""
 if incoming_token and not st.session_state.get("ignore_reset_qp"):
@@ -1671,7 +1661,9 @@ else:
         st.error(f"Você tem {len(reproved_requests)} solicitação(ões) de exclusão REPROVADA(S):")
         for _, req in reproved_requests.iterrows():
             with st.container(border=True):
-                st.write(f"**Protocolo:** `{req['analise_id']}`")
+                # <<< CORREÇÃO 1: PROTOCOLO >>>
+                protocolo_display = str(int(req['analise_id'].split('-')[0], 16))[-8:]
+                st.write(f"**Protocolo:** `{protocolo_display}`")
                 st.write(f"**Revisado por:** {req.get('reviewed_by', 'N/A')}")
                 st.write(f"**Motivo:** {req.get('review_notes', 'Nenhum motivo fornecido.')}")
                 st.button("Dispensar Notificação", key=f"dismiss_{req['id']}", on_click=dismiss_delete_request, args=(req['id'],))
@@ -1693,7 +1685,7 @@ else:
             st.write("Calcule rapidamente o desconto de SLA para um único serviço ou veículo.")
             st.button("Acessar SLA Mensal", on_click=ir_para_calc_simples, use_container_width=True)
 
-    # --- PÁGINA: DASHBOARD (COM NOVOS GRÁFICOS) ---
+    # --- PÁGINA: DASHBOARD (CORREÇÃO 2: REVERTIDO AO ANTIGO E CORRIGIDO BUG) ---
     elif st.session_state.tela == "dashboard":
         if not user_is_admin():
             st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
@@ -1705,8 +1697,19 @@ else:
         if df.empty or 'data_hora' not in df.columns or df['data_hora'].isnull().all():
             st.info("Nenhum dado de análise encontrado para exibir o dashboard.")
         else:
-            df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce')
-            df = df.dropna(subset=['data_hora_dt'])
+            # --- CORREÇÃO DO BUG (TypeError: tz-naive) ---
+            try:
+                # Tenta converter direto, assumindo que a string TEM fuso (ISOFORMAT)
+                df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce', utc=True)
+                df = df.dropna(subset=['data_hora_dt'])
+                df['data_hora_dt'] = df['data_hora_dt'].dt.tz_convert(tz_brasilia)
+            except TypeError:
+                # Fallback se os dados forem naive (sem fuso)
+                df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce')
+                df = df.dropna(subset=['data_hora_dt'])
+                # Assume que o horário salvo sem fuso era o de Brasília
+                df['data_hora_dt'] = df['data_hora_dt'].dt.tz_localize(tz_brasilia)
+            # --- FIM DA CORREÇÃO ---
             
             if df.empty:
                 st.info("Nenhum dado de análise com data válida encontrado.")
@@ -1720,88 +1723,8 @@ else:
                     lambda row: float(calcular_economia(row).replace("R$", "").replace(".", "").replace(",", ".")) if row['tipo'] == 'cenarios' and calcular_economia(row) else 0,
                     axis=1
                 )
-
-                # --- INÍCIO DO NOVO GRÁFICO DE MÉTRICAS ---
-                st.subheader("Resumo (Últimos 30 dias vs. 30 dias anteriores)")
-
-                # 1. Injeta o CSS customizado para as barras
-                st.markdown("""
-                <style>
-                .metric-bar-container {
-                    width: 100%;
-                    margin-bottom: 12px;
-                }
-                .metric-bar-label {
-                    font-size: 14px;
-                    color: #e2e8f0; /* Texto claro */
-                    margin-bottom: 4px;
-                    font-family: 'Lato', sans-serif;
-                }
-                .metric-bar-wrapper {
-                    width: 100%;
-                    background-color: #1e293b; /* Fundo da barra (escuro) */
-                    border-radius: 8px;
-                    height: 40px;
-                    border: 1px solid #334155;
-                    overflow: hidden;
-                }
-                .metric-bar-fill {
-                    height: 100%;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: flex-end;
-                    padding-right: 12px;
-                    font-family: 'Poppins', sans-serif;
-                    font-weight: 700;
-                    font-size: 16px;
-                    color: #0f172a; /* Texto escuro na barra */
-                    transition: width 0.5s ease-in-out;
-                }
-                </style>
-                """, unsafe_allow_html=True)
                 
-                # 2. Calcula as métricas
-                now = datetime.now(tz_brasilia)
-                df['data_hora_dt'] = df['data_hora_dt'].dt.tz_convert(tz_brasilia) # Garante fuso
-                
-                # Período Atual (Últimos 30 dias)
-                current_period_start = now - timedelta(days=30)
-                df_current = df[df['data_hora_dt'] >= current_period_start]
-                
-                # Período Passado (31-60 dias atrás)
-                previous_period_start = now - timedelta(days=60)
-                previous_period_end = current_period_start
-                df_previous = df[(df['data_hora_dt'] >= previous_period_start) & (df['data_hora_dt'] < previous_period_end)]
-
-                # Métricas
-                econ_atual = df_current['economia_val'].sum()
-                econ_passada = df_previous['economia_val'].sum()
-                analises_atual = len(df_current)
-                analises_passada = len(df_previous)
-                
-                # Normalização para % (usa 95% para a barra maior)
-                max_econ = max(econ_atual, econ_passada, 0.01) # evita divisão por zero
-                max_analises = max(analises_atual, analises_passada, 1) # evita divisão por zero
-                
-                perc_econ_atual = (econ_atual / max_econ) * 95
-                perc_econ_passada = (econ_passada / max_econ) * 95
-                perc_analises_atual = (analises_atual / max_analises) * 95
-                perc_analises_passada = (analises_passada / max_analises) * 95
-                
-                # 3. Renderiza as barras
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(render_metric_bar("Economia (Mês Atual)", econ_atual, perc_econ_atual), unsafe_allow_html=True)
-                    st.markdown(render_metric_bar("Análises (Mês Atual)", analises_atual, perc_analises_atual), unsafe_allow_html=True)
-                with col2:
-                    st.markdown(render_metric_bar("Economia (Mês Passado)", econ_passada, perc_econ_passada), unsafe_allow_html=True)
-                    st.markdown(render_metric_bar("Análises (Mês Passado)", analises_passada, perc_analises_passada), unsafe_allow_html=True)
-                
-                st.markdown("---")
-                # --- FIM DO NOVO GRÁFICO DE MÉTRICAS ---
-                
-                # --- Filtros (Restante do Dashboard) ---
+                # --- Filtros ---
                 st.markdown("### Filtros por Período")
                 col1, col2, col3 = st.columns(3)
                 
@@ -2161,12 +2084,14 @@ else:
                     
                     if protocolo_id_real:
                         st.session_state.resultado_sla["protocolo"] = protocolo_id_real
+                        # Regera o PDF com o ID correto
                         pdf_buf = gerar_pdf_sla_simples(
                             cliente, placa_in, tipo_servico,
                             int(dias_uteis_manut), int(prazo_sla), int(dias_exc),
                             float(mensalidade), float(desconto),
                             protocolo_id=protocolo_id_real
                         )
+                        # Atualiza o PDF no storage
                         try:
                             analise_registrada = supabase.table('analises').select("pdf_path").eq('id', protocolo_id_real).single().execute()
                             pdf_filename = analise_registrada.data['pdf_path']
@@ -2179,7 +2104,8 @@ else:
                         except Exception as e:
                             st.warning(f"Não foi possível atualizar o PDF com o protocolo final: {e}")
                         
-                        st.success(f"Cálculo realizado! Protocolo: {protocolo_id_real}")
+                        protocolo_display = str(int(protocolo_id_real.split('-')[0], 16))[-8:]
+                        st.success(f"Cálculo realizado! Protocolo: {protocolo_display}")
                     else:
                         st.error("Cálculo realizado, mas FALHOU ao registrar no banco de dados.")
 
@@ -2190,7 +2116,9 @@ else:
                 st.info("Preencha os dados à esquerda e clique em 'Calcular SLA'.")
             else:
                 if res.get("protocolo"):
-                    st.markdown(f"**Protocolo:** `{res['protocolo']}`")
+                    # <<< CORREÇÃO 1: PROTOCOLO >>>
+                    protocolo_display = str(int(res.get("protocolo").split('-')[0], 16))[-8:]
+                    st.markdown(f"**Protocolo:** `{protocolo_display}`")
                 
                 st.write(f"- Status: {res['status']}")
                 st.write(f"- Dias úteis da manutenção: {res['dias_uteis_manut']} dia(s)")
@@ -2263,7 +2191,9 @@ else:
             )
             
             if protocolo_id_real:
-                st.success(f"Análise registrada! Protocolo: {protocolo_id_real}")
+                # <<< CORREÇÃO 1: PROTOCOLO >>>
+                protocolo_id_display = str(int(protocolo_id_real.split('-')[0], 16))[-8:]
+                st.success(f"Análise registrada! Protocolo: {protocolo_id_display}")
                 pdf_buffer = gerar_pdf_comparativo(df_cenarios, melhor, protocolo_id=protocolo_id_real)
                 try:
                     analise_registrada = supabase.table('analises').select("pdf_path").eq('id', protocolo_id_real).single().execute()
@@ -2492,7 +2422,7 @@ else:
                 
                 colunas = [
                     "Protocolo", "Cliente", "Placa", "Serviço", "Valor Final", "Economia",
-                    "Usuário", "Data/Hora", "PDF", "pdf_path"
+                    "Usuário", "Data/Hora", "PDF", "Protocolo_UUID", "pdf_path" # Pega IDs
                 ]
                 colunas_finais = [c for c in colunas if c in df_flat.columns]
                 df_flat = df_flat[colunas_finais]
@@ -2522,9 +2452,19 @@ else:
                         st.write(f"**Usuário:** {row['Usuário']}")
                         st.write(f"**Data/Hora:** {row['Data/Hora']}")
                         
-                        pdf_link = row.get("PDF", "")
-                        if pdf_link and "http" in pdf_link:
-                            st.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            pdf_link = row.get("PDF", "")
+                            if pdf_link and "http" in pdf_link:
+                                st.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
+                        with col2:
+                            if user_is_admin():
+                                st.button("🗑️ Solicitar Exclusão", 
+                                          key=f"del_{row['Protocolo_UUID']}", 
+                                          type="primary", 
+                                          use_container_width=True,
+                                          on_click=create_delete_request,
+                                          args=(row['Protocolo_UUID'], row['pdf_path'], st.session_state.get("username")))
                         
             else:
                 st.info("Nenhuma análise encontrada para o filtro selecionado.")
@@ -2773,10 +2713,10 @@ else:
             df_flat_list = [extrair_linha_relatorio(row, supabase_public_url) for _, row in df_filtrado.iterrows()]
             if not df_flat_list:
                 st.info("Nenhum resultado encontrado para os filtros selecionados.")
-                # st.stop() # Removido para evitar que a tela pare aqui
             else:    
                 df_flat = pd.DataFrame(df_flat_list)
                 
+                # <<< CORREÇÃO 1: PROTOCOLO >>>
                 if search_protocolo.strip():
                     df_flat = df_flat[df_flat['Protocolo'].str.contains(search_protocolo.strip(), case=False, na=False)]
                 if search_placa.strip():
@@ -2790,7 +2730,7 @@ else:
                 else:
                     for _, row in df_flat.iterrows():
                         with st.container(border=True):
-                            st.markdown(f"**Protocolo:** `{row['Protocolo']}`")
+                            st.markdown(f"**Protocolo:** `{row['Protocolo']}`") # Mostra ID curto
                             st.write(f"**Tipo:** {row['tipo'].replace('_', ' ').capitalize()}")
                             st.write(f"**Placa:** {row['Placa']} | **Cliente:** {row['Cliente']}")
                             st.write(f"**Data:** {row['Data/Hora']}")
@@ -2801,17 +2741,17 @@ else:
                             if pdf_link and "http" in pdf_link:
                                 col1.link_button("📥 Baixar PDF", pdf_link, use_container_width=True)
                                 
-                            analise_id_atual = row['Protocolo']
+                            analise_id_atual_uuid = row['Protocolo_UUID'] # Usa o ID real (UUID)
                             
-                            if analise_id_atual in pending_deletion_ids:
-                                col2.button("Solicitação Pendente", key=f"del_{analise_id_atual}", use_container_width=True, disabled=True)
+                            if analise_id_atual_uuid in pending_deletion_ids:
+                                col2.button("Solicitação Pendente", key=f"del_{analise_id_atual_uuid}", use_container_width=True, disabled=True)
                             else:
                                 col2.button("🗑️ Solicitar Exclusão", 
-                                            key=f"del_{analise_id_atual}", 
+                                            key=f"del_{analise_id_atual_uuid}", 
                                             type="primary", 
                                             use_container_width=True,
                                             on_click=create_delete_request,
-                                            args=(analise_id_atual, row['pdf_path'], current_username))
+                                            args=(analise_id_atual_uuid, row['pdf_path'], current_username))
 
     # --- PÁGINA: ADMIN DE EXCLUSÕES (FEATURE 3) ---
     elif st.session_state.tela == "admin_delete_requests":
@@ -2835,22 +2775,23 @@ else:
             if not df_analises_context.empty:
                 pending_full = pd.merge(
                     pending_requests, 
-                    df_analises_context[['Protocolo', 'Cliente', 'Placa', 'tipo']], 
+                    df_analises_context[['Protocolo_UUID', 'Protocolo', 'Cliente', 'Placa', 'tipo']], # Pega os dois IDs
                     left_on='analise_id', 
-                    right_on='Protocolo',
+                    right_on='Protocolo_UUID', # Faz join pelo UUID
                     how='left'
                 ).fillna("N/A")
             else:
                 pending_full = pending_requests
                 pending_full['Placa'] = 'N/A'
                 pending_full['Cliente'] = 'N/A'
+                pending_full['Protocolo'] = 'N/A' # Garante que a coluna existe
 
             
             for _, req in pending_full.iterrows():
                 with st.container(border=True):
                     st.write(f"**Solicitante:** {req['requested_by']}")
                     st.write(f"**Data da Solicitação:** {pd.to_datetime(req['created_at']).strftime('%d/%m/%Y %H:%M')}")
-                    st.markdown(f"**Protocolo da Análise:** `{req['analise_id']}`")
+                    st.markdown(f"**Protocolo da Análise:** `{req['Protocolo']}`") # Mostra o ID curto
                     st.write(f"**Placa:** {req.get('Placa', 'N/A')} | **Cliente:** {req.get('Cliente', 'N/A')}")
                     
                     with st.form(key=f"review_{req['id']}"):
@@ -2862,11 +2803,10 @@ else:
                         if approve_button:
                             try:
                                 # 1. Deleta a análise e o PDF
-                                delete_analise(req['analise_id'], req['pdf_path'])
+                                delete_analise(req['analise_id'], req['pdf_path']) # Usa o ID real (UUID)
                                 # 2. Atualiza o status da solicitação
                                 review_delete_request(req['id'], approved=True, reviewed_by=st.session_state.get("username"))
-                                st.success(f"Análise {req['analise_id']} APROVADA e excluída.")
-                                # Limpa o cache de notificações do usuário
+                                st.success(f"Análise {req['Protocolo']} APROVADA e excluída.")
                                 if "user_notifications" in st.session_state:
                                     del st.session_state.user_notifications
                                 safe_rerun()
@@ -2878,10 +2818,8 @@ else:
                                 st.error("O motivo é obrigatório para reprovar.")
                             else:
                                 try:
-                                    # Apenas atualiza o status da solicitação
                                     review_delete_request(req['id'], approved=False, reviewed_by=st.session_state.get("username"), notes=notes)
-                                    st.warning(f"Análise {req['analise_id']} REPROVADA.")
-                                    # Limpa o cache de notificações do usuário
+                                    st.warning(f"Análise {req['Protocolo']} REPROVADA.")
                                     if "user_notifications" in st.session_state:
                                         del st.session_state.user_notifications
                                     safe_rerun()
@@ -2892,7 +2830,20 @@ else:
         completed_requests = df_requests[df_requests['status'] != 'pendente']
         if not completed_requests.empty:
             with st.expander("Ver histórico de solicitações revisadas"):
-                st.dataframe(completed_requests, use_container_width=True)
+                # Tenta dar join para mostrar o ID curto
+                if not df_analises_context.empty:
+                    completed_full = pd.merge(
+                        completed_requests, 
+                        df_analises_context[['Protocolo_UUID', 'Protocolo']], 
+                        left_on='analise_id', 
+                        right_on='Protocolo_UUID',
+                        how='left'
+                    ).fillna("N/A")
+                else:
+                    completed_full = completed_requests
+                    completed_full['Protocolo'] = completed_full['analise_id'] # Mostra o UUID se não achar
+
+                st.dataframe(completed_full.drop(columns=['Protocolo_UUID', 'analise_id']), use_container_width=True)
 
     # --- PÁGINA: FALLBACK ---
     else:
