@@ -190,7 +190,7 @@ def get_gemini_model():
 # ---------------------------------
 
 # --- Função de Contexto da IA ---
-@st.cache_data(ttl=120) # Armazena os dados por 2 minutos para performance
+@st.cache_data(ttl=120) 
 def get_ia_context_summary():
     """
     Carrega dados do app para fornecer contexto à IA, incluindo a base de clientes
@@ -200,7 +200,7 @@ def get_ia_context_summary():
     
     # --- 1. Dados da Base de Clientes (Base De Clientes Faturamento.xlsx) ---
     try:
-        df_base = carregar_base() # A função que já existe e está cacheada
+        df_base = carregar_base() 
         if df_base is not None and not df_base.empty:
             summary_lines.append("--- Contexto: Base de Clientes (Base De Clientes Faturamento.xlsx) ---")
             
@@ -330,7 +330,8 @@ def extrair_linha_relatorio(row, supabase_url=None):
         "dados_json": row["dados_json"],
         "pdf_path": row["pdf_path"],
         "Chamado O.S": dados.get("os_chamado", "-"),
-        "Opção": dados.get("opcao", "-")
+        # <<< MUDANÇA: Renomeado de "Opção" para "Ferramenta" >>>
+        "Ferramenta": dados.get("ferramenta", "-") # A chave no JSON agora é 'ferramenta'
     }
 
 # --- Função de Economia ---
@@ -371,8 +372,9 @@ def gerar_excel_moderno(df_flat):
     normal_format = workbook.add_format({'border': 1})
     link_format = workbook.add_format({'font_color': 'blue', 'underline': 1, 'border': 1})
 
+    # <<< MUDANÇA: Renomeado de "Opção" para "Ferramenta" >>>
     headers_ordenados = [
-        "Protocolo", "Data/Hora", "Chamado O.S", "Opção", "Cliente", "Placa", "Serviço", 
+        "Protocolo", "Data/Hora", "Chamado O.S", "Ferramenta", "Cliente", "Placa", "Serviço", 
         "Valor Final", "Economia", "Usuário", "PDF"
     ]
     
@@ -386,7 +388,7 @@ def gerar_excel_moderno(df_flat):
              worksheet.set_column(col, col, 12) 
         if header == "PDF":
              worksheet.set_column(col, col, 12)
-        if header == "Chamado O.S" or header == "Opção":
+        if header == "Chamado O.S" or header == "Ferramenta": # <-- MUDANÇA AQUI
              worksheet.set_column(col, col, 15)
 
     for row_idx, row in df_flat.iterrows():
@@ -1015,8 +1017,8 @@ def calcular_cenario_comparativo(cliente, placa, entrada, saida, feriados, servi
         "Detalhe Peças": pecas or []
     }
 
-# <<< CORREÇÃO 2: Adicionado `gerado_por_user` >>>
-def gerar_pdf_comparativo(df_cenarios, melhor_cenario, protocolo_id, os_chamado, opcao, data_hora, gerado_por_user):
+# <<< MUDANÇA: "opcao" -> "ferramenta" e adicionado "gerado_por_user" >>>
+def gerar_pdf_comparativo(df_cenarios, melhor_cenario, protocolo_id, os_chamado, ferramenta, data_hora, gerado_por_user):
     if df_cenarios is None or df_cenarios.empty:
         return BytesIO()
     
@@ -1031,7 +1033,7 @@ def gerar_pdf_comparativo(df_cenarios, melhor_cenario, protocolo_id, os_chamado,
     elementos.append(Paragraph(f"Data da Análise: {data_hora}", styles['Normal']))
     elementos.append(Paragraph(f"Gerado por: {gerado_por_user}", styles['Normal']))
     elementos.append(Paragraph(f"Chamado O.S: {os_chamado}", styles['Normal']))
-    elementos.append(Paragraph(f"Opção: {opcao}", styles['Normal']))
+    elementos.append(Paragraph(f"Ferramenta: {ferramenta}", styles['Normal'])) # <-- MUDANÇA AQUI
     elementos.append(Spacer(1, 12))
     
     elementos.append(Paragraph("🚛 Relatório Comparativo de Cenários SLA", styles['Title']))
@@ -1075,8 +1077,8 @@ def calcular_sla_simples(data_entrada, data_saida, prazo_sla, valor_mensalidade,
         desconto = (valor_mensalidade / 30) * dias_excedente
     return dias, status, desconto, dias_excedente
 
-# <<< CORREÇÃO 2: Adicionado `gerado_por_user` >>>
-def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto, protocolo_id, os_chamado, opcao, data_hora, gerado_por_user):
+# <<< MUDANÇA: "opcao" -> "ferramenta" e adicionado "gerado_por_user" >>>
+def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_sla, dias_excedente, valor_mensalidade, desconto, protocolo_id, os_chamado, ferramenta, data_hora, gerado_por_user):
     protocolo_display = str(int(protocolo_id.split('-')[0], 16))[-8:]
 
     buffer = BytesIO()
@@ -1094,7 +1096,7 @@ def gerar_pdf_sla_simples(cliente, placa, tipo_servico, dias_uteis_manut, prazo_
     text_lines = [
         f"Gerado por: {gerado_por_user}",
         f"Chamado O.S: {os_chamado}",
-        f"Opção: {opcao}",
+        f"Ferramenta: {ferramenta}", # <-- MUDANÇA AQUI
         f"Cliente: {cliente}",
         f"Placa: {placa}",
         f"Tipo de serviço: {tipo_servico}",
@@ -1129,7 +1131,8 @@ def ir_para_historico_pessoal(): st.session_state.tela = "historico_pessoal"
 def ir_para_admin_delete_requests(): st.session_state.tela = "admin_delete_requests"
 
 def limpar_dados_comparativos():
-    for key in ["cenarios", "pecas_atuais", "mostrar_comparativo", "comparativa_os", "comparativa_opcao"]:
+    # <<< MUDANÇA: Renomeado "comparativa_opcao" >>>
+    for key in ["cenarios", "pecas_atuais", "mostrar_comparativo", "comparativa_os", "comparativa_ferramenta"]:
         if key in st.session_state: del st.session_state[key]
 
 def limpar_dados_simples():
@@ -1181,7 +1184,6 @@ def renderizar_sidebar():
                  st.markdown("---")
                  st.subheader("Super Admin")
             else:
-                 # Se já é admin, apenas adiciona os botões
                  pass 
                  
             st.button("📋 Gerenciar Tickets", on_click=lambda: st.session_state.update({"tela": "admin_tickets"}), use_container_width=True)
@@ -1655,14 +1657,10 @@ else:
     aplicar_estilos_authenticated() # Aplica o fundo de gradiente
     renderizar_sidebar()
     
-    # Define a URL base do storage aqui para que as telas de ticket possam usá-la
     supabase_public_url = f"{url}/storage/v1/object/public"
     
-    # --- Container principal para telas autenticadas ---
     st.markdown("<div class='main-container'>", unsafe_allow_html=True)
     
-    # --- Notificações de Exclusão (FEATURE 2) ---
-    # Verifica se há solicitações reprovadas para este usuário
     if "user_notifications" not in st.session_state:
         st.session_state.user_notifications = load_delete_requests()
     
@@ -1676,14 +1674,12 @@ else:
         st.error(f"Você tem {len(reproved_requests)} solicitação(ões) de exclusão REPROVADA(S):")
         for _, req in reproved_requests.iterrows():
             with st.container(border=True):
-                # <<< CORREÇÃO 1: PROTOCOLO >>>
                 protocolo_display = str(int(req['analise_id'].split('-')[0], 16))[-8:]
                 st.write(f"**Protocolo:** `{protocolo_display}`")
                 st.write(f"**Revisado por:** {req.get('reviewed_by', 'N/A')}")
                 st.write(f"**Motivo:** {req.get('review_notes', 'Nenhum motivo fornecido.')}")
                 st.button("Dispensar Notificação", key=f"dismiss_{req['id']}", on_click=dismiss_delete_request, args=(req['id'],))
         st.markdown("---")
-    # --- Fim das Notificações ---
 
 
     if st.session_state.tela == "home":
@@ -1700,7 +1696,6 @@ else:
             st.write("Calcule rapidamente o desconto de SLA para um único serviço ou veículo.")
             st.button("Acessar SLA Mensal", on_click=ir_para_calc_simples, use_container_width=True)
 
-    # --- PÁGINA: DASHBOARD (CORREÇÃO 2: REVERTIDO AO ANTIGO E CORRIGIDO BUG) ---
     elif st.session_state.tela == "dashboard":
         if not user_is_admin():
             st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
@@ -1712,19 +1707,14 @@ else:
         if df.empty or 'data_hora' not in df.columns or df['data_hora'].isnull().all():
             st.info("Nenhum dado de análise encontrado para exibir o dashboard.")
         else:
-            # --- CORREÇÃO DO BUG (TypeError: tz-naive) ---
             try:
-                # Tenta converter direto, assumindo que a string TEM fuso (ISOFORMAT)
                 df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce', utc=True)
                 df = df.dropna(subset=['data_hora_dt'])
                 df['data_hora_dt'] = df['data_hora_dt'].dt.tz_convert(tz_brasilia)
             except TypeError:
-                # Fallback se os dados forem naive (sem fuso)
                 df['data_hora_dt'] = pd.to_datetime(df['data_hora'], errors='coerce')
                 df = df.dropna(subset=['data_hora_dt'])
-                # Assume que o horário salvo sem fuso era o de Brasília
                 df['data_hora_dt'] = df['data_hora_dt'].dt.tz_localize(tz_brasilia)
-            # --- FIM DA CORREÇÃO ---
             
             if df.empty:
                 st.info("Nenhum dado de análise com data válida encontrado.")
@@ -1733,13 +1723,11 @@ else:
                 df['ano'] = df['data_hora_dt'].dt.year
                 df['mes'] = df['data_hora_dt'].dt.month
                 
-                # Calcula a economia ANTES de filtrar
                 df['economia_val'] = df.apply(
                     lambda row: float(calcular_economia(row).replace("R$", "").replace(".", "").replace(",", ".")) if row['tipo'] == 'cenarios' and calcular_economia(row) else 0,
                     axis=1
                 )
                 
-                # --- Filtros ---
                 st.markdown("### Filtros por Período")
                 col1, col2, col3 = st.columns(3)
                 
@@ -1760,7 +1748,6 @@ else:
                     opcoes_tipo = ["Todos", "cenarios", "sla_mensal"]
                     tipo_sel = st.selectbox("Tipo de análise:", opcoes_tipo)
 
-                # Aplicar filtros
                 df_filtrado = df.copy()
                 if ano_sel != "Todos":
                     df_filtrado = df_filtrado[df_filtrado['ano'] == ano_sel]
@@ -1771,7 +1758,6 @@ else:
 
                 st.markdown("---")
                 
-                # --- KPIs (Métricas) ---
                 st.subheader("Resumo do Período Selecionado")
                 total_economia = df_filtrado['economia_val'].sum()
                 total_analises = len(df_filtrado)
@@ -1785,9 +1771,7 @@ else:
                 
                 st.markdown("---")
                 
-                # --- Gráficos ---
                 st.subheader("Visualizações")
-
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -1826,7 +1810,6 @@ else:
                         economia_mes = economia_mes.sort_values(by='mes_ano')
                         st.bar_chart(economia_mes, x='mes_ano', y='Economia (R$)')
 
-    # --- PÁGINA: ADMIN USUÁRIOS ---
     elif st.session_state.tela == "admin_users":
         if not user_is_admin(): st.error("Acesso negado."); ir_para_home(); safe_rerun(); st.stop()
         st.title("👤 Gerenciamento de Usuários")
@@ -2031,9 +2014,9 @@ else:
         col_left, col_right = st.columns([2,1])
         with col_left:
             st.subheader("1) Informações Obrigatórias")
-            # <<< CORREÇÃO 2: Campos Obrigatórios >>>
+            # <<< MUDANÇA: "Opção" -> "Ferramenta" >>>
             os_chamado = st.text_input("Chamado O.S:*")
-            opcao_sel = st.selectbox("Opção:*", ["", "Vetor", "Geo"], index=0)
+            ferramenta_sel = st.selectbox("Ferramenta:*", ["", "Vetor", "Geo"], index=0)
             
             st.subheader("2) Identificação")
             placa_in = st.text_input("Placa do veículo (digite e tecle Enter)", key="placa_simples").strip().upper()
@@ -2067,9 +2050,8 @@ else:
             calc = st.button("Calcular SLA", type="primary")
             
             if calc:
-                # <<< CORREÇÃO 2: Validação dos Campos Obrigatórios >>>
-                if not os_chamado.strip() or not opcao_sel.strip():
-                    st.error("Por favor, preencha os campos 'Chamado O.S' e 'Opção' (Vetor/Geo).")
+                if not os_chamado.strip() or not ferramenta_sel.strip():
+                    st.error("Por favor, preencha os campos 'Chamado O.S' e 'Ferramenta' (Vetor/Geo).")
                 elif not placa_in and not cliente:
                     st.error("Informe ao menos a placa ou o cliente.")
                 elif data_entrada >= data_saida:
@@ -2089,9 +2071,9 @@ else:
                         "mensalidade": float(mensalidade),
                         "desconto": float(desconto),
                         "status": status,
-                        "os_chamado": os_chamado, # Salva o campo
-                        "opcao": opcao_sel,       # Salva o campo
-                        "gerado_por": st.session_state.get("full_name", st.session_state.get("username")) # Salva o usuário
+                        "os_chamado": os_chamado,
+                        "ferramenta": ferramenta_sel, # <-- MUDANÇA AQUI
+                        "gerado_por": st.session_state.get("full_name", st.session_state.get("username"))
                     }
                     
                     protocolo_id_prov = str(uuid.uuid4())
@@ -2103,7 +2085,7 @@ else:
                         float(mensalidade), float(desconto),
                         protocolo_id=protocolo_id_prov,
                         os_chamado=os_chamado,
-                        opcao=opcao_sel,
+                        ferramenta=ferramenta_sel, # <-- MUDANÇA AQUI
                         data_hora=data_hora_prov,
                         gerado_por_user=st.session_state.resultado_sla["gerado_por"]
                     )
@@ -2125,7 +2107,7 @@ else:
                             float(mensalidade), float(desconto),
                             protocolo_id=protocolo_id_real,
                             os_chamado=os_chamado,
-                            opcao=opcao_sel,
+                            ferramenta=ferramenta_sel, # <-- MUDANÇA AQUI
                             data_hora=data_hora_real,
                             gerado_por_user=st.session_state.resultado_sla["gerado_por"]
                         )
@@ -2170,7 +2152,7 @@ else:
                         res["mensalidade"], res["desconto"],
                         protocolo_id=res.get("protocolo", "N/A"),
                         os_chamado=res.get("os_chamado", "N/A"),
-                        opcao=res.get("opcao", "N/A"),
+                        ferramenta=res.get("ferramenta", "N/A"), # <-- MUDANÇA AQUI
                         data_hora=res.get("data_hora", "N/A"),
                         gerado_por_user=res.get("gerado_por", "N/A")
                     )
@@ -2189,13 +2171,13 @@ else:
     elif st.session_state.tela == "calc_comparativa":
         st.title("📊 Análise de Cenários")
         
-        # <<< CORREÇÃO 2: Campos Obrigatórios (movidos para fora do 'else') >>>
         st.subheader("1) Informações Obrigatórias")
         col_os, col_op = st.columns(2)
         with col_os:
+            # <<< MUDANÇA: Renomeado "comparativa_opcao" -> "comparativa_ferramenta" >>>
             os_chamado = st.text_input("Chamado O.S:*", key="comparativa_os")
         with col_op:
-            opcao_sel = st.selectbox("Opção:*", ["", "Vetor", "Geo"], key="comparativa_opcao", index=0)
+            ferramenta_sel = st.selectbox("Ferramenta:*", ["", "Vetor", "Geo"], key="comparativa_ferramenta", index=0)
         
         if "cenarios" not in st.session_state:
             st.session_state.cenarios = []
@@ -2219,9 +2201,8 @@ else:
             st.table(display_df)
             if len(st.session_state.cenarios) >= 2 and not st.session_state.mostrar_comparativo:
                 if st.button("🏆 Comparar Cenários", type="primary"):
-                    # <<< CORREÇÃO 2: Validação dos Campos Obrigatórios >>>
-                    if not st.session_state.comparativa_os or not st.session_state.comparativa_opcao:
-                         st.error("Por favor, preencha os campos 'Chamado O.S' e 'Opção' (Vetor/Geo) no topo da página.")
+                    if not st.session_state.comparativa_os or not st.session_state.comparativa_ferramenta:
+                         st.error("Por favor, preencha os campos 'Chamado O.S' e 'Ferramenta' (Vetor/Geo) no topo da página.")
                     else:
                         st.session_state.mostrar_comparativo = True
                         safe_rerun()
@@ -2241,7 +2222,7 @@ else:
                 df_cenarios, melhor, 
                 protocolo_id=protocolo_id_prov,
                 os_chamado=st.session_state.comparativa_os,
-                opcao=st.session_state.comparativa_opcao,
+                ferramenta=st.session_state.comparativa_ferramenta, # <-- MUDANÇA AQUI
                 data_hora=data_hora_prov,
                 gerado_por_user=user_nome_prov
             )
@@ -2250,7 +2231,7 @@ else:
                 "cenarios": st.session_state.cenarios,
                 "melhor": melhor.to_dict(),
                 "os_chamado": st.session_state.comparativa_os,
-                "opcao": st.session_state.comparativa_opcao,
+                "ferramenta": st.session_state.comparativa_ferramenta, # <-- MUDANÇA AQUI
                 "gerado_por": user_nome_prov
             }
 
@@ -2269,7 +2250,7 @@ else:
                     df_cenarios, melhor, 
                     protocolo_id=protocolo_id_real,
                     os_chamado=st.session_state.comparativa_os,
-                    opcao=st.session_state.comparativa_opcao,
+                    ferramenta=st.session_state.comparativa_ferramenta, # <-- MUDANÇA AQUI
                     data_hora=data_hora_real,
                     gerado_por_user=user_nome_prov
                 )
@@ -2498,8 +2479,9 @@ else:
                 df_flat = pd.DataFrame([extrair_linha_relatorio(row, supabase_public_url) for _, row in df.iterrows()])
                 df_flat["Economia"] = [calcular_economia(row) for _, row in df.iterrows()]
                 
+                # <<< MUDANÇA: "Opção" -> "Ferramenta" >>>
                 colunas = [
-                    "Protocolo", "Data/Hora", "Chamado O.S", "Opção", "Cliente", "Placa", "Serviço", 
+                    "Protocolo", "Data/Hora", "Chamado O.S", "Ferramenta", "Cliente", "Placa", "Serviço", 
                     "Valor Final", "Economia", "Usuário", "PDF", "Protocolo_UUID", "pdf_path" # Pega IDs
                 ]
                 colunas_finais = [c for c in colunas if c in df_flat.columns]
@@ -2529,7 +2511,7 @@ else:
                             st.write(f"**Economia:** {economia_str}")
                         st.write(f"**Usuário:** {row['Usuário']}")
                         st.write(f"**Data/Hora:** {row['Data/Hora']}")
-                        st.write(f"**O.S:** {row['Chamado O.S']} | **Opção:** {row['Opção']}")
+                        st.write(f"**O.S:** {row['Chamado O.S']} | **Ferramenta:** {row['Ferramenta']}") # <-- MUDANÇA AQUI
                         
                         col1, col2 = st.columns([1, 1])
                         with col1:
@@ -2812,7 +2794,8 @@ else:
                             st.write(f"**Tipo:** {row['tipo'].replace('_', ' ').capitalize()}")
                             st.write(f"**Placa:** {row['Placa']} | **Cliente:** {row['Cliente']}")
                             st.write(f"**Data:** {row['Data/Hora']}")
-                            st.write(f"**O.S:** {row['Chamado O.S']} | **Opção:** {row['Opção']}")
+                            # <<< MUDANÇA: "Opção" -> "Ferramenta" >>>
+                            st.write(f"**O.S:** {row['Chamado O.S']} | **Ferramenta:** {row['Ferramenta']}")
                             
                             col1, col2 = st.columns([1, 1])
                             
@@ -2852,9 +2835,10 @@ else:
             df_analises_context = pd.DataFrame([extrair_linha_relatorio(row) for _, row in df_analises.iterrows()])
             
             if not df_analises_context.empty:
+                # <<< MUDANÇA: "Opção" -> "Ferramenta" >>>
                 pending_full = pd.merge(
                     pending_requests, 
-                    df_analises_context[['Protocolo_UUID', 'Protocolo', 'Cliente', 'Placa', 'tipo', 'Chamado O.S', 'Opção']], 
+                    df_analises_context[['Protocolo_UUID', 'Protocolo', 'Cliente', 'Placa', 'tipo', 'Chamado O.S', 'Ferramenta']], 
                     left_on='analise_id', 
                     right_on='Protocolo_UUID',
                     how='left'
@@ -2865,7 +2849,7 @@ else:
                 pending_full['Cliente'] = 'N/A'
                 pending_full['Protocolo'] = 'N/A'
                 pending_full['Chamado O.S'] = 'N/A'
-                pending_full['Opção'] = 'N/A'
+                pending_full['Ferramenta'] = 'N/A' # <-- MUDANÇA AQUI
 
             
             for _, req in pending_full.iterrows():
@@ -2874,7 +2858,8 @@ else:
                     st.write(f"**Data da Solicitação:** {pd.to_datetime(req['created_at']).strftime('%d/%m/%Y %H:%M')}")
                     st.markdown(f"**Protocolo da Análise:** `{req['Protocolo']}`")
                     st.write(f"**Placa:** {req.get('Placa', 'N/A')} | **Cliente:** {req.get('Cliente', 'N/A')}")
-                    st.write(f"**O.S:** {req.get('Chamado O.S', 'N/A')} | **Opção:** {req.get('Opção', 'N/A')}")
+                    # <<< MUDANÇA: "Opção" -> "Ferramenta" >>>
+                    st.write(f"**O.S:** {req.get('Chamado O.S', 'N/A')} | **Ferramenta:** {req.get('Ferramenta', 'N/A')}")
                     
                     with st.form(key=f"review_{req['id']}"):
                         notes = st.text_area("Motivo (obrigatório se reprovado)", key=f"notes_{req['id']}")
