@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 venv/
 .env
+venv_stable/
 
 # Banco de Dados Local (Não sobe para a nuvem)
 db.sqlite3
