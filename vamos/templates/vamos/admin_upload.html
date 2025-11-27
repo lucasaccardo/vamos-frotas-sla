@@ -1,0 +1,77 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Atualizar Bases de Dados</h2>
+        <p class="text-muted">Área administrativa para importação das planilhas do sistema.</p>
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-primary text-white py-3">
+                    <h6 class="m-0 fw-bold"><i class="bi bi-calculator me-2"></i>Base de Faturamento (SLA/Cenários)</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-light border mb-4">
+                        <small class="text-muted d-block mb-1"><strong>Função:</strong> Usada para preencher valores nos cálculos de SLA e Cenários.</small>
+                        <small class="text-muted"><strong>Formato exigido:</strong> Excel (.xlsx)</small>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_base" value="faturamento">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Selecione o arquivo</label>
+                            <input type="file" name="arquivo" class="form-control" accept=".xlsx" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">
+                            <i class="bi bi-cloud-upload me-2"></i> Atualizar Faturamento
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h6 class="m-0 fw-bold"><i class="bi bi-search me-2"></i>Base Total (Busca Clientes)</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-light border mb-4">
+                        <small class="text-muted d-block mb-1"><strong>Função:</strong> Usada na tela "Buscar Clientes" para consulta completa.</small>
+                        <small class="text-muted"><strong>Formato exigido:</strong> CSV (.csv) ou Excel (.xlsx)</small>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_base" value="total">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Selecione o arquivo</label>
+                            <input type="file" name="arquivo" class="form-control" accept=".csv, .xlsx" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-dark w-100 fw-bold">
+                            <i class="bi bi-cloud-upload me-2"></i> Atualizar Base Total
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="mt-4 text-center text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        Ao enviar um novo arquivo, o sistema substituirá a versão anterior imediatamente.
+    </div>
+
+</div>
+{% endblock %}

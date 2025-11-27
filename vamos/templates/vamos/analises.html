@@ -1,0 +1,179 @@
+{% extends 'vamos/base.html' %}
+{% load custom_filters %} 
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Meus Relatórios</h2>
+        <p class="text-muted">Histórico completo de análises geradas por você.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+            <ul class="nav nav-tabs card-header-tabs" id="reportTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="sla-tab" data-bs-toggle="tab" data-bs-target="#sla" type="button">
+                        <i class="bi bi-calculator me-2"></i>Cálculo de SLA
+                        <span class="badge bg-primary bg-opacity-10 text-primary ms-2">{{ analises_sla|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-secondary" id="cenarios-tab" data-bs-toggle="tab" data-bs-target="#cenarios" type="button">
+                        <i class="bi bi-bar-chart-steps me-2"></i>Análise de Cenários
+                        <span class="badge bg-secondary bg-opacity-10 text-dark ms-2">{{ analises_cenarios|length }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content" id="reportTabsContent">
+                
+                <div class="tab-pane fade show active" id="sla" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Protocolo</th>
+                                    <th>Cliente / Placa</th>
+                                    <th>Status SLA</th>
+                                    <th>Data</th>
+                                    <th class="text-end pe-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in analises_sla %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-primary">#{{ item.protocolo }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ item.cliente }}</div>
+                                        <div class="small text-muted">{{ item.placa }}</div>
+                                    </td>
+                                    <td>
+                                        {% if item.dados.status == 'Dentro do prazo' %}
+                                            <span class="badge bg-success">No Prazo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Fora do Prazo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted small">{{ item.data_criacao|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSLA{{ item.id }}">
+                                                <i class="bi bi-eye"></i> Detalhes
+                                            </button>
+                                            <a href="{{ item.arquivo_pdf.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-download"></i> PDF
+                                            </a>
+                                            <a href="{% url 'analise_delete_permanent' item.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza? Isso apagará o registro e o arquivo PDF para sempre.')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="modal fade text-start" id="modalSLA{{ item.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Detalhes do Protocolo #{{ item.protocolo }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Gerado por:</span> <strong>{{ item.dados.gerado_por }}</strong></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>OS / Chamado:</span> <strong>{{ item.dados.os_chamado }}</strong></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Ferramenta:</span> <strong>{{ item.dados.ferramenta }}</strong></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Data Entrada:</span> <span>{{ item.dados.data_entrada }}</span></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Data Saída:</span> <span>{{ item.dados.data_saida }}</span></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Dias Úteis:</span> <strong>{{ item.dados.dias_uteis_manut }} dias</strong></li>
+                                                            <li class="list-group-item d-flex justify-content-between"><span>Mensalidade:</span> <span>R$ {{ item.dados.mensalidade|floatformat:2 }}</span></li>
+                                                            <li class="list-group-item d-flex justify-content-between list-group-item-danger"><span>Desconto Aplicado:</span> <strong>R$ {{ item.dados.desconto|floatformat:2 }}</strong></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Nenhum cálculo de SLA encontrado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="cenarios" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Protocolo</th>
+                                    <th>Cliente / Placa</th>
+                                    <th>Melhor Valor</th>
+                                    <th>Data</th>
+                                    <th class="text-end pe-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in analises_cenarios %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-warning text-dark">#{{ item.protocolo }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ item.cliente }}</div>
+                                        <div class="small text-muted">{{ item.placa }}</div>
+                                    </td>
+                                    <td class="fw-bold text-success">
+                                        {{ item.dados.melhor.total_final }}
+                                    </td>
+                                    <td class="text-muted small">{{ item.data_criacao|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCen{{ item.id }}">
+                                                <i class="bi bi-eye"></i> Detalhes
+                                            </button>
+                                            <a href="{{ item.arquivo_pdf.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-download"></i> PDF
+                                            </a>
+                                            <a href="{% url 'analise_delete_permanent' item.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza? Isso apagará o registro e o arquivo PDF para sempre.')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="modal fade text-start" id="modalCen{{ item.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Detalhes do Comparativo #{{ item.protocolo }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="alert alert-success">
+                                                            <strong>Vencedor:</strong> Cenário {{ item.dados.melhor.id_cenario }}<br>
+                                                            <strong>Valor Final:</strong> {{ item.dados.melhor.total_final }}
+                                                        </div>
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item"><strong>Gerado por:</strong> {{ item.dados.gerado_por }}</li>
+                                                            <li class="list-group-item"><strong>OS:</strong> {{ item.dados.os_chamado }}</li>
+                                                            <li class="list-group-item"><strong>Serviço:</strong> {{ item.dados.melhor.servico }}</li>
+                                                            <li class="list-group-item"><strong>Valor Peças:</strong> R$ {{ item.dados.melhor.total_pecas|floatformat:2 }}</li>
+                                                            <li class="list-group-item"><strong>Desconto SLA:</strong> - R$ {{ item.dados.melhor.valor_desconto }}</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Nenhuma análise de cenário encontrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

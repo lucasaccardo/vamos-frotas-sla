@@ -1,0 +1,67 @@
+{% extends "vamos/base.html" %}
+
+{% block title %}Home - Frotas Vamos SLA{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">Bem-vindo ao Frotas Vamos SLA</h1>
+  <p class="text-secondary mb-4">
+    Selecione uma das opções abaixo para navegar pelo sistema.
+  </p>
+
+  <div class="row">
+    <!-- Dashboard -->
+    <div class="col-md-4 mb-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Dashboard</h5>
+          <p class="card-text">Visão geral de tickets e solicitações.</p>
+          <a href="{% url 'dashboard' %}" class="btn btn-primary">Acessar</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets -->
+    <div class="col-md-4 mb-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Tickets</h5>
+          <p class="card-text">Gerencie tickets de suporte.</p>
+          <a href="{% url 'ticket_list' %}" class="btn btn-primary">Acessar</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Requests -->
+    <div class="col-md-4 mb-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Delete Requests</h5>
+          <p class="card-text">Solicitações de exclusão de análises.</p>
+          <a href="{% url 'delete_request_list' %}" class="btn btn-primary">Acessar</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usuários -->
+    <div class="col-md-4 mb-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Usuários</h5>
+          <p class="card-text">Lista e status dos usuários.</p>
+          <a href="{% url 'lista_usuarios' %}" class="btn btn-primary">Acessar</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Análises -->
+    <div class="col-md-4 mb-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Análises</h5>
+          <p class="card-text">Histórico de análises realizadas.</p>
+          <a href="{% url 'lista_analises' %}" class="btn btn-primary">Acessar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

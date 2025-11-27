@@ -1,0 +1,251 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    
+    <div class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+            <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Visão Geral</h6>
+            <h2 class="fw-bold text-dark m-0">Dashboard</h2>
+        </div>
+        <div>
+            <a href="{% url 'sla_mensal' %}" class="btn btn-primary px-4 py-2 shadow-sm">
+                <i class="bi bi-plus-lg me-2"></i>Novo Cálculo
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card h-100 border-0">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3 text-primary d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark-text fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 fw-normal">Análises Feitas</h6>
+                        <h3 class="fw-bold mb-0 text-dark">{{ analises_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 border-0">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3 text-warning d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-ticket fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 fw-normal">Tickets Abertos</h6>
+                        <h3 class="fw-bold mb-0 text-dark">{{ tickets_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 border-0">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3 text-success d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-people fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 fw-normal">Usuários Ativos</h6>
+                        <h3 class="fw-bold mb-0 text-dark">{{ users_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 border-0">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3 text-danger d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                        <i class="bi bi-trash fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 fw-normal">Exclusões</h6>
+                        <h3 class="fw-bold mb-0 text-dark">{{ exclusoes_pendentes }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {# NOVO BLOCO DE GRÁFICOS INSERIDO AQUI #}
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-bar-chart-fill me-2 text-success"></i>Economia Gerada (SLA Mensal)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="economyChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Status dos Chamados</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="width: 100%; max-width: 300px;">
+                        <canvas id="ticketChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# FIM NOVO BLOCO DE GRÁFICOS #}
+
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card h-100 border-0">
+                <div class="card-header">
+                    <i class="bi bi-lightning-charge me-2 text-warning"></i>Acesso Rápido
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush rounded-bottom">
+                        <a href="{% url 'sla_mensal' %}" class="list-group-item list-group-item-action p-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded p-2 me-3"><i class="bi bi-calculator text-dark"></i></div>
+                                <div>
+                                    <span class="fw-semibold d-block text-dark">Calcular SLA Simples</span>
+                                    <small class="text-muted">Gere o PDF baseado nos dias úteis e feriados.</small>
+                                </div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </a>
+                        
+                        <a href="{% url 'cenarios' %}" class="list-group-item list-group-item-action p-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded p-2 me-3"><i class="bi bi-clipboard-data text-dark"></i></div>
+                                <div>
+                                    <span class="fw-semibold d-block text-dark">Comparativo de Cenários</span>
+                                    <small class="text-muted">Adicione peças e compare qual cenário compensa mais.</small>
+                                </div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </a>
+
+                        <a href="{% url 'lista_analises' %}" class="list-group-item list-group-item-action p-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded p-2 me-3"><i class="bi bi-clock-history text-dark"></i></div>
+                                <div>
+                                    <span class="fw-semibold d-block text-dark">Histórico de Relatórios</span>
+                                    <small class="text-muted">Visualize ou baixe PDFs gerados anteriormente.</small>
+                                </div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 bg-dark text-white position-relative overflow-hidden">
+                <div class="position-absolute top-0 end-0 translate-middle p-5 rounded-circle bg-danger opacity-25 blur" style="width: 200px; height: 200px; filter: blur(40px);"></div>
+                
+                <div class="card-body p-4 d-flex flex-column position-relative z-1">
+                    <div class="mb-auto">
+                        <div class="badge bg-warning text-dark mb-3">BETA</div>
+                        <h3 class="fw-bold mb-2">Assistente Inteligente</h3>
+                        <p class="text-white-50">Tire dúvidas jurídicas sobre o Código de Defesa do Consumidor ou peça ajuda com cálculos complexos.</p>
+                    </div>
+                    <a href="{% url 'assistente_ia' %}" class="btn btn-light text-dark fw-bold w-100 mt-3">
+                        Conversar Agora <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{# INCLUSÃO DO CHART.JS E O SCRIPT DE DESENHO NO FINAL #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // --- GRÁFICO 1: ECONOMIA (BARRAS) ---
+        const ctxEconomy = document.getElementById('economyChart').getContext('2d');
+        
+        // Cria gradiente bonito para a barra (Verde Vamos)
+        let gradient = ctxEconomy.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(25, 135, 84, 0.8)'); // Verde forte
+        gradient.addColorStop(1, 'rgba(25, 135, 84, 0.2)'); // Verde claro
+
+        new Chart(ctxEconomy, {
+            type: 'bar',
+            data: {
+                labels: {{ economy_labels|safe }}, // Dados vindos do Django
+                datasets: [{
+                    label: 'Economia (R$)',
+                    data: {{ economy_data|safe }},     // Dados vindos do Django
+                    backgroundColor: gradient,
+                    borderColor: '#198754',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f0f0f0' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // --- GRÁFICO 2: TICKETS (DONUT) ---
+        const ctxTicket = document.getElementById('ticketChart').getContext('2d');
+        new Chart(ctxTicket, {
+            type: 'doughnut',
+            data: {
+                labels: {{ ticket_labels|safe }},
+                datasets: [{
+                    data: {{ ticket_data|safe }},
+                    backgroundColor: {{ ticket_colors|safe }},
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '70%', // Deixa o buraco do donut maior
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}

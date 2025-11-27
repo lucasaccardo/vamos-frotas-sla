@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Lista de Análises{% endblock %}
+{% block content %}
+<h1>Lista de Análises</h1>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Usuário</th>
+            <th>Tipo</th>
+            <th>Data/Hora</th>
+            <th>PDF</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for analise in analises %}
+        <tr>
+            <td>{{ analise.id }}</td>
+            <td>{{ analise.username }}</td>
+            <td>{{ analise.tipo }}</td>
+            <td>{{ analise.data_hora }}</td>
+            <td>
+                {% if analise.pdf_path %}
+                    <a href="{{ analise.pdf_path }}" target="_blank">Baixar PDF</a>
+                {% else %}-{% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Nenhuma análise encontrada.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

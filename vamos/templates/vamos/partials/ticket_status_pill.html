@@ -1,0 +1,8 @@
+<span class="badge 
+  {% if ticket.status == 'pendente' %}bg-warning
+  {% elif ticket.status == 'em_andamento' %}bg-info
+  {% elif ticket.status == 'concluido' %}bg-success
+  {% elif ticket.status == 'cancelado' %}bg-danger
+  {% else %}bg-secondary{% endif %}">
+  {{ ticket.get_status_display }}
+</span>

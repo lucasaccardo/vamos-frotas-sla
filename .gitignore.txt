@@ -1,0 +1,12 @@
+# Arquivos de Sistema e Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Banco de Dados Local (Não sobe para a nuvem)
+db.sqlite3
+
+# Mídia (PDFs gerados localmente não sobem)
+media/

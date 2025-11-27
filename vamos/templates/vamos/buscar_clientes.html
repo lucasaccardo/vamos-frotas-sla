@@ -1,0 +1,199 @@
+{% extends 'vamos/base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Buscar Clientes</h2>
+        <p class="text-muted">Consulte a base completa e filtre por status.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="get" class="row g-3">
+                <input type="hidden" name="order" value="{{ ordem_atual }}">
+                
+                <div class="col-md-5">
+                    <input type="text" name="q" class="form-control form-control-lg" 
+                            placeholder="Digite o Nome do Cliente, Placa ou Chassi..." 
+                            value="{{ busca }}" autofocus>
+                </div>
+
+                <div class="col-md-5">
+                    <select name="status" class="form-select form-select-lg">
+                        <option value="TODOS">TODOS OS STATUS</option>
+                        {% for st in lista_status %}
+                            <option value="{{ st }}" {% if status_atual == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                {# NOVO BLOCO SUBSTITUÍDO AQUI #}
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                        <i class="bi bi-search me-1"></i> Buscar
+                    </button>
+                    
+                    {% if busca or status_atual %}
+                    <a href="{% url 'buscar_clientes' %}" class="btn btn-outline-secondary" title="Limpar Filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+                </div>
+                {# FIM NOVO BLOCO #}
+
+            </form>
+        </div>
+    </div>
+
+    {% if page_obj %}
+    <div class="card border-0 shadow-sm">
+        
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary">Resultados: {{ page_obj.paginator.count }}</h6>
+            <small class="text-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</small>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th style="background-color: #212529; color: white; padding: 15px;" class="ps-3">
+                            <a href="?q={{ busca }}&status={{ status_atual }}&order=cliente" style="color: white; text-decoration: none; display: block;">
+                                CLIENTE {% if ordem_atual == 'cliente' %}<i class="bi bi-arrow-down"></i>{% endif %}
+                            </a>
+                        </th>
+                        
+                        <th style="background-color: #212529; color: white; padding: 15px;">
+                            <a href="?q={{ busca }}&status={{ status_atual }}&order=placa" style="color: white; text-decoration: none; display: block;">
+                                PLACA / CHASSI {% if ordem_atual == 'placa' %}<i class="bi bi-arrow-down"></i>{% endif %}
+                            </a>
+                        </th>
+                        
+                        <th style="background-color: #212529; color: white; padding: 10px; min-width: 200px;">
+                            <div class="dropdown">
+                                <button class="btn btn-sm dropdown-toggle fw-bold border-0 w-100 text-start" 
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                        style="color: white; background: transparent; box-shadow: none;">
+                                    {% if status_atual and status_atual != "TODOS" %}
+                                        STATUS: {{ status_atual }}
+                                    {% else %}
+                                        STATUS (TODOS) {% if ordem_atual == 'status' %}<i class="bi bi-arrow-down"></i>{% endif %}
+                                    {% endif %}
+                                </button>
+                                <ul class="dropdown-menu shadow">
+                                    <li><a class="dropdown-item fw-bold" href="?q={{ busca }}&order={{ ordem_atual }}&status=TODOS">TODOS (Limpar Filtro)</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for st in lista_status %}
+                                    <li>
+                                        <a class="dropdown-item {% if status_atual == st %}active{% endif %}" 
+                                            href="?q={{ busca }}&order={{ ordem_atual }}&status={{ st }}">
+                                            {{ st }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </th>
+
+                        <th style="background-color: #212529; color: white; padding: 15px;">
+                            <a href="?q={{ busca }}&status={{ status_atual }}&order=valor" style="color: white; text-decoration: none; display: block;">
+                                VALOR MENSAL {% if ordem_atual == 'valor' %}<i class="bi bi-arrow-down-circle-fill text-success"></i>{% endif %}
+                            </a>
+                        </th>
+                        
+                        <th style="background-color: #212529; color: white; padding: 15px;" class="text-end pe-3">
+                            AÇÕES
+                        </th>
+                    </tr>
+                </thead>
+                
+                <tbody>
+                    {% for row in page_obj %}
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ row|get_item:"CLIENTE"|default:"-" }}</td>
+                        <td>
+                            <div class="badge bg-light text-dark border mb-1">{{ row|get_item:"PLACA"|default:"-" }}</div>
+                            <div class="small text-muted">{{ row|get_item:"CHASSI"|default:"-" }}</div>
+                        </td>
+                        <td>
+                            {% with status=row|get_item:"STATUS DO ATIVO" %}
+                            {% if "ATIVO" in status or "EFETIVO" in status %}
+                                <span class="badge bg-success">{{ status }}</span>
+                            {% elif "DESATIVADO" in status or "DESMOBILIZADO" in status %}
+                                <span class="badge bg-danger">{{ status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ status }}</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        
+                        {# Valor Mensal - Utiliza o campo formatado VALOR_PADRAO #}
+                        <td class="fw-bold text-success">{{ row|get_item:"VALOR_PADRAO"|default:"-" }}</td>
+                        
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modal{{ forloop.counter }}">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="modal fade text-start" id="modal{{ forloop.counter }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fw-bold">{{ row|get_item:"CLIENTE" }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body bg-light">
+                                            <div class="row g-3">
+                                                {% for k, v in row.items %}
+                                                    {% if k != "VALOR_PADRAO" and k != "VALOR_NUM" and k != "bool" %} 
+                                                    <div class="col-md-6">
+                                                        <div class="bg-white p-2 border rounded h-100">
+                                                            <small class="text-muted d-block" style="font-size:0.7rem;">{{ k }}</small>
+                                                            <span class="text-dark">{{ v }}</span>
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?q={{ busca }}&status={{ status_atual }}&order={{ ordem_atual }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?q={{ busca }}&status={{ status_atual }}&order={{ ordem_atual }}&page={{ page_obj.next_page_number }}">Próximo</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    </div>
+    {% elif busca %}
+    <div class="alert alert-warning mt-3">
+        Nenhum cliente encontrado.
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

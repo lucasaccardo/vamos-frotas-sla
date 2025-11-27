@@ -1,0 +1,73 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- CSS Exclusivo para centralizar o Login e colocar Fundo -->
+<style>
+    body {
+        /* Tenta carregar o fundo. Se falhar, usa um gradiente escuro */
+        background: url("{% static 'img/background.png' %}") no-repeat center center fixed;
+        background-size: cover;
+        background-color: #2c3e50; 
+    }
+    
+    /* Esconde o menu superior na tela de login */
+    nav { display: none !important; }
+
+    .login-wrapper {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .brand-logo {
+        max-width: 180px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="brand-logo">
+        
+        <h4 class="mb-4 text-dark">Acesso ao Sistema</h4>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger py-2">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3 text-start">
+                <label class="form-label fw-bold">Usuário</label>
+                <input type="text" name="username" class="form-control form-control-lg" placeholder="Ex: lucas.sureira" required>
+            </div>
+            <div class="mb-4 text-start">
+                <label class="form-label fw-bold">Senha</label>
+                <input type="password" name="password" class="form-control form-control-lg" placeholder="••••••••" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-warning btn-lg fw-bold text-dark">ENTRAR</button>
+            </div>
+        </form>
+        
+        <div class="mt-4 d-flex justify-content-between text-muted small">
+            <a href="{% url 'signup' %}" class="text-decoration-none">Criar conta</a>
+            <a href="{% url 'reset_password' %}" class="text-decoration-none">Esqueceu a senha?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

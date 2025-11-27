@@ -1,0 +1,15 @@
+<span class="badge bg-info">{{ dr.get_status_display|default:dr.status }}</span>
+<form
+  hx-post="{% url 'delete_request_review' dr.id %}"
+  hx-target="#status-{{ dr.id }}"
+  hx-swap="outerHTML"
+  class="d-inline-block ms-2"
+>
+  <select name="status" class="form-select form-select-sm d-inline-block w-auto">
+    {% for value,label in dr.STATUS_CHOICES %}
+      <option value="{{ value }}" {% if dr.status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="reason" class="form-control form-control-sm d-inline-block w-auto" placeholder="Motivo (se rejeitado)" value="{{ dr.rejection_reason|default:'' }}">
+  <button type="submit" class="btn btn-sm btn-primary">Atualizar</button>
+</form>

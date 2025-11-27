@@ -1,0 +1,7 @@
+<span class="badge 
+  {% if dr.status == 'pendente' %}bg-warning
+  {% elif dr.status == 'aprovado' %}bg-success
+  {% elif dr.status == 'rejeitado' %}bg-danger
+  {% else %}bg-secondary{% endif %}">
+  {{ dr.get_status_display }}
+</span>

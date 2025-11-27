@@ -1,0 +1,67 @@
+{% extends "vamos/base.html" %}
+{% block title %}Delete Request {{ dr.id }} - Frotas Vamos SLA{% endblock %}
+
+{% block content %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h2 class="mb-3">Detalhes da Solicitação de Exclusão</h2>
+      <p class="text-secondary">Criada em {{ dr.request_date|date:"d/m/Y H:i" }}</p>
+
+      <dl class="row">
+        <dt class="col-sm-3">Solicitado por</dt>
+        <dd class="col-sm-9">{{ dr.requested_by }}</dd>
+
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">
+          <span class="badge 
+            {% if dr.status == 'pendente' %}bg-warning
+            {% elif dr.status == 'aprovado' %}bg-success
+            {% elif dr.status == 'rejeitado' %}bg-danger
+            {% else %}bg-secondary{% endif %}">
+            {{ dr.status }}
+          </span>
+        </dd>
+
+        <dt class="col-sm-3">Motivo da Rejeição</dt>
+        <dd class="col-sm-9">
+          {% if dr.rejection_reason %}
+            {{ dr.rejection_reason }}
+          {% else %}
+            <span class="text-muted">-</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">PDF associado</dt>
+        <dd class="col-sm-9">
+          {% if dr.pdf_path %}
+            <a href="{{ dr.pdf_path }}" class="btn btn-outline-light btn-sm" target="_blank">📎 Baixar PDF</a>
+          {% else %}
+            <span class="text-muted">Nenhum PDF disponível</span>
+          {% endif %}
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h3 class="mb-3">Revisar Solicitação</h3>
+      <form method="post" action="{% url 'delete_request_review' dr.id %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="status" class="form-label">Novo Status</label>
+          <select name="status" id="status" class="form-select">
+            {% for key, label in dr.STATUS_CHOICES %}
+              <option value="{{ key }}" {% if dr.status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="reason" class="form-label">Motivo (se rejeitado)</label>
+          <textarea name="reason" id="reason" class="form-control" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar revisão</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

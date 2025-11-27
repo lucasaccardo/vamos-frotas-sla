@@ -1,0 +1,25 @@
+{% extends 'vamos/base.html' %}
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow-lg bg-dark text-white" style="width: 100%; max-width: 600px;">
+        <div class="card-header border-secondary d-flex justify-content-between">
+            <h4 class="mb-0">✏️ Editar Usuário</h4>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-sm btn-outline-secondary">X</a>
+        </div>
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label small text-secondary">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Mensagens de Sucesso -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Tickets de Suporte</h2>
+            <p class="text-muted">Gerencie suas solicitações em andamento e consulte o histórico.</p>
+        </div>
+        <!-- Botão que abre o Modal de Novo Ticket -->
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#newTicketModal">
+            <i class="bi bi-plus-lg me-2"></i> Novo Ticket
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <!-- Cabeçalho do Card com as Tabs -->
+        <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+            <ul class="nav nav-tabs card-header-tabs" id="ticketTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="abertos-tab" data-bs-toggle="tab" data-bs-target="#abertos" type="button" role="tab">
+                        <i class="bi bi-inbox me-2"></i>Em Aberto
+                        <!-- Exibe a contagem dos tickets abertos -->
+                        <span class="badge bg-primary ms-2 rounded-pill">{{ tickets_abertos|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-secondary fw-semibold" id="finalizados-tab" data-bs-toggle="tab" data-bs-target="#finalizados" type="button" role="tab">
+                        <i class="bi bi-archive me-2"></i>Finalizados
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content" id="ticketTabsContent">
+                
+                <!-- Tab 1: Tickets Abertos -->
+                <div class="tab-pane fade show active" id="abertos" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Protocolo</th>
+                                    <th>Assunto</th>
+                                    <th>Status</th>
+                                    <th>Data Abertura</th>
+                                    {% if user.is_staff %}<th>Usuário</th>{% endif %}
+                                    <th class="text-end pe-4">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets_abertos %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-primary">#{{ ticket.protocolo }}</td>
+                                    <td class="fw-medium">{{ ticket.titulo }}</td>
+                                    <td>
+                                        {% if ticket.status == 'Pendente' %}
+                                            <span class="badge bg-warning text-dark border border-warning">Pendente</span>
+                                        {% elif ticket.status == 'Em andamento' %}
+                                            <span class="badge bg-info text-dark border border-info">Em Andamento</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted small">{{ ticket.created_at|date:"d/m/Y H:i" }}</td>
+                                    {% if user.is_staff %}<td>{{ ticket.usuario.username }}</td>{% endif %}
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'ticket_detail' ticket.pk %}" class="btn btn-sm btn-outline-primary">
+                                            Resolver / Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="bi bi-check2-circle fs-1 d-block mb-2 text-success"></i>
+                                            Nenhum chamado pendente! Tudo em dia.
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Tickets Finalizados -->
+                <div class="tab-pane fade" id="finalizados" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Protocolo</th>
+                                    <th>Assunto</th>
+                                    <th>Status</th>
+                                    <th>Data Finalização</th> 
+                                    {% if user.is_staff %}<th>Usuário</th>{% endif %}
+                                    <th class="text-end pe-4">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets_finalizados %}
+                                <!-- Linhas com cor de fundo sutil para indicar finalização -->
+                                <tr class="text-muted" style="background-color: #fafafa;"> 
+                                    <td class="ps-4">#{{ ticket.protocolo }}</td>
+                                    <td>{{ ticket.titulo }}</td>
+                                    <td>
+                                        {% if ticket.status == 'Concluído' %}
+                                            <span class="badge bg-success">Concluído</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                    <!-- Usa updated_at para a data de finalização -->
+                                    <td class="small">{{ ticket.updated_at|date:"d/m/Y H:i" }}</td> 
+                                    {% if user.is_staff %}<td>{{ ticket.usuario.username }}</td>{% endif %}
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'ticket_detail' ticket.pk %}" class="btn btn-sm btn-outline-secondary">
+                                            Ver Histórico
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-archive fs-1 d-block mb-2"></i>
+                                        Nenhum ticket finalizado no histórico.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Novo Ticket (Mantido do código anterior) -->
+<div class="modal fade" id="newTicketModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold">Novo Chamado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- O TicketForm usa campos simples, garantindo a renderização correta -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Assunto</label>
+                        {{ form.assunto }} 
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descrição Detalhada</label>
+                        {{ form.descricao }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Anexo (Print/Imagem)</label>
+                        {{ form.anexo }}
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Abrir Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

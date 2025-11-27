@@ -1,0 +1,149 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1000px;">
+    
+    <!-- Mensagens de Sucesso/Erro -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <a href="{% url 'ticket_list' %}" class="text-decoration-none text-muted mb-3 d-inline-block">
+        <i class="bi bi-arrow-left"></i> Voltar para lista
+    </a>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded-circle p-2 me-2"><i class="bi bi-person"></i></div>
+                        <div>
+                            <h6 class="m-0 fw-bold">{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</h6>
+                            <small class="text-muted">{{ ticket.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="fw-bold text-dark">{{ ticket.titulo }}</h5>
+                    <p class="text-secondary">{{ ticket.descricao|linebreaks }}</p>
+                </div>
+            </div>
+
+            {% if ticket.resposta_admin %}
+            <div class="card border-0 shadow-sm border-start border-4 border-primary">
+                <div class="card-header bg-primary bg-opacity-10 py-3">
+                    <div class="d-flex align-items-center text-primary">
+                        <i class="bi bi-headset me-2"></i> <strong>Resposta do Suporte</strong>
+                        <small class="ms-auto">{{ ticket.data_resposta|date:"d/m/Y H:i" }}</small>
+                    </div>
+                </div>
+                <div class="card-body bg-light">
+                    {{ ticket.resposta_admin|linebreaks }}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ========================================================== #}
+            {# NOVO BLOCO DA ÁREA ADMINISTRATIVA #}
+            {# ========================================================== #}
+            {% if user.is_staff %}
+            
+                {% if ticket.status == 'Concluído' %}
+                <div class="card border-success shadow-sm mt-4 bg-success bg-opacity-10">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 2rem;"></i>
+                        <h5 class="fw-bold text-success mt-2">Ticket Finalizado</h5>
+                        <p class="text-muted small mb-3">Este chamado já foi encerrado e não aceita novas respostas.</p>
+                        
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="Em andamento"> 
+                            <!-- Mensagem padrão para reabertura -->
+                            <input type="hidden" name="resposta_admin" value="Chamado reaberto pelo administrador.">
+                            
+                            <button type="submit" class="btn btn-outline-success btn-sm fw-bold bg-white">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reabrir Ticket
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {% else %}
+                
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-dark text-white">
+                        <i class="bi bi-shield-lock me-2"></i> Área Administrativa
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Sua Resposta</label>
+                                <!-- Campo de resposta (Se existir, pré-preenche com a resposta anterior) -->
+                                <textarea name="resposta_admin" class="form-control" rows="4" placeholder="Digite a solução para o usuário...">{{ ticket.resposta_admin|default:'' }}</textarea>
+                            </div>
+                            <div class="row align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Alterar Status</label>
+                                    <select name="status" class="form-select">
+                                        <option value="Pendente" {% if ticket.status == 'Pendente' %}selected{% endif %}>Pendente</option>
+                                        <option value="Em andamento" {% if ticket.status == 'Em andamento' %}selected{% endif %}>Em andamento</option>
+                                        <option value="Concluído" {% if ticket.status == 'Concluído' %}selected{% endif %}>Concluído</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button type="submit" class="btn btn-success px-4">
+                                        <i class="bi bi-send me-2"></i> Enviar Resposta & Atualizar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% endif %}
+            {# ========================================================== #}
+            
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-3" style="font-size: 0.75rem;">Detalhes do Chamado</h6>
+                    
+                    <div class="mb-3">
+                        <label class="small text-muted">Protocolo</label>
+                        <div class="fw-bold fs-5 text-primary">#{{ ticket.protocolo }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="small text-muted">Status Atual</label>
+                        <div>
+                            {% if ticket.status == 'Concluído' %}
+                                <span class="badge bg-success w-100 py-2">Concluído</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark w-100 py-2">{{ ticket.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr>
+                    
+                    {% if ticket.status != 'Concluído' and not user.is_staff %}
+                    <div class="alert alert-info small">
+                        <i class="bi bi-clock me-1"></i> Aguardando análise da equipe.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
