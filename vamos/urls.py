@@ -8,8 +8,14 @@ urlpatterns = [
     path("signup/", views.signup_view, name="signup"),
     path("logout/", views.logout_view, name="logout"),
 
-    # === Reset de Senha ===
-    path('reset_password/', auth_views.PasswordResetView.as_view(template_name="vamos/password_reset.html"), name='reset_password'),
+    # === Reset de Senha (EMAIL HTML CONFIGURADO) ===
+    path('reset_password/', 
+         auth_views.PasswordResetView.as_view(
+             template_name="vamos/password_reset.html",
+             html_email_template_name="vamos/password_reset_email.html" # <-- AQUI: Define o e-mail HTML
+         ), 
+         name='reset_password'
+    ),
     path('reset_password_sent/', auth_views.PasswordResetDoneView.as_view(template_name="vamos/password_reset_sent.html"), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name="vamos/password_reset_form.html"), name='password_reset_confirm'),
     path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view(template_name="vamos/password_reset_done.html"), name='password_reset_complete'),
