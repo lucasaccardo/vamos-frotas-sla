@@ -3,156 +3,199 @@
 
 {% block content %}
 <style>
-    /* Efeitos especiais para a Home */
+    /* Banner mais compacto */
     .hero-banner {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: white;
-        border-radius: 16px;
-        padding: 3rem;
+        border-radius: 12px; /* Borda um pouco menos arredondada */
+        padding: 2rem; /* Reduzido de 3rem para 2rem */
         position: relative;
         overflow: hidden;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 180px;
     }
     
-    /* Círculos decorativos no fundo */
+    /* Decoração sutil */
     .hero-decoration {
         position: absolute;
         border-radius: 50%;
-        opacity: 0.1;
+        opacity: 0.08;
     }
-    .circle-1 { width: 300px; height: 300px; background: #dc2626; top: -100px; right: -50px; }
-    .circle-2 { width: 150px; height: 150px; background: #fff; bottom: -50px; right: 200px; }
+    .circle-1 { width: 200px; height: 200px; background: #dc2626; top: -50px; right: -20px; }
+    .circle-2 { width: 120px; height: 120px; background: #fff; bottom: -30px; right: 150px; }
+
+    /* Títulos menores */
+    .hero-title {
+        font-size: 1.5rem; /* Reduzido */
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .hero-subtitle {
+        font-size: 0.9rem; /* Reduzido */
+        opacity: 0.7;
+        max-width: 600px;
+        margin-bottom: 1.5rem;
+        line-height: 1.4;
+    }
+
+    /* Botões de Recentes */
+    .recent-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .recent-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateY(-2px);
+    }
+    .recent-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
 
     /* Cartões de Ação */
     .action-card {
         background: white;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.5rem;
+        border-radius: 10px;
+        padding: 1.2rem;
         transition: all 0.3s ease;
         height: 100%;
         display: flex;
         flex-direction: column;
-        text-decoration: none !important; /* Remove sublinhado do link */
+        text-decoration: none !important;
         color: inherit;
     }
 
     .action-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-        border-color: #dc2626; /* Borda vermelha ao passar o mouse */
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+        border-color: #dc2626;
     }
 
     .icon-box {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        margin-bottom: 0.8rem;
     }
 
-    .card-title { font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; font-size: 1.1rem; }
-    .card-desc { font-size: 0.85rem; color: #64748b; line-height: 1.5; flex-grow: 1; }
-    .card-arrow { color: #dc2626; font-weight: 600; font-size: 0.9rem; margin-top: 1rem; display: flex; align-items: center; }
+    .card-title { font-weight: 700; color: #1e293b; margin-bottom: 0.4rem; font-size: 1rem; }
+    .card-desc { font-size: 0.8rem; color: #64748b; line-height: 1.4; flex-grow: 1; }
+    .card-arrow { color: #dc2626; font-weight: 600; font-size: 0.8rem; margin-top: 0.8rem; display: flex; align-items: center; }
 </style>
 
 <div class="container-fluid">
 
-    <div class="hero-banner mb-5">
+    <div class="hero-banner mb-4">
         <div class="hero-decoration circle-1"></div>
         <div class="hero-decoration circle-2"></div>
         
         <div class="position-relative z-1">
-            <h1 class="fw-bold mb-2">Olá, {{ user.first_name|default:user.username }}! 👋</h1>
-            <p class="lead opacity-75 mb-4" style="max-width: 600px;">
-                Bem-vindo ao <strong>Vamos Frotas SLA</strong>. Selecione uma ferramenta abaixo para iniciar seus cálculos ou gerenciar solicitações.
+            <h1 class="hero-title">Olá, {{ user.first_name|default:user.username }}! 👋</h1>
+            <p class="hero-subtitle">
+                Bem-vindo ao <strong>Vamos Frotas SLA</strong>. Selecione uma ferramenta abaixo.
             </p>
-            <div class="d-flex gap-3">
-                <a href="{% url 'sla_mensal' %}" class="btn btn-danger fw-bold px-4 py-2 shadow-sm">
-                    <i class="bi bi-calculator me-2"></i> Novo Cálculo SLA
-                </a>
-                <a href="{% url 'assistente_ia' %}" class="btn btn-outline-light fw-bold px-4 py-2">
-                    <i class="bi bi-stars me-2"></i> Perguntar à IA
-                </a>
+            
+            <div>
+                <div class="recent-label"><i class="bi bi-clock-history me-1"></i> Acessado Recentemente:</div>
+                <div id="recent-buttons-container" class="d-flex gap-2 flex-wrap">
+                    <span class="text-white-50 small fst-italic" id="no-recent">Nenhum acesso recente registrado.</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-danger ps-3">Ferramentas Operacionais</h5>
+    <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-danger ps-2">Ferramentas Operacionais</h6>
     
-    <div class="row g-4 mb-5">
+    <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
-            <a href="{% url 'sla_mensal' %}" class="action-card">
+            <a href="{% url 'sla_mensal' %}" class="action-card" onclick="saveRecent('Cálculo SLA', '{% url 'sla_mensal' %}', 'bi-calculator')">
                 <div class="icon-box bg-danger bg-opacity-10 text-danger">
                     <i class="bi bi-calculator"></i>
                 </div>
                 <div class="card-title">Cálculo de SLA Mensal</div>
-                <div class="card-desc">Gere laudos automáticos de descontos baseados em dias úteis e feriados.</div>
+                <div class="card-desc">Gere laudos automáticos de descontos baseados em dias úteis.</div>
                 <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
             </a>
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <a href="{% url 'cenarios' %}" class="action-card">
+            <a href="{% url 'cenarios' %}" class="action-card" onclick="saveRecent('Cenários', '{% url 'cenarios' %}', 'bi-bar-chart-steps')">
                 <div class="icon-box bg-warning bg-opacity-10 text-warning">
                     <i class="bi bi-bar-chart-steps"></i>
                 </div>
                 <div class="card-title">Análise de Cenários</div>
-                <div class="card-desc">Compare orçamentos de peças e serviços para encontrar o menor custo.</div>
+                <div class="card-desc">Compare orçamentos para encontrar o menor custo.</div>
                 <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
             </a>
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <a href="{% url 'buscar_clientes' %}" class="action-card">
+            <a href="{% url 'buscar_clientes' %}" class="action-card" onclick="saveRecent('Buscar Clientes', '{% url 'buscar_clientes' %}', 'bi-search')">
                 <div class="icon-box bg-primary bg-opacity-10 text-primary">
                     <i class="bi bi-search"></i>
                 </div>
                 <div class="card-title">Buscar Clientes</div>
-                <div class="card-desc">Consulte a base completa de faturamento por Nome, Placa ou Chassi.</div>
+                <div class="card-desc">Consulte a base completa por Nome, Placa ou Chassi.</div>
                 <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
             </a>
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <a href="{% url 'lista_analises' %}" class="action-card">
+            <a href="{% url 'lista_analises' %}" class="action-card" onclick="saveRecent('Relatórios', '{% url 'lista_analises' %}', 'bi-folder2-open')">
                 <div class="icon-box bg-success bg-opacity-10 text-success">
                     <i class="bi bi-folder2-open"></i>
                 </div>
                 <div class="card-title">Meus Relatórios</div>
-                <div class="card-desc">Acesse o histórico de todos os PDFs e cálculos gerados por você.</div>
+                <div class="card-desc">Histórico de todos os PDFs e cálculos gerados.</div>
                 <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
             </a>
         </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-3">
         <div class="col-md-6">
-            <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-secondary ps-3">Suporte</h5>
-            <div class="row g-3">
+            <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-secondary ps-2">Suporte</h6>
+            <div class="row g-2">
                 <div class="col-12">
-                    <a href="{% url 'ticket_list' %}" class="action-card flex-row align-items-center p-3 h-auto">
-                        <div class="icon-box bg-info bg-opacity-10 text-info mb-0 me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <a href="{% url 'ticket_list' %}" class="action-card flex-row align-items-center p-2 h-auto" onclick="saveRecent('Tickets', '{% url 'ticket_list' %}', 'bi-ticket-perforated')">
+                        <div class="icon-box bg-info bg-opacity-10 text-info mb-0 me-3" style="width: 35px; height: 35px; font-size: 1rem;">
                             <i class="bi bi-ticket-perforated"></i>
                         </div>
                         <div>
-                            <div class="card-title mb-1" style="font-size: 1rem;">Central de Tickets</div>
-                            <div class="text-muted small">Abra chamados ou acompanhe solicitações.</div>
+                            <div class="card-title mb-0" style="font-size: 0.9rem;">Central de Tickets</div>
                         </div>
                         <div class="ms-auto text-secondary"><i class="bi bi-chevron-right"></i></div>
                     </a>
                 </div>
                 <div class="col-12">
-                    <a href="{% url 'assistente_ia' %}" class="action-card flex-row align-items-center p-3 h-auto">
-                        <div class="icon-box bg-dark bg-opacity-10 text-dark mb-0 me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <a href="{% url 'assistente_ia' %}" class="action-card flex-row align-items-center p-2 h-auto" onclick="saveRecent('Assistente IA', '{% url 'assistente_ia' %}', 'bi-robot')">
+                        <div class="icon-box bg-dark bg-opacity-10 text-dark mb-0 me-3" style="width: 35px; height: 35px; font-size: 1rem;">
                             <i class="bi bi-robot"></i>
                         </div>
                         <div>
-                            <div class="card-title mb-1" style="font-size: 1rem;">Assistente I.A.</div>
-                            <div class="text-muted small">Tire dúvidas sobre regras e dados da base.</div>
+                            <div class="card-title mb-0" style="font-size: 0.9rem;">Assistente I.A.</div>
                         </div>
                         <div class="ms-auto text-secondary"><i class="bi bi-chevron-right"></i></div>
                     </a>
@@ -162,30 +205,18 @@
 
         {% if user.is_staff %}
         <div class="col-md-6">
-            <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-warning ps-3">Administração</h5>
-            <div class="row g-3">
+            <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-warning ps-2">Administração</h6>
+            <div class="row g-2">
                 <div class="col-md-6">
-                    <a href="{% url 'admin_upload_base' %}" class="action-card h-100 justify-content-center text-center">
-                        <div class="text-primary mb-2"><i class="bi bi-cloud-upload fs-3"></i></div>
-                        <div class="fw-bold text-dark">Atualizar Bases</div>
+                    <a href="{% url 'admin_upload_base' %}" class="action-card h-100 justify-content-center text-center py-3" onclick="saveRecent('Upload Bases', '{% url 'admin_upload_base' %}', 'bi-cloud-upload')">
+                        <div class="text-primary mb-1"><i class="bi bi-cloud-upload fs-4"></i></div>
+                        <div class="fw-bold text-dark small">Bases</div>
                     </a>
                 </div>
                 <div class="col-md-6">
-                    <a href="{% url 'dashboard' %}" class="action-card h-100 justify-content-center text-center">
-                        <div class="text-success mb-2"><i class="bi bi-graph-up-arrow fs-3"></i></div>
-                        <div class="fw-bold text-dark">Dashboard BI</div>
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'lista_usuarios' %}" class="action-card h-100 justify-content-center text-center">
-                        <div class="text-secondary mb-2"><i class="bi bi-people fs-3"></i></div>
-                        <div class="fw-bold text-dark">Usuários</div>
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'delete_request_list' %}" class="action-card h-100 justify-content-center text-center">
-                        <div class="text-danger mb-2"><i class="bi bi-trash fs-3"></i></div>
-                        <div class="fw-bold text-dark">Exclusões</div>
+                    <a href="{% url 'dashboard' %}" class="action-card h-100 justify-content-center text-center py-3" onclick="saveRecent('Dashboard', '{% url 'dashboard' %}', 'bi-graph-up-arrow')">
+                        <div class="text-success mb-1"><i class="bi bi-graph-up-arrow fs-4"></i></div>
+                        <div class="fw-bold text-dark small">BI</div>
                     </a>
                 </div>
             </div>
@@ -194,4 +225,41 @@
     </div>
 
 </div>
+
+<script>
+    // Função chamada ao clicar em qualquer card
+    function saveRecent(title, url, icon) {
+        let recents = JSON.parse(localStorage.getItem('vamos_recents') || '[]');
+        
+        // Remove se já existir (para colocar no topo depois)
+        recents = recents.filter(item => item.url !== url);
+        
+        // Adiciona no começo
+        recents.unshift({ title, url, icon });
+        
+        // Mantém apenas os 3 últimos
+        if (recents.length > 3) recents.pop();
+        
+        localStorage.setItem('vamos_recents', JSON.stringify(recents));
+    }
+
+    // Função chamada ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('recent-buttons-container');
+        const noRecentMsg = document.getElementById('no-recent');
+        const recents = JSON.parse(localStorage.getItem('vamos_recents') || '[]');
+
+        if (recents.length > 0 && noRecentMsg) {
+            noRecentMsg.style.display = 'none';
+            
+            recents.forEach(item => {
+                const btn = document.createElement('a');
+                btn.href = item.url;
+                btn.className = 'recent-btn';
+                btn.innerHTML = `<i class="bi ${item.icon}"></i> ${item.title}`;
+                container.appendChild(btn);
+            });
+        }
+    });
+</script>
 {% endblock %}
