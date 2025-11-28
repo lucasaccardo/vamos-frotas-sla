@@ -172,6 +172,11 @@
                 <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
                     <i class="bi bi-house-door"></i> Início
                 </a>
+
+                <a href="{% url 'minha_conta' %}" class="nav-link {% if 'perfil' in request.path %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i> Minha Conta
+                </a>
+                
                 <a href="{% url 'dashboard' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
                     <i class="bi bi-grid"></i> Visão Geral
                 </a>

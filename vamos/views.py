@@ -851,3 +851,7 @@ def backup_database_view(request):
 
     except Exception as e:
         return HttpResponse(f"❌ Erro ao gerar backup: {str(e)}", status=500)
+
+@login_required(login_url='login')
+def minha_conta_view(request):
+    return render(request, "vamos/profile.html", {"user": request.user})

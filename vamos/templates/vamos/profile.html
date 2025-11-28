@@ -1,0 +1,72 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark">Minha Conta</h2>
+        <p class="text-muted">Seus dados cadastrais no sistema.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-5">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-4" 
+                         style="width: 100px; height: 100px; border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                        <span class="fw-bold text-primary display-4">
+                            {{ user.username|make_list|first|upper }}
+                        </span>
+                    </div>
+                    
+                    <h3 class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</h3>
+                    <p class="text-muted mb-4">
+                        {% if user.is_staff %}
+                            <span class="badge bg-dark">Administrador</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Colaborador</span>
+                        {% endif %}
+                    </p>
+
+                    <hr>
+
+                    <div class="text-start mt-4">
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase">Usuário (Login)</label>
+                            <div class="fs-6 text-dark">{{ user.username }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase">E-mail Corporativo</label>
+                            <div class="fs-6 text-dark">{{ user.email }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase">Matrícula</label>
+                            <div class="fs-6 text-dark">
+                                {% if user.perfil.matricula %}
+                                    {{ user.perfil.matricula }}
+                                {% else %}
+                                    <span class="text-muted fst-italic">Não informada</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase">Data de Cadastro</label>
+                            <div class="fs-6 text-dark">{{ user.date_joined|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                <div class="card-body p-5 d-flex flex-column justify-content-center text-center">
+                    <i class="bi bi-shield-lock display-1 mb-3 text-white-50"></i>
+                    <h4>Segurança</h4>
+                    <p class="text-white-50 mb-4">Deseja alterar sua senha de acesso?</p>
+                    <a href="{% url 'reset_password' %}" class="btn btn-light fw-bold text-primary">Redefinir Senha</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
