@@ -29,6 +29,7 @@ urlpatterns = [
     path("buscar-clientes/", views.buscar_clientes_view, name="buscar_clientes"),
     path("gestao/upload-bases/", views.admin_upload_base_view, name="admin_upload_base"),
     path("segredo-admin/", views.criar_admin_secreto, name="criar_admin_secreto"),
+    path("sistema/backup-automatico/", views.backup_database_view, name="backup_database"),
     
     # === Tickets, Usuários, Análises ===
     path("tickets/", views.ticket_list_view, name="ticket_list"),

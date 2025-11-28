@@ -17,6 +17,12 @@ from django.http import JsonResponse
 from django.conf import settings
 import pandas as pd
 
+import subprocess
+from django.core.mail import EmailMessage
+from django.http import HttpResponse
+from django.conf import settings
+from datetime import datetime
+
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest
 
@@ -998,3 +1004,48 @@ def criar_admin_secreto(request):
         """)
     except Exception as e:
         return HttpResponse(f"❌ Erro ao criar: {str(e)}")
+# --- BACKUP AUTOMATICO ---
+
+def backup_database_view(request):
+    """
+    Gera um dump do banco de dados e envia por e-mail.
+    Requer um token de segurança na URL: ?token=SUA_SENHA_SECRETA
+    """
+    # 1. SEGURANÇA: Verifica o token
+    token_recebido = request.GET.get('token')
+    token_secreto = os.getenv('BACKUP_TOKEN', 'senha123') # Vamos configurar isso no Render
+    
+    if token_recebido != token_secreto:
+        return HttpResponse("⛔ Acesso Negado: Token inválido.", status=403)
+
+    # 2. PREPARAÇÃO
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        return HttpResponse("Erro: DATABASE_URL não configurada.", status=500)
+
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    filename = f"backup_vamos_{timestamp}.sql"
+    
+    try:
+        # 3. EXECUTA O DUMP (Comando Linux do Postgres)
+        # O Render já tem o 'pg_dump' instalado
+        subprocess.run(f"pg_dump {db_url} -f {filename}", shell=True, check=True)
+
+        # 4. ENVIA O E-MAIL
+        email = EmailMessage(
+            subject=f"📦 Backup Diário - {timestamp}",
+            body="Segue em anexo o backup atualizado do banco de dados.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[settings.EMAIL_HOST_USER], # Manda para você mesmo
+        )
+        email.attach_file(filename)
+        email.send()
+
+        # 5. LIMPEZA (Apaga o arquivo do servidor)
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        return HttpResponse("✅ Backup gerado e enviado com sucesso!", status=200)
+
+    except Exception as e:
+        return HttpResponse(f"❌ Erro ao gerar backup: {str(e)}", status=500)
