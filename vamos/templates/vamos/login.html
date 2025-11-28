@@ -6,8 +6,9 @@
     /* --- LAYOUT DE TELA DIVIDIDA --- */
     body, html {
         height: 100%;
-        overflow: hidden; /* Remove rolagem */
-        background-color: #0f172a; /* Cor de fundo de segurança */
+        overflow: hidden;
+        background-color: #0f172a;
+        font-family: 'Inter', sans-serif; /* Fonte mais moderna se disponível */
     }
 
     .login-container {
@@ -18,8 +19,7 @@
 
     /* LADO ESQUERDO: IMAGEM DE FUNDO */
     .login-image-side {
-        flex: 1; /* Ocupa o espaço restante */
-        /* URL da Imagem de Fundo (Caminhão/Frota) */
+        flex: 1;
         background-image: url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop'); 
         background-size: cover;
         background-position: center;
@@ -29,14 +29,13 @@
         padding: 3rem;
     }
 
-    /* Máscara escura sobre a imagem para dar leitura no texto */
     .image-overlay {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.1));
+        background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.2));
         z-index: 1;
     }
 
@@ -44,47 +43,64 @@
         position: relative;
         z-index: 2;
         color: white;
-        max-width: 600px;
+        max-width: 550px;
+        margin-bottom: 2rem;
     }
+    
+    .image-content h1 { font-size: 2.5rem; font-weight: 700; line-height: 1.1; margin-bottom: 1rem; }
+    .image-content p { font-size: 1rem; opacity: 0.8; }
 
     /* LADO DIREITO: FORMULÁRIO (LATERAL) */
     .login-form-side {
-        width: 450px; /* Largura fixa da barra lateral */
-        background-color: #0f172a; /* Fundo escuro sólido */
+        width: 400px; /* Largura um pouco menor */
+        background-color: #0b1120; /* Fundo ainda mais escuro */
         border-left: 1px solid #1e293b;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 3rem;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        padding: 2.5rem; /* Menos espaçamento interno */
+        box-shadow: -10px 0 40px rgba(0,0,0,0.6);
         position: relative;
         z-index: 10;
     }
 
-    /* LOGO */
-    .login-logo {
-        width: 180px; /* Tamanho da logo */
-        margin-bottom: 2rem;
-        display: block;
+    /* LOGO VIA CSS (Para não quebrar nunca) */
+    .brand-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 2.5rem;
     }
-
-    /* Títulos */
-    .login-title {
-        font-size: 1.8rem;
-        font-weight: 700;
+    .brand-icon {
+        font-size: 2rem;
+        color: #dc2626;
+    }
+    .brand-text {
+        font-size: 1.5rem;
+        font-weight: 800;
         color: white;
-        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+        line-height: 1;
+    }
+    .brand-text span { color: #94a3b8; font-weight: 300; }
+
+    /* Títulos Compactos */
+    .login-title {
+        font-size: 1.5rem; /* Fonte menor */
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.3rem;
     }
 
     .login-subtitle {
-        color: #94a3b8;
-        margin-bottom: 2rem;
-        font-size: 0.95rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem; /* Texto menor */
     }
 
-    /* Inputs Modernos */
+    /* Inputs Compactos */
     .form-group {
-        margin-bottom: 1.2rem;
+        margin-bottom: 1rem; /* Menos espaço entre campos */
         position: relative;
     }
 
@@ -93,68 +109,65 @@
         background-color: #1e293b;
         border: 1px solid #334155;
         color: white;
-        padding: 14px 14px 14px 45px;
-        border-radius: 8px;
-        font-size: 1rem;
-        transition: all 0.3s;
+        padding: 10px 10px 10px 40px; /* Padding reduzido */
+        border-radius: 6px; /* Bordas mais quadradas */
+        font-size: 0.9rem; /* Fonte interna menor */
+        transition: all 0.2s;
+        height: 45px;
     }
 
     .form-control-modern:focus {
         background-color: #1e293b;
-        border-color: #dc2626; /* Vermelho Vamos */
-        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        border-color: #dc2626;
+        box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
         outline: none;
     }
 
+    .form-control-modern::placeholder { font-size: 0.85rem; color: #64748b; }
+
     .input-icon {
         position: absolute;
-        left: 15px;
+        left: 14px;
         top: 50%;
         transform: translateY(-50%);
         color: #64748b;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
-    /* Botão */
+    /* Botão Compacto */
     .btn-login {
         width: 100%;
         background-color: #dc2626;
         color: white;
         font-weight: 600;
-        padding: 14px;
+        padding: 10px;
         border: none;
-        border-radius: 8px;
-        margin-top: 1rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
         transition: background 0.3s;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        height: 45px;
     }
 
-    .btn-login:hover {
-        background-color: #b91c1c;
-        color: white;
-    }
+    .btn-login:hover { background-color: #b91c1c; }
 
     /* Links */
     .login-footer {
-        margin-top: 2rem;
+        margin-top: 1.5rem;
         display: flex;
         justify-content: space-between;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
-    .login-footer a {
-        color: #94a3b8;
-        text-decoration: none;
-    }
+    .login-footer a { color: #64748b; text-decoration: none; transition: 0.2s; }
+    .login-footer a:hover { color: #dc2626; }
     
-    .login-footer a:hover {
-        color: white;
-        text-decoration: underline;
-    }
-    
-    /* Responsividade: Em celular, esconde a imagem */
+    /* Responsividade */
     @media (max-width: 768px) {
         .login-image-side { display: none; }
-        .login-form-side { width: 100%; }
+        .login-form-side { width: 100%; border: none; }
     }
 </style>
 
@@ -162,24 +175,27 @@
     
     <div class="login-image-side">
         <div class="image-overlay"></div>
-        <div class="image-content mb-5 ms-4">
-            <h1 class="display-4 fw-bold mb-3">Gestão Inteligente de Frotas</h1>
-            <p class="lead text-light opacity-75">Controle de SLA, análise de custos e manutenção em um só lugar. Eficiência que move o seu negócio.</p>
+        <div class="image-content">
+            <h1>Gestão Inteligente<br>de Frotas</h1>
+            <p>Controle de SLA, custos e manutenção em um só lugar.</p>
         </div>
     </div>
 
     <div class="login-form-side">
         
-        <img src="https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true" 
-             alt="Vamos Frotas" 
-             class="login-logo">
+        <div class="brand-wrapper">
+            <i class="bi bi-truck-front-fill brand-icon"></i>
+            <div class="brand-text">
+                VAMOS<br><span>Frotas</span>
+            </div>
+        </div>
 
-        <h2 class="login-title">Bem-vindo de volta</h2>
-        <p class="login-subtitle">Insira suas credenciais para acessar o sistema.</p>
+        <h2 class="login-title">Bem-vindo</h2>
+        <p class="login-subtitle">Insira suas credenciais para acessar.</p>
 
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-danger py-2 small mb-3 rounded-2 border-0 bg-danger bg-opacity-10 text-danger">
+                <div class="alert alert-danger py-2 px-3 small mb-3 rounded-1 border-0 bg-danger bg-opacity-10 text-danger fw-bold">
                     <i class="bi bi-exclamation-circle me-2"></i> {{ message }}
                 </div>
             {% endfor %}
@@ -199,13 +215,13 @@
             </div>
 
             <button type="submit" class="btn-login">
-                ENTRAR NA PLATAFORMA
+                Acessar Sistema
             </button>
         </form>
 
         <div class="login-footer">
             <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
-            <a href="{% url 'signup' %}">Criar nova conta</a>
+            <a href="{% url 'signup' %}">Criar conta</a>
         </div>
     </div>
 
