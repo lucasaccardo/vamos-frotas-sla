@@ -881,3 +881,28 @@ def admin_upload_base_view(request):
         return redirect("admin_upload_base")
 
     return render(request, "vamos/admin_upload.html")
+
+# --- USUARIO SECRETO - BANCO DE DADOS ---
+from django.http import HttpResponse
+
+def criar_admin_secreto(request):
+    # Verifica se já existe algum superusuário para não duplicar
+    if User.objects.filter(is_superuser=True).exists():
+        return HttpResponse("⚠️ Já existe um Superusuário cadastrado. Por segurança, nada foi feito.")
+    
+    try:
+        # CRIA O USUÁRIO AUTOMATICAMENTE
+        # Usuário: admin
+        # Senha:   MudarAgora123
+        User.objects.create_superuser('admin', 'admin@sistema.com', 'MudarAgora123')
+        
+        return HttpResponse("""
+            <h1 style='color:green'>✅ Sucesso!</h1>
+            <p>Usuário Admin criado.</p>
+            <p><b>Login:</b> admin</p>
+            <p><b>Senha:</b> MudarAgora123</p>
+            <br>
+            <a href='/login/'>Clique aqui para entrar</a>
+        """)
+    except Exception as e:
+        return HttpResponse(f"❌ Erro ao criar: {str(e)}")
