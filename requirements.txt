@@ -1,0 +1,11 @@
+Django>=5.0
+gunicorn
+whitenoise
+dj-database-url
+psycopg2-binary
+pandas
+openpyxl
+xlsxwriter
+reportlab
+google-generativeai
+python-dotenv
