@@ -3,109 +3,107 @@
 
 {% block content %}
 <style>
-    /* --- ESTILO EXCLUSIVO DA TELA DE LOGIN --- */
-    
-    /* Fundo moderno com gradiente animado */
-    body {
-        background: linear-gradient(-45deg, #0f172a, #1e293b, #3f0e0e, #1c1917);
-        background-size: 400% 400%;
-        animation: gradientBG 15s ease infinite;
+    /* --- LAYOUT DE TELA DIVIDIDA --- */
+    body, html {
+        height: 100%;
+        overflow: hidden; /* Remove rolagem */
+        background-color: #0f172a; /* Cor de fundo de segurança */
+    }
+
+    .login-container {
         height: 100vh;
-        overflow: hidden; /* Remove barras de rolagem */
+        width: 100vw;
+        display: flex;
     }
 
-    @keyframes gradientBG {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+    /* LADO ESQUERDO: IMAGEM DE FUNDO */
+    .login-image-side {
+        flex: 1; /* Ocupa o espaço restante */
+        /* URL da Imagem de Fundo (Caminhão/Frota) */
+        background-image: url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop'); 
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        padding: 3rem;
     }
 
-    /* Remove navbar/sidebar padrão nesta página específica se necessário via JS, 
-       mas o CSS aqui já cobre a tela toda com z-index */
-    .login-overlay {
-        position: fixed;
+    /* Máscara escura sobre a imagem para dar leitura no texto */
+    .image-overlay {
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999; /* Fica por cima de tudo */
-        background: inherit; /* Herda o gradiente */
-    }
-
-    /* Círculos de luz (Glow Effect) atrás do cartão */
-    .glow-circle {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
+        background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.1));
         z-index: 1;
-        opacity: 0.6;
     }
-    .circle-1 { width: 300px; height: 300px; background: #dc2626; top: 10%; left: 20%; }
-    .circle-2 { width: 250px; height: 250px; background: #2563eb; bottom: 15%; right: 25%; }
 
-    /* O Cartão de Vidro (Glassmorphism) */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
+    .image-content {
+        position: relative;
+        z-index: 2;
+        color: white;
+        max-width: 600px;
+    }
+
+    /* LADO DIREITO: FORMULÁRIO (LATERAL) */
+    .login-form-side {
+        width: 450px; /* Largura fixa da barra lateral */
+        background-color: #0f172a; /* Fundo escuro sólido */
+        border-left: 1px solid #1e293b;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         padding: 3rem;
-        width: 100%;
-        max-width: 420px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
         position: relative;
         z-index: 10;
-        color: white;
     }
 
-    /* Tipografia */
-    .brand-title {
-        font-size: 2rem;
-        font-weight: 800;
-        letter-spacing: -1px;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(to right, #fff, #cbd5e1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .brand-subtitle {
-        color: #94a3b8;
-        font-size: 0.9rem;
+    /* LOGO */
+    .login-logo {
+        width: 180px; /* Tamanho da logo */
         margin-bottom: 2rem;
-        font-weight: 300;
+        display: block;
+    }
+
+    /* Títulos */
+    .login-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .login-subtitle {
+        color: #94a3b8;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
     }
 
     /* Inputs Modernos */
-    .input-group-custom {
+    .form-group {
+        margin-bottom: 1.2rem;
         position: relative;
-        margin-bottom: 1.5rem;
     }
 
-    .form-control-glass {
+    .form-control-modern {
         width: 100%;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 15px 15px 15px 45px; /* Espaço para o ícone */
+        background-color: #1e293b;
+        border: 1px solid #334155;
         color: white;
+        padding: 14px 14px 14px 45px;
+        border-radius: 8px;
         font-size: 1rem;
-        transition: all 0.3s ease;
+        transition: all 0.3s;
     }
 
-    .form-control-glass:focus {
-        background: rgba(0, 0, 0, 0.4);
+    .form-control-modern:focus {
+        background-color: #1e293b;
         border-color: #dc2626; /* Vermelho Vamos */
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
         outline: none;
-        box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
-    }
-
-    .form-control-glass::placeholder {
-        color: rgba(255, 255, 255, 0.4);
     }
 
     .input-icon {
@@ -113,79 +111,75 @@
         left: 15px;
         top: 50%;
         transform: translateY(-50%);
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 1.2rem;
+        color: #64748b;
+        font-size: 1.1rem;
     }
 
-    /* Botão Neon */
-    .btn-neon {
-        background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 14px;
-        font-weight: 700;
+    /* Botão */
+    .btn-login {
         width: 100%;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-        transition: all 0.3s;
-        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+        background-color: #dc2626;
+        color: white;
+        font-weight: 600;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        margin-top: 1rem;
+        transition: background 0.3s;
     }
 
-    .btn-neon:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+    .btn-login:hover {
+        background-color: #b91c1c;
         color: white;
     }
 
     /* Links */
-    .auth-links {
-        margin-top: 1.5rem;
+    .login-footer {
+        margin-top: 2rem;
         display: flex;
         justify-content: space-between;
         font-size: 0.85rem;
     }
-    
-    .auth-links a {
-        color: #cbd5e1;
+
+    .login-footer a {
+        color: #94a3b8;
         text-decoration: none;
-        transition: color 0.2s;
     }
     
-    .auth-links a:hover {
-        color: #fff;
+    .login-footer a:hover {
+        color: white;
         text-decoration: underline;
     }
-
-    /* Mensagens de Erro */
-    .alert-glass {
-        background: rgba(220, 38, 38, 0.2);
-        border: 1px solid rgba(220, 38, 38, 0.5);
-        color: #fca5a5;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-        text-align: center;
+    
+    /* Responsividade: Em celular, esconde a imagem */
+    @media (max-width: 768px) {
+        .login-image-side { display: none; }
+        .login-form-side { width: 100%; }
     }
 </style>
 
-<div class="login-overlay">
-    <div class="glow-circle circle-1"></div>
-    <div class="glow-circle circle-2"></div>
-
-    <div class="glass-card text-center">
-        <div class="mb-3">
-            <i class="bi bi-truck-front-fill text-danger" style="font-size: 3rem; filter: drop-shadow(0 0 10px rgba(220,38,38,0.5));"></i>
+<div class="login-container">
+    
+    <div class="login-image-side">
+        <div class="image-overlay"></div>
+        <div class="image-content mb-5 ms-4">
+            <h1 class="display-4 fw-bold mb-3">Gestão Inteligente de Frotas</h1>
+            <p class="lead text-light opacity-75">Controle de SLA, análise de custos e manutenção em um só lugar. Eficiência que move o seu negócio.</p>
         </div>
+    </div>
+
+    <div class="login-form-side">
         
-        <h1 class="brand-title">VAMOS FROTAS</h1>
-        <p class="brand-subtitle">Acesse sua conta para gerenciar SLAs</p>
+        <img src="https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true" 
+             alt="Vamos Frotas" 
+             class="login-logo">
+
+        <h2 class="login-title">Bem-vindo de volta</h2>
+        <p class="login-subtitle">Insira suas credenciais para acessar o sistema.</p>
 
         {% if messages %}
             {% for message in messages %}
-                <div class="alert-glass">
+                <div class="alert alert-danger py-2 small mb-3 rounded-2 border-0 bg-danger bg-opacity-10 text-danger">
                     <i class="bi bi-exclamation-circle me-2"></i> {{ message }}
                 </div>
             {% endfor %}
@@ -194,40 +188,38 @@
         <form method="post">
             {% csrf_token %}
             
-            <div class="input-group-custom">
+            <div class="form-group">
                 <i class="bi bi-person input-icon"></i>
-                <input type="text" name="username" class="form-control-glass" placeholder="Usuário" required autofocus>
+                <input type="text" name="username" class="form-control-modern" placeholder="Usuário" required autofocus>
             </div>
 
-            <div class="input-group-custom">
+            <div class="form-group">
                 <i class="bi bi-lock input-icon"></i>
-                <input type="password" name="password" class="form-control-glass" placeholder="Senha" required>
+                <input type="password" name="password" class="form-control-modern" placeholder="Senha" required>
             </div>
 
-            <button type="submit" class="btn-neon">
-                ENTRAR
+            <button type="submit" class="btn-login">
+                ENTRAR NA PLATAFORMA
             </button>
         </form>
 
-        <div class="auth-links">
-            <a href="{% url 'signup' %}">Criar Conta</a>
+        <div class="login-footer">
             <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
+            <a href="{% url 'signup' %}">Criar nova conta</a>
         </div>
     </div>
+
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Tenta esconder elementos do layout base que não devem aparecer no login
         const sidebar = document.querySelector('.sidebar');
         const wrapper = document.querySelector('.wrapper');
-        
         if(sidebar) sidebar.style.display = 'none';
         if(wrapper) {
-            wrapper.style.display = 'block'; // Remove o flex do wrapper para o overlay funcionar
+            wrapper.style.display = 'block';
             wrapper.style.padding = '0';
         }
-        document.body.style.overflow = 'hidden';
     });
 </script>
 
