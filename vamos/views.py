@@ -1,5 +1,10 @@
 import re # Necessário para validação de senha com Regex
 import markdown # Necessário para formatar resposta da IA
+import json 
+import os
+from datetime import datetime # --- NOVO IMPORT ---
+from django.db.models import Count # --- NOVO IMPORT ---
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -7,15 +12,10 @@ from django.contrib import messages
 from django.core.files.base import ContentFile 
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-# IMPORTAÇÃO DE PAGINATOR ADICIONADA AQUI (MANTIDA)
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger 
 from django.http import JsonResponse
-import json 
-# --- NOVAS IMPORTAÇÕES ---
-import pandas as pd
-import os
 from django.conf import settings
-# --- FIM NOVAS IMPORTAÇÕES ---
+import pandas as pd
 
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest
@@ -26,7 +26,6 @@ from .forms import SlaMensalForm, CenarioForm, PecaForm, TicketForm, SignUpForm,
 # Importações da Lógica de Negócios (Cálculos e PDF)
 from .services import (
     calcular_sla_simples, 
-    # MUDANÇA: Substituindo os wrappers antigos pela nova função moderna
     gerar_pdf_moderno,
     calcular_cenario_comparativo,
     moeda_para_float
@@ -63,15 +62,15 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
         errors.append("A senha deve conter pelo menos 1 número.")
     if not re.search(rf"[{re.escape(SPECIAL_CHARS)}]", password):
         errors.append("A senha deve conter pelo menos 1 caractere especial.")
-    
+     
     uname = (username or "").strip().lower()
     local_email = (email or "").split("@")[0].strip().lower()
-    
+     
     if uname and uname in password.lower():
         errors.append("A senha não pode conter o seu nome de usuário.")
     if local_email and local_email in password.lower():
         errors.append("A senha não pode conter partes do seu e-mail.")
-        
+         
     return (len(errors) == 0), errors
 
 
@@ -82,7 +81,7 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("home")
-        
+         
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -101,31 +100,31 @@ def signup_view(request):
         if form.is_valid():
             # O form.save() já cria o User e o Perfil (Matrícula) graças ao forms.py
             user = form.save(commit=False)
-            
+             
             # Define como inativo para aguardar aprovação do Admin
             user.is_active = False 
             user.save()
-            
+             
             messages.success(request, "Cadastro enviado! Aguarde aprovação do administrador.")
             return redirect("login")
         else:
             messages.error(request, "Erro ao criar conta. Verifique os dados informados.")
     else:
         form = SignUpForm()
-        
+         
     return render(request, "vamos/signup.html", {"form": form})
 
 def logout_view(request):
     logout(request)
     return redirect("login")
 
-# --- Reset de Senha (Não mais usados, pois estamos usando auth_views no urls.py) ---
+# --- Reset de Senha ---
 def reset_password_view(request): return redirect("login")
 def reset_password_confirm_view(request, uidb64, token): return redirect("login")
 
 
 # =============================================================================
-# 2. PÁGINAS PRINCIPAIS
+# 2. PÁGINAS PRINCIPAIS (DASHBOARD ATUALIZADO)
 # =============================================================================
 
 @login_required(login_url='login')
@@ -134,21 +133,114 @@ def home_view(request):
 
 @login_required(login_url='login')
 def dashboard_view(request):
-    # SEGURANÇA: Apenas Admin/Staff pode ver o Dashboard
+    # Segurança
     if not request.user.is_staff:
         messages.error(request, "Acesso restrito a administradores.")
         return redirect("home")
 
-    analises_count = Analise.objects.count()
-    tickets_count = Ticket.objects.exclude(status__in=['Concluído', 'Cancelado']).count()
-    users_count = User.objects.count()
-    exclusoes_pendentes = DeleteRequest.objects.filter(status='Pendente').count()
-    
+    # 1. CAPTURA FILTROS DA URL
+    ano_atual = datetime.now().year
+    # Pega o ano/mês da URL (se não tiver, usa 'Todos' ou o atual)
+    filtro_ano = request.GET.get('ano')
+    filtro_mes = request.GET.get('mes')
+
+    # 2. PREPARA QUERYSET BASE
+    qs = Analise.objects.all().order_by('data_criacao')
+     
+    # Descobre anos disponíveis para o filtro
+    anos_disponiveis = sorted(list(set(qs.dates('data_criacao', 'year'))), key=lambda x: x.year, reverse=True)
+    anos_int = [d.year for d in anos_disponiveis]
+    if not anos_int: anos_int = [ano_atual]
+
+    # Aplica Filtros se selecionado
+    if filtro_ano and filtro_ano != "Todos":
+        qs = qs.filter(data_criacao__year=filtro_ano)
+    if filtro_mes and filtro_mes != "Todos":
+        qs = qs.filter(data_criacao__month=filtro_mes)
+
+    # 3. CÁLCULOS ESTATÍSTICOS (Processamento Python)
+    total_economia = 0.0
+    total_cenarios = 0
+    total_sla = 0
+     
+    # Para o Gráfico de Linha (Evolução Mensal)
+    timeline_data = {} # Ex: {'01/2025': 1500.00, '02/2025': 3000.00}
+
+    for a in qs:
+        mes_chave = a.data_criacao.strftime("%m/%Y")
+        if mes_chave not in timeline_data: timeline_data[mes_chave] = 0.0
+         
+        economia_item = 0.0
+         
+        # CASO 1: SLA MENSAL (Economia = Desconto aplicado)
+        if a.tipo == 'sla_mensal':
+            total_sla += 1
+            try:
+                economia_item = float(a.dados.get('desconto', 0))
+            except: pass
+             
+        # CASO 2: CENÁRIOS (Economia = Maior Preço - Menor Preço)
+        elif a.tipo == 'cenarios':
+            total_cenarios += 1
+            try:
+                # Pega a lista de cenários dentro do JSON
+                lista = a.dados.get('cenarios', [])
+                valores = []
+                for c in lista:
+                    # Limpa string "R$ 1.200,50" para float 1200.50
+                    val_str = str(c.get('total_final', '0') or c.get('Total Final (R$)', '0'))
+                    val_clean = val_str.replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.').strip()
+                    if val_clean: valores.append(float(val_clean))
+                 
+                if len(valores) > 1:
+                    # A economia é a diferença entre o mais caro e o que foi escolhido (o mais barato)
+                    economia_item = max(valores) - min(valores)
+            except: pass
+
+        # Soma totais
+        total_economia += economia_item
+        timeline_data[mes_chave] += economia_item
+
+    # 4. DADOS PARA OS GRÁFICOS (JSON)
+    # Gráfico 1: Evolução da Economia (Linha)
+    graf_tempo_labels = list(timeline_data.keys())
+    graf_tempo_data = list(timeline_data.values())
+
+    # Gráfico 2: Distribuição de Tickets (Donut)
+    ticket_counts = Ticket.objects.values('status').annotate(total=Count('id'))
+    graf_ticket_labels = [t['status'] for t in ticket_counts]
+    graf_ticket_data = [t['total'] for t in ticket_counts]
+     
+    # Cores para os status
+    ticket_colors = []
+    color_map = {'Pendente': '#ffc107', 'Em andamento': '#0dcaf0', 'Concluído': '#198754', 'Cancelado': '#6c757d'}
+    for label in graf_ticket_labels: ticket_colors.append(color_map.get(label, '#333'))
+
+    # Gráfico 3: Top Usuários (Barras) - Quem mais gera economia/análises
+    top_users = Analise.objects.values('usuario__username').annotate(total=Count('id')).order_by('-total')[:5]
+    graf_user_labels = [u['usuario__username'] for u in top_users]
+    graf_user_data = [u['total'] for u in top_users]
+
     return render(request, "vamos/dashboard.html", {
-        'analises_count': analises_count,
-        'tickets_count': tickets_count,
-        'users_count': users_count,
-        'exclusoes_pendentes': exclusoes_pendentes
+        # Filtros e Totais
+        "anos_disponiveis": anos_int,
+        "filtro_ano": int(filtro_ano) if filtro_ano and filtro_ano != "Todos" else "Todos",
+        "filtro_mes": int(filtro_mes) if filtro_mes and filtro_mes != "Todos" else "Todos",
+         
+        "total_economia": total_economia,
+        "total_sla": total_sla,
+        "total_cenarios": total_cenarios,
+        "total_analises": total_sla + total_cenarios,
+        "tickets_pendentes": Ticket.objects.filter(status='Pendente').count(),
+
+        # Dados JSON para Chart.js
+        "graf_tempo_labels": json.dumps(graf_tempo_labels),
+        "graf_tempo_data": json.dumps(graf_tempo_data),
+        "graf_ticket_labels": json.dumps(graf_ticket_labels),
+        "graf_ticket_data": json.dumps(graf_ticket_data),
+        "graf_ticket_colors": json.dumps(ticket_colors),
+        "graf_user_labels": json.dumps(graf_user_labels),
+        "graf_user_data": json.dumps(graf_user_data),
     })
 
 
@@ -159,30 +251,30 @@ def dashboard_view(request):
 @login_required(login_url='login')
 def sla_mensal_view(request):
     resultado = None
-    
+     
     if request.method == "POST":
         form = SlaMensalForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            
+             
             prazo_map = {
                 "Preventiva – 2 dias úteis": 2, "Corretiva – 3 dias úteis": 3,
                 "Preventiva + Corretiva – 5 dias úteis": 5, "Motor – 15 dias úteis": 15
             }
             prazo = prazo_map.get(data['tipo_servico'], 0)
-            
+             
             dias, status, desconto, excedente = calcular_sla_simples(
                 data['data_entrada'], data['data_saida'], prazo, 
                 float(data['mensalidade']), data['feriados']
             )
-            
+             
             # 1. Cria a Análise PRIMEIRO para gerar o Protocolo
             nova_analise = Analise(
                 usuario=request.user, tipo="sla_mensal",
                 placa=data['placa'], cliente=data['cliente']
             )
             nova_analise.save() 
-            
+             
             # 2. Adiciona todos os dados calculados
             dados_final = {
                 "protocolo": nova_analise.protocolo, # Adiciona o protocolo
@@ -196,22 +288,22 @@ def sla_mensal_view(request):
                 "prazo_sla": prazo,
                 "gerado_por": request.user.get_full_name() or request.user.username
             }
-            
+             
             # 3. Gera PDF Moderno
             pdf_buffer = gerar_pdf_moderno(dados_final, "RELATÓRIO DE SLA MENSAL", nova_analise.protocolo)
-            
+             
             # 4. Salva PDF e Dados Finais na Análise
             filename = f"SLA_{nova_analise.protocolo}.pdf"
             nova_analise.dados = dados_final
             nova_analise.arquivo_pdf.save(filename, ContentFile(pdf_buffer.getvalue()))
             nova_analise.save()
-            
+             
             resultado = nova_analise
             messages.success(request, "Cálculo realizado e salvo com sucesso!")
-            
+             
     else:
         form = SlaMensalForm()
-        
+         
     return render(request, "vamos/sla_mensal.html", {"form": form, "resultado": resultado})
 
 
@@ -296,17 +388,17 @@ def cenarios_view(request):
                 # 2. Adiciona o protocolo nos metadados
                 meta['protocolo'] = nova_analise.protocolo
                 meta['gerado_por'] = request.user.get_full_name() or request.user.username
-                
+                 
                 # 3. Prepara dados para o PDF
                 dados_pdf = {
                     "cenarios": lista_final, 
                     "melhor": melhor,
                     **meta # Adiciona os metadados (protocolo, os_chamado, etc.)
                 }
-                
+                 
                 # 4. Gera PDF Moderno
                 pdf_buffer = gerar_pdf_moderno(dados_pdf, "ANÁLISE DE CENÁRIOS", nova_analise.protocolo)
-                
+                 
                 # 5. Salva PDF e Dados Finais na Análise
                 filename = f"COMPARATIVO_{nova_analise.protocolo}.pdf"
                 nova_analise.dados = dados_pdf
@@ -319,7 +411,7 @@ def cenarios_view(request):
                 request.session.modified = True
                 resultado_final = nova_analise
                 messages.success(request, "Análise finalizada!")
-        
+         
         elif acao == 'resetar':
             request.session['lista_cenarios'] = []
             request.session['pecas_atuais'] = []
@@ -363,11 +455,11 @@ def ticket_list_view(request):
         qs = Ticket.objects.all().order_by("-created_at")
     else:
         qs = Ticket.objects.filter(usuario=request.user).order_by("-created_at")
-    
+     
     # 2. Separa em duas listas
     tickets_abertos = qs.exclude(status__in=['Concluído', 'Cancelado'])
     tickets_finalizados = qs.filter(status__in=['Concluído', 'Cancelado'])
-        
+         
     return render(request, "vamos/tickets.html", {
         "tickets_abertos": tickets_abertos, 
         "tickets_finalizados": tickets_finalizados, 
@@ -386,14 +478,14 @@ def ticket_detail_view(request, pk):
     if request.method == "POST" and request.user.is_staff:
         resposta = request.POST.get('resposta_admin')
         novo_status = request.POST.get('status')
-        
+         
         if resposta:
             ticket.resposta_admin = resposta
             ticket.data_resposta = timezone.now()
-        
+         
         if novo_status:
             ticket.status = novo_status
-            
+             
         ticket.save()
         messages.success(request, "Ticket atualizado com sucesso!")
         return redirect('ticket_detail', pk=pk)
@@ -417,7 +509,7 @@ def usuario_list_view(request):
     if not request.user.is_staff:
         messages.error(request, "Acesso não autorizado.")
         return redirect("home")
-    
+     
     if request.method == "POST":
         form = AdminUserForm(request.POST)
         if form.is_valid():
@@ -441,7 +533,7 @@ def usuario_list_view(request):
                 return redirect("lista_usuarios")
     else:
         form = AdminUserForm()
-        
+         
     usuarios = User.objects.all().order_by('username')
     return render(request, "vamos/usuarios.html", {"usuarios": usuarios, "form": form})
 
@@ -450,9 +542,9 @@ def usuario_detail_view(request, pk):
     if not request.user.is_staff:
         messages.error(request, "Acesso não autorizado.")
         return redirect("home")
-        
+         
     u = get_object_or_404(User, pk=pk)
-    
+     
     if request.method == "POST":
         form = AdminUserForm(request.POST)
         if form.is_valid():
@@ -460,7 +552,7 @@ def usuario_detail_view(request, pk):
             u.username = d['username']
             u.email = d['email']
             u.first_name = d['first_name']
-            
+             
             if hasattr(u, 'perfil'):
                 u.perfil.matricula = d['matricula']
                 u.perfil.save()
@@ -527,11 +619,11 @@ def usuario_delete_view(request, pk):
 def analise_list_view(request):
     # Pega tudo do usuário
     qs = Analise.objects.filter(usuario=request.user).order_by("-data_criacao")
-    
+     
     # Separa em duas listas para as abas
     analises_sla = qs.filter(tipo='sla_mensal')
     analises_cenarios = qs.filter(tipo='cenarios')
-    
+     
     return render(request, "vamos/analises.html", {
         "analises_sla": analises_sla,
         "analises_cenarios": analises_cenarios
@@ -541,7 +633,7 @@ def analise_list_view(request):
 def analise_delete_permanent_view(request, pk):
     """Deleta o registro e o arquivo PDF definitivamente."""
     analise = get_object_or_404(Analise, pk=pk, usuario=request.user)
-    
+     
     # Tenta deletar o arquivo físico (opcional, mas boa prática)
     if analise.arquivo_pdf:
         try:
@@ -611,10 +703,10 @@ def assistente_ia_view(request):
 
             # Carrega o contexto (planilha + regras)
             contexto = get_ia_context_summary()
-            
+             
             # Carrega o modelo
             model = get_gemini_model()
-            
+             
             if not model:
                 return JsonResponse({'response': "Erro: A I.A. não está configurada corretamente (API Key ausente)."})
 
@@ -630,7 +722,7 @@ def assistente_ia_view(request):
 
 
             return JsonResponse({'response': ia_text})
-            
+             
         except Exception as e:
             return JsonResponse({'response': f"Ocorreu um erro ao processar: {str(e)}"}, status=500)
 
@@ -649,7 +741,7 @@ def api_buscar_placa(request):
     para preencher automaticamente a tela de Cálculos.
     """
     placa_busca = request.GET.get('placa', '').strip().upper()
-    
+     
     if not placa_busca:
         return JsonResponse({'encontrado': False, 'msg': 'Placa vazia'})
 
@@ -663,21 +755,21 @@ def api_buscar_placa(request):
 
         # Lê o Excel
         df = pd.read_excel(file_path)
-        
+         
         # Padroniza coluna PLACA
         df.columns = df.columns.astype(str).str.strip().str.upper()
-        
+         
         # Busca
         if 'PLACA' in df.columns:
             resultado = df[df['PLACA'].astype(str).str.strip().str.upper() == placa_busca]
 
             if not resultado.empty:
                 linha = resultado.iloc[0]
-                
+                 
                 # Pega valor da mensalidade
                 col_valor = 'VALOR MENSALIDADE' if 'VALOR MENSALIDADE' in df.columns else 'VALOR'
                 valor_raw = linha.get(col_valor, 0)
-                
+                 
                 valor_float = 0.0
                 if isinstance(valor_raw, (int, float)):
                     valor_float = float(valor_raw)
@@ -692,7 +784,7 @@ def api_buscar_placa(request):
                     'mensalidade': valor_float,
                     'mensalidade_fmt': f"R$ {valor_float:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                 })
-        
+         
         return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada na base de faturamento.'})
 
     except Exception as e:
@@ -711,11 +803,11 @@ def buscar_clientes_view(request):
 
     # Variáveis para o template
     lista_status = []
-    
+     
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, 'data')
     file_path = None
-    
+     
     for ext in ['.csv', '.xlsx', '.xls']:
         caminho_teste = os.path.join(data_dir, f'Base De Clientes Total{ext}')
         if os.path.exists(caminho_teste):
@@ -767,10 +859,10 @@ def buscar_clientes_view(request):
                     s = s.replace(',', '.')
                     try: return float(s)
                     except: return 0.0
-                
+                 
                 # Cria coluna numérica para ordenar
                 df['VALOR_NUM'] = df[col_valor].apply(limpar_valor)
-            
+             
             # 6. Ordenação
             if ordem == 'valor' and 'VALOR_NUM' in df.columns:
                 df = df.sort_values(by='VALOR_NUM', ascending=False) # Maior valor primeiro
@@ -835,7 +927,7 @@ def admin_upload_base_view(request):
             # Caminho da pasta data
             base_dir = os.path.dirname(os.path.abspath(__file__))
             data_dir = os.path.join(base_dir, 'data')
-            
+             
             # Garante que a pasta existe
             if not os.path.exists(data_dir):
                 os.makedirs(data_dir)
@@ -859,7 +951,7 @@ def admin_upload_base_view(request):
                 else:
                     messages.error(request, "A Base Total deve ser .csv ou .xlsx")
                     return redirect("admin_upload_base")
-                
+                 
                 # Remove versões antigas para não confundir a busca
                 for ext in ['.csv', '.xlsx', '.xls']:
                     antigo = os.path.join(data_dir, f"Base De Clientes Total{ext}")
@@ -868,13 +960,13 @@ def admin_upload_base_view(request):
 
             # Salva o arquivo sobrescrevendo o anterior
             caminho_completo = os.path.join(data_dir, nome_final)
-            
+             
             with open(caminho_completo, 'wb+') as destination:
                 for chunk in arquivo.chunks():
                     destination.write(chunk)
 
             messages.success(request, f"Arquivo '{nome_final}' atualizado com sucesso!")
-            
+             
         except Exception as e:
             messages.error(request, f"Erro ao salvar arquivo: {e}")
 
@@ -889,13 +981,13 @@ def criar_admin_secreto(request):
     # Verifica se já existe algum superusuário para não duplicar
     if User.objects.filter(is_superuser=True).exists():
         return HttpResponse("⚠️ Já existe um Superusuário cadastrado. Por segurança, nada foi feito.")
-    
+     
     try:
         # CRIA O USUÁRIO AUTOMATICAMENTE
         # Usuário: admin
         # Senha:   MudarAgora123
         User.objects.create_superuser('admin', 'admin@sistema.com', 'MudarAgora123')
-        
+         
         return HttpResponse("""
             <h1 style='color:green'>✅ Sucesso!</h1>
             <p>Usuário Admin criado.</p>
