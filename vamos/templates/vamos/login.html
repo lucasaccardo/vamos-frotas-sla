@@ -2,72 +2,233 @@
 {% load static %}
 
 {% block content %}
-<!-- CSS Exclusivo para centralizar o Login e colocar Fundo -->
 <style>
-    body {
-        /* Tenta carregar o fundo. Se falhar, usa um gradiente escuro */
-        background: url("{% static 'img/background.png' %}") no-repeat center center fixed;
-        background-size: cover;
-        background-color: #2c3e50; 
-    }
+    /* --- ESTILO EXCLUSIVO DA TELA DE LOGIN --- */
     
-    /* Esconde o menu superior na tela de login */
-    nav { display: none !important; }
-
-    .login-wrapper {
+    /* Fundo moderno com gradiente animado */
+    body {
+        background: linear-gradient(-45deg, #0f172a, #1e293b, #3f0e0e, #1c1917);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
         height: 100vh;
+        overflow: hidden; /* Remove barras de rolagem */
+    }
+
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Remove navbar/sidebar padrão nesta página específica se necessário via JS, 
+       mas o CSS aqui já cobre a tela toda com z-index */
+    .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
+        z-index: 9999; /* Fica por cima de tudo */
+        background: inherit; /* Herda o gradiente */
     }
 
-    .login-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    /* Círculos de luz (Glow Effect) atrás do cartão */
+    .glow-circle {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: 1;
+        opacity: 0.6;
+    }
+    .circle-1 { width: 300px; height: 300px; background: #dc2626; top: 10%; left: 20%; }
+    .circle-2 { width: 250px; height: 250px; background: #2563eb; bottom: 15%; right: 25%; }
+
+    /* O Cartão de Vidro (Glassmorphism) */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 3rem;
         width: 100%;
-        max-width: 400px;
-        text-align: center;
+        max-width: 420px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        position: relative;
+        z-index: 10;
+        color: white;
     }
 
-    .brand-logo {
-        max-width: 180px;
+    /* Tipografia */
+    .brand-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(to right, #fff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .brand-subtitle {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        font-weight: 300;
+    }
+
+    /* Inputs Modernos */
+    .input-group-custom {
+        position: relative;
         margin-bottom: 1.5rem;
+    }
+
+    .form-control-glass {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px 15px 15px 45px; /* Espaço para o ícone */
+        color: white;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-glass:focus {
+        background: rgba(0, 0, 0, 0.4);
+        border-color: #dc2626; /* Vermelho Vamos */
+        outline: none;
+        box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+    }
+
+    .form-control-glass::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.2rem;
+    }
+
+    /* Botão Neon */
+    .btn-neon {
+        background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px;
+        font-weight: 700;
+        width: 100%;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+    }
+
+    .btn-neon:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+        color: white;
+    }
+
+    /* Links */
+    .auth-links {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+    }
+    
+    .auth-links a {
+        color: #cbd5e1;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    
+    .auth-links a:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+    /* Mensagens de Erro */
+    .alert-glass {
+        background: rgba(220, 38, 38, 0.2);
+        border: 1px solid rgba(220, 38, 38, 0.5);
+        color: #fca5a5;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        text-align: center;
     }
 </style>
 
-<div class="login-wrapper">
-    <div class="login-card">
-        <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="brand-logo">
+<div class="login-overlay">
+    <div class="glow-circle circle-1"></div>
+    <div class="glow-circle circle-2"></div>
+
+    <div class="glass-card text-center">
+        <div class="mb-3">
+            <i class="bi bi-truck-front-fill text-danger" style="font-size: 3rem; filter: drop-shadow(0 0 10px rgba(220,38,38,0.5));"></i>
+        </div>
         
-        <h4 class="mb-4 text-dark">Acesso ao Sistema</h4>
+        <h1 class="brand-title">VAMOS FROTAS</h1>
+        <p class="brand-subtitle">Acesse sua conta para gerenciar SLAs</p>
 
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-danger py-2">{{ message }}</div>
+                <div class="alert-glass">
+                    <i class="bi bi-exclamation-circle me-2"></i> {{ message }}
+                </div>
             {% endfor %}
         {% endif %}
 
         <form method="post">
             {% csrf_token %}
-            <div class="mb-3 text-start">
-                <label class="form-label fw-bold">Usuário</label>
-                <input type="text" name="username" class="form-control form-control-lg" placeholder="Ex: lucas.sureira" required>
+            
+            <div class="input-group-custom">
+                <i class="bi bi-person input-icon"></i>
+                <input type="text" name="username" class="form-control-glass" placeholder="Usuário" required autofocus>
             </div>
-            <div class="mb-4 text-start">
-                <label class="form-label fw-bold">Senha</label>
-                <input type="password" name="password" class="form-control form-control-lg" placeholder="••••••••" required>
+
+            <div class="input-group-custom">
+                <i class="bi bi-lock input-icon"></i>
+                <input type="password" name="password" class="form-control-glass" placeholder="Senha" required>
             </div>
-            <div class="d-grid">
-                <button type="submit" class="btn btn-warning btn-lg fw-bold text-dark">ENTRAR</button>
-            </div>
+
+            <button type="submit" class="btn-neon">
+                ENTRAR
+            </button>
         </form>
-        
-        <div class="mt-4 d-flex justify-content-between text-muted small">
-            <a href="{% url 'signup' %}" class="text-decoration-none">Criar conta</a>
-            <a href="{% url 'reset_password' %}" class="text-decoration-none">Esqueceu a senha?</a>
+
+        <div class="auth-links">
+            <a href="{% url 'signup' %}">Criar Conta</a>
+            <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Tenta esconder elementos do layout base que não devem aparecer no login
+        const sidebar = document.querySelector('.sidebar');
+        const wrapper = document.querySelector('.wrapper');
+        
+        if(sidebar) sidebar.style.display = 'none';
+        if(wrapper) {
+            wrapper.style.display = 'block'; // Remove o flex do wrapper para o overlay funcionar
+            wrapper.style.padding = '0';
+        }
+        document.body.style.overflow = 'hidden';
+    });
+</script>
+
 {% endblock %}
