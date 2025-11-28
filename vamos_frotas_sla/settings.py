@@ -32,6 +32,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     
+    # Biblioteca para AWS S3 (Necessária para a configuração nova)
+    "storages", 
+
     # Seu app principal
     "vamos",
     "accounts",
@@ -97,24 +100,38 @@ USE_I18N = True
 USE_TZ = True
 
 
-# === ARQUIVOS ESTÁTICOS (CSS, JS, Imagens) ===
-STATIC_URL = "/static/"
-
-# Onde o Django procura arquivos estáticos durante o desenvolvimento
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
-# Onde o Django "junta" todos os arquivos estáticos para a nuvem (CORREÇÃO DO ERRO)
+# === ARQUIVOS ESTÁTICOS (CSS, JS, Imagens do Site) ===
+# Continuam no Render usando Whitenoise (mais rápido e barato)
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Motor para servir arquivos estáticos de forma otimizada na nuvem
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# === ARQUIVOS DE MÍDIA (PDFs, Uploads) -> VÃO PARA AMAZON S3 ===
+# Configurações da AWS (Lê das variáveis de ambiente)
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = 'us-east-1' # Região padrão (Norte da Virgínia)
+AWS_S3_SIGNATURE_VERSION = 's3v4'
 
-# === ARQUIVOS DE MÍDIA (Uploads, PDFs gerados) ===
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Configurações de Upload
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False # Não substitui arquivos com mesmo nome (cria cópia)
+
+# Dita as regras: Static no Render, Media na Amazon
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# URL base para acessar os arquivos na Amazon
+# (Isso faz o link do PDF funcionar no site)
+MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
 
 # === LOGIN / LOGOUT ===
