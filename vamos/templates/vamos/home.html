@@ -1,67 +1,197 @@
-{% extends "vamos/base.html" %}
-
-{% block title %}Home - Frotas Vamos SLA{% endblock %}
+{% extends 'vamos/base.html' %}
+{% load static %}
 
 {% block content %}
-  <h1 class="mb-4">Bem-vindo ao Frotas Vamos SLA</h1>
-  <p class="text-secondary mb-4">
-    Selecione uma das opções abaixo para navegar pelo sistema.
-  </p>
+<style>
+    /* Efeitos especiais para a Home */
+    .hero-banner {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Círculos decorativos no fundo */
+    .hero-decoration {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.1;
+    }
+    .circle-1 { width: 300px; height: 300px; background: #dc2626; top: -100px; right: -50px; }
+    .circle-2 { width: 150px; height: 150px; background: #fff; bottom: -50px; right: 200px; }
 
-  <div class="row">
-    <!-- Dashboard -->
-    <div class="col-md-4 mb-3">
-      <div class="card text-center">
-        <div class="card-body">
-          <h5 class="card-title">Dashboard</h5>
-          <p class="card-text">Visão geral de tickets e solicitações.</p>
-          <a href="{% url 'dashboard' %}" class="btn btn-primary">Acessar</a>
+    /* Cartões de Ação */
+    .action-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        text-decoration: none !important; /* Remove sublinhado do link */
+        color: inherit;
+    }
+
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border-color: #dc2626; /* Borda vermelha ao passar o mouse */
+    }
+
+    .icon-box {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-title { font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .card-desc { font-size: 0.85rem; color: #64748b; line-height: 1.5; flex-grow: 1; }
+    .card-arrow { color: #dc2626; font-weight: 600; font-size: 0.9rem; margin-top: 1rem; display: flex; align-items: center; }
+</style>
+
+<div class="container-fluid">
+
+    <div class="hero-banner mb-5">
+        <div class="hero-decoration circle-1"></div>
+        <div class="hero-decoration circle-2"></div>
+        
+        <div class="position-relative z-1">
+            <h1 class="fw-bold mb-2">Olá, {{ user.first_name|default:user.username }}! 👋</h1>
+            <p class="lead opacity-75 mb-4" style="max-width: 600px;">
+                Bem-vindo ao <strong>Vamos Frotas SLA</strong>. Selecione uma ferramenta abaixo para iniciar seus cálculos ou gerenciar solicitações.
+            </p>
+            <div class="d-flex gap-3">
+                <a href="{% url 'sla_mensal' %}" class="btn btn-danger fw-bold px-4 py-2 shadow-sm">
+                    <i class="bi bi-calculator me-2"></i> Novo Cálculo SLA
+                </a>
+                <a href="{% url 'assistente_ia' %}" class="btn btn-outline-light fw-bold px-4 py-2">
+                    <i class="bi bi-stars me-2"></i> Perguntar à IA
+                </a>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Tickets -->
-    <div class="col-md-4 mb-3">
-      <div class="card text-center">
-        <div class="card-body">
-          <h5 class="card-title">Tickets</h5>
-          <p class="card-text">Gerencie tickets de suporte.</p>
-          <a href="{% url 'ticket_list' %}" class="btn btn-primary">Acessar</a>
+    <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-danger ps-3">Ferramentas Operacionais</h5>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-xl-3">
+            <a href="{% url 'sla_mensal' %}" class="action-card">
+                <div class="icon-box bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <div class="card-title">Cálculo de SLA Mensal</div>
+                <div class="card-desc">Gere laudos automáticos de descontos baseados em dias úteis e feriados.</div>
+                <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
+            </a>
         </div>
-      </div>
+
+        <div class="col-md-6 col-xl-3">
+            <a href="{% url 'cenarios' %}" class="action-card">
+                <div class="icon-box bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-bar-chart-steps"></i>
+                </div>
+                <div class="card-title">Análise de Cenários</div>
+                <div class="card-desc">Compare orçamentos de peças e serviços para encontrar o menor custo.</div>
+                <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <a href="{% url 'buscar_clientes' %}" class="action-card">
+                <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="card-title">Buscar Clientes</div>
+                <div class="card-desc">Consulte a base completa de faturamento por Nome, Placa ou Chassi.</div>
+                <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <a href="{% url 'lista_analises' %}" class="action-card">
+                <div class="icon-box bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-folder2-open"></i>
+                </div>
+                <div class="card-title">Meus Relatórios</div>
+                <div class="card-desc">Acesse o histórico de todos os PDFs e cálculos gerados por você.</div>
+                <div class="card-arrow">Acessar <i class="bi bi-arrow-right ms-2"></i></div>
+            </a>
+        </div>
     </div>
 
-    <!-- Delete Requests -->
-    <div class="col-md-4 mb-3">
-      <div class="card text-center">
-        <div class="card-body">
-          <h5 class="card-title">Delete Requests</h5>
-          <p class="card-text">Solicitações de exclusão de análises.</p>
-          <a href="{% url 'delete_request_list' %}" class="btn btn-primary">Acessar</a>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-secondary ps-3">Suporte</h5>
+            <div class="row g-3">
+                <div class="col-12">
+                    <a href="{% url 'ticket_list' %}" class="action-card flex-row align-items-center p-3 h-auto">
+                        <div class="icon-box bg-info bg-opacity-10 text-info mb-0 me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                            <i class="bi bi-ticket-perforated"></i>
+                        </div>
+                        <div>
+                            <div class="card-title mb-1" style="font-size: 1rem;">Central de Tickets</div>
+                            <div class="text-muted small">Abra chamados ou acompanhe solicitações.</div>
+                        </div>
+                        <div class="ms-auto text-secondary"><i class="bi bi-chevron-right"></i></div>
+                    </a>
+                </div>
+                <div class="col-12">
+                    <a href="{% url 'assistente_ia' %}" class="action-card flex-row align-items-center p-3 h-auto">
+                        <div class="icon-box bg-dark bg-opacity-10 text-dark mb-0 me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div>
+                            <div class="card-title mb-1" style="font-size: 1rem;">Assistente I.A.</div>
+                            <div class="text-muted small">Tire dúvidas sobre regras e dados da base.</div>
+                        </div>
+                        <div class="ms-auto text-secondary"><i class="bi bi-chevron-right"></i></div>
+                    </a>
+                </div>
+            </div>
         </div>
-      </div>
+
+        {% if user.is_staff %}
+        <div class="col-md-6">
+            <h5 class="fw-bold text-dark mb-4 ps-1 border-start border-4 border-warning ps-3">Administração</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="{% url 'admin_upload_base' %}" class="action-card h-100 justify-content-center text-center">
+                        <div class="text-primary mb-2"><i class="bi bi-cloud-upload fs-3"></i></div>
+                        <div class="fw-bold text-dark">Atualizar Bases</div>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'dashboard' %}" class="action-card h-100 justify-content-center text-center">
+                        <div class="text-success mb-2"><i class="bi bi-graph-up-arrow fs-3"></i></div>
+                        <div class="fw-bold text-dark">Dashboard BI</div>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'lista_usuarios' %}" class="action-card h-100 justify-content-center text-center">
+                        <div class="text-secondary mb-2"><i class="bi bi-people fs-3"></i></div>
+                        <div class="fw-bold text-dark">Usuários</div>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'delete_request_list' %}" class="action-card h-100 justify-content-center text-center">
+                        <div class="text-danger mb-2"><i class="bi bi-trash fs-3"></i></div>
+                        <div class="fw-bold text-dark">Exclusões</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Usuários -->
-    <div class="col-md-4 mb-3">
-      <div class="card text-center">
-        <div class="card-body">
-          <h5 class="card-title">Usuários</h5>
-          <p class="card-text">Lista e status dos usuários.</p>
-          <a href="{% url 'lista_usuarios' %}" class="btn btn-primary">Acessar</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Análises -->
-    <div class="col-md-4 mb-3">
-      <div class="card text-center">
-        <div class="card-body">
-          <h5 class="card-title">Análises</h5>
-          <p class="card-text">Histórico de análises realizadas.</p>
-          <a href="{% url 'lista_analises' %}" class="btn btn-primary">Acessar</a>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 {% endblock %}
