@@ -54,10 +54,10 @@
         }
 
         .sidebar-brand {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #fff;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -66,15 +66,15 @@
 
         .nav-link {
             color: #cbd5e1; /* Texto claro no menu escuro */
-            padding: 12px 15px;
+            padding: 10px 15px;
             border-radius: 6px;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             display: flex;
             align-items: center;
             gap: 12px;
             transition: all 0.2s;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .nav-link:hover {
@@ -162,69 +162,86 @@
         
         {% if user.is_authenticated %}
         <nav class="sidebar">
+            
+            <div class="mb-4 px-2">
+                <a href="{% url 'portal' %}" class="btn btn-outline-secondary w-100 btn-sm d-flex align-items-center justify-content-center gap-2" style="border-color: #475569; color: #cbd5e1;">
+                    <i class="bi bi-grid-3x3-gap-fill"></i> Trocar Módulo
+                </a>
+            </div>
+
             <div class="sidebar-brand">
-                <i class="bi bi-truck-front-fill text-danger"></i> VAMOS <span style="font-weight: 300; color: #ccc; margin-left: 4px;">Frotas</span>
+                {% if request.session.modulo_ativo == 'sinistros' %}
+                    <i class="bi bi-shield-exclamation text-danger"></i> SINISTROS
+                {% else %}
+                    <i class="bi bi-tools text-danger"></i> MANUTENÇÃO
+                {% endif %}
             </div>
             
             <div class="nav flex-column">
-                <small class="text-uppercase fw-bold mb-3 mt-2 ms-2" style="font-size: 0.7rem; color: #64748b; letter-spacing: 1px;">Dashboard</small>
                 
-                <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
-                    <i class="bi bi-house-door"></i> Início
-                </a>
-
                 <a href="{% url 'minha_conta' %}" class="nav-link {% if 'perfil' in request.path %}active{% endif %}">
                     <i class="bi bi-person-circle"></i> Minha Conta
                 </a>
-                
-                <a href="{% url 'dashboard' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
-                    <i class="bi bi-grid"></i> Visão Geral
-                </a>
 
-                <small class="text-uppercase fw-bold mb-3 mt-4 ms-2" style="font-size: 0.7rem; color: #64748b; letter-spacing: 1px;">Ferramentas</small>
+                {% if request.session.modulo_ativo == 'manutencao' %}
+                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Operacional</small>
+                    <a href="{% url 'manutencao_home' %}" class="nav-link {% if request.path == '/manutencao/home/' %}active{% endif %}">
+                        <i class="bi bi-house-door"></i> Início
+                    </a>
+                    <a href="{% url 'sla_mensal' %}" class="nav-link {% if 'sla-mensal' in request.path %}active{% endif %}">
+                        <i class="bi bi-calculator"></i> SLA Mensal
+                    </a>
+                    <a href="{% url 'cenarios' %}" class="nav-link {% if 'cenarios' in request.path %}active{% endif %}">
+                        <i class="bi bi-bar-chart-steps"></i> Cenários
+                    </a>
+                    <a href="{% url 'buscar_clientes' %}" class="nav-link {% if 'buscar-clientes' in request.path %}active{% endif %}">
+                        <i class="bi bi-search"></i> Buscar Clientes
+                    </a>
+                    
+                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Gestão</small>
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
+                        <i class="bi bi-graph-up"></i> Dashboard
+                    </a>
+                    <a href="{% url 'lista_analises' %}" class="nav-link {% if 'analises' in request.path %}active{% endif %}">
+                        <i class="bi bi-folder"></i> Relatórios
+                    </a>
                 
-                <a href="{% url 'sla_mensal' %}" class="nav-link {% if 'sla-mensal' in request.path %}active{% endif %}">
-                    <i class="bi bi-calculator"></i> Cálculo de SLA
-                </a>
-                
-                <a href="{% url 'cenarios' %}" class="nav-link {% if 'cenarios' in request.path %}active{% endif %}">
-                    <i class="bi bi-clipboard-data"></i> Análise de Cenários
-                </a>
-                
-                <a href="{% url 'buscar_clientes' %}" class="nav-link {% if 'buscar-clientes' in request.path %}active{% endif %}">
-                    <i class="bi bi-search"></i> Buscar Clientes
-                </a>
-                
-                <a href="{% url 'assistente_ia' %}" class="nav-link {% if 'assistente' in request.path %}active{% endif %}">
-                    <i class="bi bi-stars text-warning"></i> Assistente IA
-                </a>
+                {% elif request.session.modulo_ativo == 'sinistros' %}
+                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Sinistros</small>
+                    <a href="{% url 'sinistros_home' %}" class="nav-link {% if 'sinistros' in request.path %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> Visão Geral
+                    </a>
+                    <a href="#" class="nav-link text-muted"><i class="bi bi-plus-circle"></i> Novo Sinistro</a>
+                    <a href="#" class="nav-link text-muted"><i class="bi bi-files"></i> Avarias</a>
+                    <a href="#" class="nav-link text-muted"><i class="bi bi-bank"></i> Seguradoras</a>
+                {% endif %}
 
-                <small class="text-uppercase fw-bold mb-3 mt-4 ms-2" style="font-size: 0.7rem; color: #64748b; letter-spacing: 1px;">Histórico</small>
-                
-                <a href="{% url 'lista_analises' %}" class="nav-link {% if 'analises' in request.path %}active{% endif %}">
-                    <i class="bi bi-folder"></i> Meus Relatórios
-                </a>
+                <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Ajuda</small>
                 <a href="{% url 'ticket_list' %}" class="nav-link {% if 'tickets' in request.path %}active{% endif %}">
-                    <i class="bi bi-ticket-detailed"></i> Tickets
+                    <i class="bi bi-ticket-perforated"></i> Tickets
+                </a>
+                <a href="{% url 'assistente_ia' %}" class="nav-link {% if 'assistente' in request.path %}active{% endif %}">
+                    <i class="bi bi-robot"></i> Assistente IA
                 </a>
 
                 {% if user.is_staff %}
-                <small class="text-uppercase fw-bold mb-3 mt-4 ms-2" style="font-size: 0.7rem; color: #64748b; letter-spacing: 1px;">Administração</small>
-                <a href="{% url 'lista_usuarios' %}" class="nav-link {% if 'usuarios' in request.path %}active{% endif %}">
-                    <i class="bi bi-people"></i> Usuários
-                </a>
-                <a href="{% url 'delete_request_list' %}" class="nav-link {% if 'delete_requests' in request.path %}active{% endif %}">
-                    <i class="bi bi-trash"></i> Exclusões
-                </a>
-                <a href="{% url 'admin_upload_base' %}" class="nav-link {% if 'upload-bases' in request.path %}active{% endif %}">
-                    <i class="bi bi-database-up"></i> Atualizar Bases</a>
+                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Administração</small>
+                    <a href="{% url 'lista_usuarios' %}" class="nav-link {% if 'usuarios' in request.path %}active{% endif %}">
+                        <i class="bi bi-people"></i> Usuários
+                    </a>
+                    <a href="{% url 'delete_request_list' %}" class="nav-link {% if 'delete_requests' in request.path %}active{% endif %}">
+                        <i class="bi bi-trash"></i> Exclusões
+                    </a>
+                    <a href="{% url 'admin_upload_base' %}" class="nav-link {% if 'upload-bases' in request.path %}active{% endif %}">
+                        <i class="bi bi-database-up"></i> Atualizar Bases
+                    </a>
                 {% endif %}
+            
             </div>
 
             <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
                 <div class="d-flex align-items-center text-decoration-none text-white dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                     
-                    <!-- ÁREA DA FOTO DO PERFIL ATUALIZADA -->
                     <div class="me-2">
                         {% if user.perfil.foto %}
                             <img src="{{ user.perfil.foto.url }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
@@ -234,7 +251,6 @@
                             </div>
                         {% endif %}
                     </div>
-                    <!-- FIM ÁREA DA FOTO -->
 
                     <div>
                         <div class="fw-semibold" style="font-size: 0.9rem;">{{ user.first_name|default:user.username }}</div>
@@ -247,6 +263,7 @@
                     <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
                 </ul>
             </div>
+
         </nav>
         {% endif %}
 

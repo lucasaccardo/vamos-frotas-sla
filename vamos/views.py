@@ -80,7 +80,7 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect("home")
+        return redirect("portal") # <--- MUDOU DE 'home' PARA 'portal'
           
     if request.method == "POST":
         username = request.POST.get("username")
@@ -88,7 +88,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect("home")
+            return redirect("portal") # <--- MUDOU DE 'home' PARA 'portal'
         else:
             messages.error(request, "Usuário ou senha inválidos.")
     return render(request, "vamos/login.html")
@@ -122,33 +122,87 @@ def reset_password_confirm_view(request, uidb64, token): return redirect("login"
 # 2. PÁGINAS PRINCIPAIS (DASHBOARD & TERMOS)
 # =============================================================================
 
+# =============================================================================
+# 2. PÁGINAS PRINCIPAIS (PORTAL, DASHBOARD & TERMOS)
+# =============================================================================
+
 @login_required(login_url='login')
 def termos_uso_view(request):
     """Exibe os termos e registra o aceite."""
     if request.method == 'POST':
-        # Salva a data de hoje no perfil
         if hasattr(request.user, 'perfil'):
             request.user.perfil.termos_aceitos_em = timezone.now()
             request.user.perfil.save()
             messages.success(request, "Termos aceitos com sucesso. Bem-vindo!")
-            return redirect('home')
+            return redirect('portal') # <--- Redireciona para o Portal
         else:
             messages.error(request, "Erro ao localizar perfil do usuário.")
     
     return render(request, "vamos/termos.html")
 
+# --- NOVO: TELA DO PORTAL (ESCOLHA DE MÓDULO) ---
 @login_required(login_url='login')
-def home_view(request):
-    """Página inicial com verificação de aceite dos termos."""
-    # 1. VERIFICAÇÃO DE SEGURANÇA (Termos de Uso)
+def portal_view(request):
+    """Tela inicial para escolher o módulo (Manutenção ou Sinistros)."""
+    # Verificação de Termos de Uso antes de acessar o portal
     try:
         if not request.user.perfil.termos_aceitos_em:
             return redirect('termos_uso')
     except AttributeError:
-        # Caso o usuário não tenha perfil criado por algum erro
+        return redirect('termos_uso')
+
+    return render(request, "vamos/portal.html")
+
+# --- NOVO: LÓGICA DE SELEÇÃO DE MÓDULO ---
+@login_required(login_url='login')
+def selecionar_modulo(request, modulo):
+    """Define o módulo na sessão e redireciona para a home dele."""
+    # Salva na sessão qual módulo o usuário escolheu
+    request.session['modulo_ativo'] = modulo
+    
+    if modulo == 'manutencao':
+        return redirect('manutencao_home')
+    elif modulo == 'sinistros':
+        return redirect('sinistros_home')
+    else:
+        return redirect('portal')
+
+# --- RENOMEADA: HOME DA MANUTENÇÃO (Antiga home_view) ---
+@login_required(login_url='login')
+def manutencao_home_view(request):
+    """Dashboard/Home principal do setor de Manutenção."""
+    # Garante que a sessão está marcada como manutenção
+    request.session['modulo_ativo'] = 'manutencao'
+    
+    # Verificação de segurança (Termos)
+    try:
+        if not request.user.perfil.termos_aceitos_em:
+            return redirect('termos_uso')
+    except AttributeError:
         return redirect('termos_uso')
 
     return render(request, "vamos/home.html")
+
+# --- NOVO: HOME DE SINISTROS ---
+@login_required(login_url='login')
+def sinistros_home_view(request):
+    """Dashboard/Home principal do setor de Sinistros."""
+    request.session['modulo_ativo'] = 'sinistros'
+    
+    # Verificação de segurança (Termos)
+    try:
+        if not request.user.perfil.termos_aceitos_em:
+            return redirect('termos_uso')
+    except AttributeError:
+        return redirect('termos_uso')
+        
+    return render(request, "vamos/sinistros_home.html")
+
+# --- DASHBOARD (Manutenção) ---
+@login_required(login_url='login')
+def dashboard_view(request):
+    # ... (O código do dashboard_view continua igual ao que você já tem abaixo) ...
+    # (Não precisa alterar o dashboard_view, apenas certifique-se que ele vem logo após)
 
 @login_required(login_url='login')
 def dashboard_view(request):
