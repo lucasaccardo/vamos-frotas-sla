@@ -1,6 +1,26 @@
 {% extends 'vamos/base.html' %}
+{% load static %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<style>
+    /* Ajuste para a imagem dentro do cropper não estourar */
+    .img-container {
+        max-width: 100%;
+        max-height: 400px; /* Altura máxima da área de edição */
+        overflow: hidden;
+        background-color: #000; /* Fundo preto para contraste */
+    }
+    .img-container img {
+        max-width: 100%;
+        display: block;
+    }
+    /* Esconde o input de arquivo feio padrão */
+    #id_foto { display: none; }
+</style>
+
 <div class="container-fluid">
     <div class="mb-4">
         <h2 class="fw-bold text-dark">Minha Conta</h2>
@@ -12,15 +32,14 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center p-5">
                     
-                    <!-- BLOCO DA FOTO ATUALIZADO -->
                     <div class="position-relative d-inline-block mb-4">
                         {% if user.perfil.foto %}
                             <img src="{{ user.perfil.foto.url }}" 
                                  class="rounded-circle border border-4 border-white shadow" 
-                                 style="width: 130px; height: 130px; object-fit: cover;">
+                                 style="width: 140px; height: 140px; object-fit: cover;">
                         {% else %}
                             <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center border border-4 border-white shadow" 
-                                 style="width: 130px; height: 130px;">
+                                 style="width: 140px; height: 140px;">
                                 <span class="fw-bold text-primary display-4">
                                     {{ user.username|make_list|first|upper }}
                                 </span>
@@ -29,16 +48,20 @@
 
                         <button type="button" 
                                 class="btn btn-primary rounded-circle position-absolute border border-2 border-white shadow-sm d-flex align-items-center justify-content-center"
-                                style="width: 40px; height: 40px; bottom: 0; right: 0; z-index: 10;"
-                                data-bs-toggle="modal" data-bs-target="#modalFoto"
+                                style="width: 40px; height: 40px; bottom: 5px; right: 5px; z-index: 10;"
+                                onclick="document.getElementById('inputImage').click()"
                                 title="Alterar foto de perfil">
-                            <i class="bi bi-camera-fill" style="font-size: 1.2rem;"></i>
+                            <i class="bi bi-camera-fill" style="font-size: 1.1rem;"></i>
                         </button>
                     </div>
-                    <!-- FIM DO BLOCO ATUALIZADO -->
                     
-                    <h3 class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</h3>
-                    
+                    <form method="post" enctype="multipart/form-data" id="formPerfil">
+                        {% csrf_token %}
+                        <input type="file" id="inputImage" accept="image/*" style="display:none;">
+                        <input type="file" name="foto" id="id_foto_real" style="display:none;">
+                    </form>
+
+                    <h3 class="fw-bold text-dark mt-2">{{ user.get_full_name|default:user.username }}</h3>
                     <p class="text-muted mb-4">
                         {% if user.is_staff %}
                             <span class="badge bg-dark">Administrador</span>
@@ -51,11 +74,11 @@
 
                     <div class="text-start mt-4">
                         <div class="mb-3">
-                            <label class="small text-muted fw-bold text-uppercase">Usuário (Login)</label>
-                            <div class="fs-6 text-dark">{{ user.username }}</div>
+                            <label class="small text-muted fw-bold text-uppercase">Usuário</label>
+                            <div class="fs-6 text-dark fw-medium">{{ user.username }}</div>
                         </div>
                         <div class="mb-3">
-                            <label class="small text-muted fw-bold text-uppercase">E-mail Corporativo</label>
+                            <label class="small text-muted fw-bold text-uppercase">E-mail</label>
                             <div class="fs-6 text-dark">{{ user.email }}</div>
                         </div>
                         <div class="mb-3">
@@ -68,47 +91,119 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="small text-muted fw-bold text-uppercase">Data de Cadastro</label>
-                            <div class="fs-6 text-dark">{{ user.date_joined|date:"d/m/Y" }}</div>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+            <div class="card border-0 shadow-sm h-100 bg-primary text-white" style="background: linear-gradient(135deg, #2563eb, #1e40af);">
                 <div class="card-body p-5 d-flex flex-column justify-content-center text-center">
                     <i class="bi bi-shield-lock display-1 mb-3 text-white-50"></i>
-                    <h4>Segurança</h4>
-                    <p class="text-white-50 mb-4">Deseja alterar sua senha de acesso?</p>
-                    <a href="{% url 'reset_password' %}" class="btn btn-light fw-bold text-primary">Redefinir Senha</a>
+                    <h4>Segurança da Conta</h4>
+                    <p class="text-white-50 mb-4">Mantenha sua conta segura alterando sua senha periodicamente.</p>
+                    <a href="{% url 'reset_password' %}" class="btn btn-light fw-bold text-primary px-4 py-2">
+                        <i class="bi bi-key me-2"></i> Redefinir Senha
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Foto -->
-<div class="modal fade" id="modalFoto" tabindex="-1">
-    <div class="modal-dialog modal-sm">
+<div class="modal fade" id="modalCrop" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold">Alterar Foto</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Ajustar Foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body pt-2">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">Escolha uma imagem</label>
-                        {{ form.foto }} 
+            <div class="modal-body p-0">
+                <div class="img-container">
+                    <img id="imageToCrop" src="" alt="Imagem para cortar">
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <div class="d-flex gap-2 w-100 justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" onclick="cropper.rotate(-90)" title="Girar Esquerda"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="cropper.rotate(90)" title="Girar Direita"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 btn-sm">Salvar Foto</button>
-                </form>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary px-4 fw-bold" id="btnCortarSalvar">
+                            <i class="bi bi-check-lg me-2"></i> Salvar Foto
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    let cropper;
+    const image = document.getElementById('imageToCrop');
+    const inputImage = document.getElementById('inputImage');
+    const modalElement = document.getElementById('modalCrop');
+    const modal = new bootstrap.Modal(modalElement);
+
+    // 1. Quando o usuário escolhe um arquivo
+    inputImage.addEventListener('change', function (e) {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function (e) {
+                // Carrega a imagem no elemento e abre o modal
+                image.src = e.target.result;
+                modal.show();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 2. Quando o modal abre, inicia o Cropper
+    modalElement.addEventListener('shown.bs.modal', function () {
+        cropper = new Cropper(image, {
+            aspectRatio: 1, // Força quadrado (1:1)
+            viewMode: 1,    // Restringe o crop à imagem
+            autoCropArea: 0.8,
+            responsive: true,
+        });
+    });
+
+    // 3. Quando o modal fecha, destroi o Cropper (para não bugar se abrir de novo)
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        inputImage.value = ''; // Reseta o input
+    });
+
+    // 4. Quando clica em "Salvar Foto"
+    document.getElementById('btnCortarSalvar').addEventListener('click', function () {
+        if (!cropper) return;
+
+        // Pega o canvas cortado
+        cropper.getCroppedCanvas({
+            width: 400,  // Redimensiona para um tamanho bom/leve
+            height: 400,
+        }).toBlob(function (blob) {
+            // Cria um arquivo novo com a imagem cortada
+            const file = new File([blob], "avatar_cropped.jpg", { type: "image/jpeg" });
+            
+            // Coloca esse arquivo no input "real" do Django
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            document.getElementById('id_foto_real').files = dataTransfer.files;
+
+            // Envia o formulário
+            document.getElementById('formPerfil').submit();
+        }, 'image/jpeg');
+    });
+</script>
+
 {% endblock %}
