@@ -464,69 +464,32 @@ def ticket_list_view(request):
         "tickets_finalizados": tickets_finalizados, 
         "form": form
     })
-
+    
 @login_required(login_url='login')
 def ticket_detail_view(request, pk):
-    # Permite Admin ou Dono do ticket
     ticket = get_object_or_404(Ticket, pk=pk)
     if not request.user.is_staff and ticket.usuario != request.user:
         messages.error(request, "Acesso negado.")
         return redirect('ticket_list')
 
-    # Lógica de Resposta do Admin (POST)
     if request.method == "POST" and request.user.is_staff:
         resposta = request.POST.get('resposta_admin')
         novo_status = request.POST.get('status')
-        
-        alterou_algo = False
-
         if resposta:
             ticket.resposta_admin = resposta
             ticket.data_resposta = timezone.now()
-            alterou_algo = True
-        
-        if novo_status and novo_status != ticket.status:
+        if novo_status:
             ticket.status = novo_status
-            alterou_algo = True
-            
-        if alterou_algo:
-            ticket.save()
-
-            # --- NOVO: ENVIAR E-MAIL PARA O USUÁRIO ---
-            try:
-                if ticket.usuario.email: # Só manda se o usuário tiver e-mail cadastrado
-                    assunto_email = f"📣 Atualização no Ticket #{ticket.protocolo}"
-                    corpo_email = f"""
-                    Olá {ticket.usuario.first_name or ticket.usuario.username},
-                    
-                    Houve uma movimentação no seu chamado: "{ticket.titulo}"
-                    
-                    Novo Status: {ticket.status}
-                    
-                    Resposta do Suporte:
-                    --------------------------------------
-                    {resposta if resposta else "(Apenas mudança de status)"}
-                    --------------------------------------
-                    
-                    Acesse o sistema para ver detalhes: https://vamos-frotas-sla.onrender.com/tickets/{ticket.id}/
-                    """
-                    
-                    send_mail(
-                        assunto_email,
-                        corpo_email,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [ticket.usuario.email],
-                        fail_silently=True
-                    )
-            except Exception as e:
-                print(f"Erro ao notificar usuário: {e}")
-            # -----------------------------------------
-
-            messages.success(request, "Ticket atualizado e usuário notificado por e-mail!")
-        
+        ticket.save()
+        messages.success(request, "Ticket atualizado com sucesso!")
         return redirect('ticket_detail', pk=pk)
-
     return render(request, "vamos/ticket_detail.html", {"ticket": ticket})
+
+@login_required(login_url='login')
+def ticket_update_status_view(request, pk):
+    messages.warning(request, "Use a tela de detalhe para gerenciar o ticket.")
+    return redirect("ticket_detail", pk=pk)
+
 
 # =============================================================================
 # 6. GERENCIAMENTO DE USUÁRIOS
