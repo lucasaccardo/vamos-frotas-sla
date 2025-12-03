@@ -21,8 +21,8 @@ from django.core.mail import EmailMessage
 from django.core.management import call_command
 
 # Importações dos Modelos e Formulários
-from .models import Ticket, Analise, DeleteRequest
-from .forms import SlaMensalForm, CenarioForm, PecaForm, TicketForm, SignUpForm, AdminUserForm 
+from .models import Ticket, Analise, DeleteRequest, Perfil # Adicionado Perfil
+from .forms import SlaMensalForm, CenarioForm, PecaForm, TicketForm, SignUpForm, AdminUserForm, PerfilForm # Adicionado PerfilForm
 
 # Importações da Lógica de Negócios
 from .services import (
@@ -878,4 +878,18 @@ def backup_database_view(request):
 
 @login_required(login_url='login')
 def minha_conta_view(request):
-    return render(request, "vamos/profile.html", {"user": request.user})
+    # Garante que o perfil existe
+    if not hasattr(request.user, 'perfil'):
+        Perfil.objects.create(user=request.user)
+
+    if request.method == 'POST':
+        # Processa o upload da foto
+        form = PerfilForm(request.POST, request.FILES, instance=request.user.perfil)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Foto de perfil atualizada!")
+            return redirect('minha_conta')
+    else:
+        form = PerfilForm(instance=request.user.perfil)
+
+    return render(request, "vamos/profile.html", {"user": request.user, "form": form})

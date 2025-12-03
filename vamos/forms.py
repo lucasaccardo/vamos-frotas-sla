@@ -3,7 +3,7 @@ from django.utils import timezone
 # Importações necessárias para o User, Perfil e herdar de UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import Perfil # Importamos o novo modelo Perfil
+from .models import Ticket, Perfil # Importamos Ticket e Perfil
 
 # === 1. Formulário de SLA Mensal ===
 class SlaMensalForm(forms.Form):
@@ -259,3 +259,12 @@ class AdminUserForm(forms.Form):
         initial=True,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
+
+# --- FORMULÁRIO DE PERFIL ---
+class PerfilForm(forms.ModelForm):
+    class Meta:
+        model = Perfil
+        fields = ['foto'] # Só queremos que ele mude a foto por enquanto
+        widgets = {
+            'foto': forms.FileInput(attrs={'class': 'form-control'})
+        }

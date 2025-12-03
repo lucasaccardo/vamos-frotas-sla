@@ -216,18 +216,26 @@
                 <a href="{% url 'delete_request_list' %}" class="nav-link {% if 'delete_requests' in request.path %}active{% endif %}">
                     <i class="bi bi-trash"></i> Exclusões
                 </a>
-                {# NOVO LINK ADICIONADO AQUI #}
                 <a href="{% url 'admin_upload_base' %}" class="nav-link {% if 'upload-bases' in request.path %}active{% endif %}">
                     <i class="bi bi-database-up"></i> Atualizar Bases</a>
-                {# FIM NOVO LINK #}
                 {% endif %}
             </div>
 
             <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
                 <div class="d-flex align-items-center text-decoration-none text-white dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
-                    <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 36px; height: 36px; font-size: 0.9rem;">
-                        {{ user.username|make_list|first|upper }}
+                    
+                    <!-- ÁREA DA FOTO DO PERFIL ATUALIZADA -->
+                    <div class="me-2">
+                        {% if user.perfil.foto %}
+                            <img src="{{ user.perfil.foto.url }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                {{ user.username|make_list|first|upper }}
+                            </div>
+                        {% endif %}
                     </div>
+                    <!-- FIM ÁREA DA FOTO -->
+
                     <div>
                         <div class="fw-semibold" style="font-size: 0.9rem;">{{ user.first_name|default:user.username }}</div>
                         <div style="font-size: 0.75rem; color: #94a3b8;">
