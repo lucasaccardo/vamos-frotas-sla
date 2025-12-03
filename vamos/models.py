@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-import random # Necessário para gerar o número aleatório
+import random 
 
 # Importações necessárias para o Perfil e Sinais
 from django.db.models.signals import post_save
@@ -23,13 +23,13 @@ class Ticket(models.Model):
 
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     
-    # Novo campo: Protocolo único
+    # Protocolo único
     protocolo = models.CharField(max_length=8, unique=True, default=gerar_protocolo)
     
     titulo = models.CharField(max_length=200)
     descricao = models.TextField()
     
-    # Novos campos: Resposta do Admin
+    # Resposta do Admin
     resposta_admin = models.TextField(blank=True, null=True, help_text="Resposta oficial do suporte")
     data_resposta = models.DateTimeField(blank=True, null=True)
     
@@ -57,7 +57,7 @@ class Analise(models.Model):
     # Quem fez a análise
     usuario = models.ForeignKey(User, on_delete=models.CASCADE) 
     
-    # Novo campo: Protocolo
+    # Protocolo
     protocolo = models.CharField(max_length=8, unique=True, default=gerar_protocolo)
     
     # Tipo da análise
@@ -97,8 +97,6 @@ class DeleteRequest(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pendente")
     data_solicitacao = models.DateTimeField(default=timezone.now)
     solicitante = models.ForeignKey(User, on_delete=models.CASCADE)
-    # Opcional: Relacionar à Análise se quiser saber qual análise apagar
-    # analise = models.ForeignKey(Analise, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f"DeleteRequest {self.id} - {self.status}"
@@ -108,6 +106,9 @@ class DeleteRequest(models.Model):
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     matricula = models.CharField(max_length=20, blank=True, null=True)
+    
+    # NOVO CAMPO:
+    termos_aceitos_em = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Perfil de {self.user.username}"

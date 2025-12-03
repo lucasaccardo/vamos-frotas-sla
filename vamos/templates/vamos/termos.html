@@ -1,0 +1,51 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg border-0" style="max-width: 800px; width: 100%;">
+        <div class="card-header bg-dark text-white py-3">
+            <h4 class="m-0 fw-bold"><i class="bi bi-shield-check me-2"></i>Termos de Uso e Privacidade (LGPD)</h4>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted">Para acessar o sistema <strong>Vamos Frotas SLA</strong>, é obrigatório ler e concordar com as políticas abaixo.</p>
+            
+            <div class="border rounded p-3 bg-light mb-4" style="height: 300px; overflow-y: auto; font-size: 0.9rem;">
+                <h5>1. Finalidade da Ferramenta</h5>
+                <p>Esta plataforma é um sistema interno para simulação e referência de cálculos de Service Level Agreement (SLA) e apoio operacional. Os resultados são estimativas destinadas ao uso profissional.</p>
+
+                <h5>2. Base Legal e Conformidade (LGPD)</h5>
+                <p>O tratamento de dados pessoais observa a Lei nº 13.709/2018, adotando medidas técnicas para proteger dados contra acessos não autorizados.</p>
+
+                <h5>3. Dados Coletados</h5>
+                <ul>
+                    <li>Dados de autenticação: usuário, senha (criptografada), perfil de acesso.</li>
+                    <li>Dados cadastrais: nome, matrícula, e-mail corporativo.</li>
+                    <li>Registros: data/hora do aceite destes termos.</li>
+                </ul>
+
+                <h5>4. Responsabilidades</h5>
+                <p>O usuário compromete-se a manter o sigilo de suas credenciais e utilizar a plataforma apenas para fins profissionais.</p>
+
+                <h5>5. Monitoramento</h5>
+                <p>Todas as ações realizadas no sistema (cálculos, exclusões, acessos) são registradas para fins de auditoria interna.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="aceiteCheck" required>
+                    <label class="form-check-label fw-bold" for="aceiteCheck">
+                        Li, compreendi e concordo com os Termos de Uso e Política de Privacidade.
+                    </label>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Confirmar e Acessar Sistema
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

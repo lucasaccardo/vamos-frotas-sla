@@ -33,6 +33,7 @@
                             <th>Matrícula</th>
                             <th>Função</th>
                             <th>Status</th>
+                            <th>Termos LGPD</th>
                             <th class="text-end pe-4">Ações</th>
                         </tr>
                     </thead>
@@ -69,6 +70,17 @@
                                     <a href="{% url 'usuario_toggle_status' u.id %}" class="badge bg-danger text-decoration-none" title="Clique para ativar">Inativo</a>
                                 {% endif %}
                             </td>
+
+                            <td>
+                                {% if u.perfil.termos_aceitos_em %}
+                                    <span class="badge bg-info text-dark" title="{{ u.perfil.termos_aceitos_em }}">
+                                        Aceito em {{ u.perfil.termos_aceitos_em|date:"d/m/y" }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                {% endif %}
+                            </td>
+
                             <td class="text-end pe-4">
                                 <div class="btn-group">
                                     <a href="{% url 'usuario_detail' u.id %}" class="btn btn-sm btn-outline-secondary" title="Editar">
@@ -84,7 +96,7 @@
                         </tr>
                         {% empty %}
                          <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-people fs-1 d-block mb-2"></i>
                                 Nenhum usuário registrado.
                             </td>

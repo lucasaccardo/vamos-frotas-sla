@@ -18,7 +18,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.core.mail import EmailMessage
-from django.core.management import call_command # Novo import para o backup
+from django.core.management import call_command
 
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest
@@ -60,15 +60,15 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
         errors.append("A senha deve conter pelo menos 1 número.")
     if not re.search(rf"[{re.escape(SPECIAL_CHARS)}]", password):
         errors.append("A senha deve conter pelo menos 1 caractere especial.")
-     
+      
     uname = (username or "").strip().lower()
     local_email = (email or "").split("@")[0].strip().lower()
-     
+      
     if uname and uname in password.lower():
         errors.append("A senha não pode conter o seu nome de usuário.")
     if local_email and local_email in password.lower():
         errors.append("A senha não pode conter partes do seu e-mail.")
-         
+          
     return (len(errors) == 0), errors
 
 
@@ -79,7 +79,7 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("home")
-         
+          
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -104,7 +104,7 @@ def signup_view(request):
             messages.error(request, "Erro ao criar conta. Verifique os dados informados.")
     else:
         form = SignUpForm()
-         
+          
     return render(request, "vamos/signup.html", {"form": form})
 
 def logout_view(request):
@@ -117,11 +117,35 @@ def reset_password_confirm_view(request, uidb64, token): return redirect("login"
 
 
 # =============================================================================
-# 2. PÁGINAS PRINCIPAIS (DASHBOARD)
+# 2. PÁGINAS PRINCIPAIS (DASHBOARD & TERMOS)
 # =============================================================================
 
 @login_required(login_url='login')
+def termos_uso_view(request):
+    """Exibe os termos e registra o aceite."""
+    if request.method == 'POST':
+        # Salva a data de hoje no perfil
+        if hasattr(request.user, 'perfil'):
+            request.user.perfil.termos_aceitos_em = timezone.now()
+            request.user.perfil.save()
+            messages.success(request, "Termos aceitos com sucesso. Bem-vindo!")
+            return redirect('home')
+        else:
+            messages.error(request, "Erro ao localizar perfil do usuário.")
+    
+    return render(request, "vamos/termos.html")
+
+@login_required(login_url='login')
 def home_view(request):
+    """Página inicial com verificação de aceite dos termos."""
+    # 1. VERIFICAÇÃO DE SEGURANÇA (Termos de Uso)
+    try:
+        if not request.user.perfil.termos_aceitos_em:
+            return redirect('termos_uso')
+    except AttributeError:
+        # Caso o usuário não tenha perfil criado por algum erro
+        return redirect('termos_uso')
+
     return render(request, "vamos/home.html")
 
 @login_required(login_url='login')
@@ -137,7 +161,7 @@ def dashboard_view(request):
 
     # 2. PREPARA QUERYSET
     qs = Analise.objects.all().order_by('data_criacao')
-     
+      
     anos_disponiveis = sorted(list(set(qs.dates('data_criacao', 'year'))), key=lambda x: x.year, reverse=True)
     anos_int = [d.year for d in anos_disponiveis]
     if not anos_int: anos_int = [ano_atual]
@@ -157,12 +181,12 @@ def dashboard_view(request):
         mes_chave = a.data_criacao.strftime("%m/%Y")
         if mes_chave not in timeline_data: timeline_data[mes_chave] = 0.0
         economia_item = 0.0
-         
+          
         if a.tipo == 'sla_mensal':
             total_sla += 1
             try: economia_item = float(a.dados.get('desconto', 0))
             except: pass
-             
+              
         elif a.tipo == 'cenarios':
             total_cenarios += 1
             try:
@@ -172,7 +196,7 @@ def dashboard_view(request):
                     val_str = str(c.get('total_final', '0') or c.get('Total Final (R$)', '0'))
                     val_clean = val_str.replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.').strip()
                     if val_clean: valores.append(float(val_clean))
-                 
+                  
                 if len(valores) > 1:
                     economia_item = max(valores) - min(valores)
             except: pass
@@ -187,7 +211,7 @@ def dashboard_view(request):
     ticket_counts = Ticket.objects.values('status').annotate(total=Count('id'))
     graf_ticket_labels = [t['status'] for t in ticket_counts]
     graf_ticket_data = [t['total'] for t in ticket_counts]
-     
+      
     ticket_colors = []
     color_map = {'Pendente': '#ffc107', 'Em andamento': '#0dcaf0', 'Concluído': '#198754', 'Cancelado': '#6c757d'}
     for label in graf_ticket_labels: ticket_colors.append(color_map.get(label, '#333'))
@@ -235,13 +259,13 @@ def sla_mensal_view(request):
                 data['data_entrada'], data['data_saida'], prazo, 
                 float(data['mensalidade']), data['feriados']
             )
-             
+              
             nova_analise = Analise(
                 usuario=request.user, tipo="sla_mensal",
                 placa=data['placa'], cliente=data['cliente']
             )
             nova_analise.save() 
-             
+              
             dados_final = {
                 "protocolo": nova_analise.protocolo,
                 "os_chamado": data['os_chamado'], "ferramenta": data['ferramenta'],
@@ -254,7 +278,7 @@ def sla_mensal_view(request):
                 "prazo_sla": prazo,
                 "gerado_por": request.user.get_full_name() or request.user.username
             }
-             
+              
             pdf_buffer = gerar_pdf_moderno(dados_final, "RELATÓRIO DE SLA MENSAL", nova_analise.protocolo)
             filename = f"SLA_{nova_analise.protocolo}.pdf"
             nova_analise.dados = dados_final
@@ -360,7 +384,7 @@ def cenarios_view(request):
                 request.session.modified = True
                 resultado_final = nova_analise
                 messages.success(request, "Análise finalizada!")
-         
+          
         elif acao == 'resetar':
             request.session['lista_cenarios'] = []
             request.session['pecas_atuais'] = []
@@ -401,10 +425,10 @@ def ticket_list_view(request):
         qs = Ticket.objects.all().order_by("-created_at")
     else:
         qs = Ticket.objects.filter(usuario=request.user).order_by("-created_at")
-     
+      
     tickets_abertos = qs.exclude(status__in=['Concluído', 'Cancelado'])
     tickets_finalizados = qs.filter(status__in=['Concluído', 'Cancelado'])
-         
+          
     return render(request, "vamos/tickets.html", {
         "tickets_abertos": tickets_abertos, 
         "tickets_finalizados": tickets_finalizados, 
@@ -446,7 +470,7 @@ def usuario_list_view(request):
     if not request.user.is_staff:
         messages.error(request, "Acesso não autorizado.")
         return redirect("home")
-     
+      
     if request.method == "POST":
         form = AdminUserForm(request.POST)
         if form.is_valid():
@@ -605,7 +629,7 @@ def assistente_ia_view(request):
             user_message = data.get('message', '')
             contexto = get_ia_context_summary()
             model = get_gemini_model()
-             
+              
             if not model:
                 return JsonResponse({'response': "Erro: A I.A. não está configurada corretamente (API Key ausente)."})
 
@@ -637,7 +661,7 @@ def api_buscar_placa(request):
 
         df = pd.read_excel(file_path)
         df.columns = df.columns.astype(str).str.strip().str.upper()
-         
+          
         if 'PLACA' in df.columns:
             resultado = df[df['PLACA'].astype(str).str.strip().str.upper() == placa_busca]
             if not resultado.empty:
@@ -675,7 +699,7 @@ def buscar_clientes_view(request):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, 'data')
     file_path = None
-     
+      
     for ext in ['.csv', '.xlsx', '.xls']:
         caminho_teste = os.path.join(data_dir, f'Base De Clientes Total{ext}')
         if os.path.exists(caminho_teste):
@@ -716,7 +740,7 @@ def buscar_clientes_view(request):
                     try: return float(s)
                     except: return 0.0
                 df['VALOR_NUM'] = df[col_valor].apply(limpar_valor)
-             
+              
             if ordem == 'valor' and 'VALOR_NUM' in df.columns:
                 df = df.sort_values(by='VALOR_NUM', ascending=False)
             elif ordem == 'status' and col_status:
