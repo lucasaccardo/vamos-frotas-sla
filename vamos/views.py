@@ -23,8 +23,8 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 # Importações dos Modelos e Formulários
-from .models import Ticket, Analise, DeleteRequest, Perfil # Adicionado Perfil
-from .forms import SlaMensalForm, CenarioForm, PecaForm, TicketForm, SignUpForm, AdminUserForm, PerfilForm # Adicionado PerfilForm
+from .models import Ticket, Analise, DeleteRequest, Perfil
+from .forms import SlaMensalForm, CenarioForm, PecaForm, TicketForm, SignUpForm, AdminUserForm, PerfilForm
 
 # Importações da Lógica de Negócios
 from .services import (
@@ -80,7 +80,7 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect("portal") # <--- MUDOU DE 'home' PARA 'portal'
+        return redirect("portal") 
           
     if request.method == "POST":
         username = request.POST.get("username")
@@ -88,7 +88,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect("portal") # <--- MUDOU DE 'home' PARA 'portal'
+            return redirect("portal")
         else:
             messages.error(request, "Usuário ou senha inválidos.")
     return render(request, "vamos/login.html")
@@ -119,10 +119,6 @@ def reset_password_confirm_view(request, uidb64, token): return redirect("login"
 
 
 # =============================================================================
-# 2. PÁGINAS PRINCIPAIS (DASHBOARD & TERMOS)
-# =============================================================================
-
-# =============================================================================
 # 2. PÁGINAS PRINCIPAIS (PORTAL, DASHBOARD & TERMOS)
 # =============================================================================
 
@@ -134,7 +130,7 @@ def termos_uso_view(request):
             request.user.perfil.termos_aceitos_em = timezone.now()
             request.user.perfil.save()
             messages.success(request, "Termos aceitos com sucesso. Bem-vindo!")
-            return redirect('portal') # <--- Redireciona para o Portal
+            return redirect('portal')
         else:
             messages.error(request, "Erro ao localizar perfil do usuário.")
     
@@ -199,11 +195,6 @@ def sinistros_home_view(request):
     return render(request, "vamos/sinistros_home.html")
 
 # --- DASHBOARD (Manutenção) ---
-@login_required(login_url='login')
-def dashboard_view(request):
-    # ... (O código do dashboard_view continua igual ao que você já tem abaixo) ...
-    # (Não precisa alterar o dashboard_view, apenas certifique-se que ele vem logo após)
-
 @login_required(login_url='login')
 def dashboard_view(request):
     if not request.user.is_staff:
