@@ -19,6 +19,8 @@ from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.core.management import call_command
+from django.core.mail import send_mail
+from django.conf import settings
 
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest, Perfil # Adicionado Perfil
@@ -410,25 +412,53 @@ def ticket_list_view(request):
         form = TicketForm(request.POST, request.FILES)
         if form.is_valid():
             data = form.cleaned_data
-            Ticket.objects.create(
+            # 1. Cria o Ticket e salva na variável para usar dados depois
+            novo_ticket = Ticket.objects.create(
                 titulo=data['assunto'], 
                 descricao=data['descricao'],
                 usuario=request.user,
                 status='Pendente'
             )
-            messages.success(request, "Ticket aberto com sucesso!")
+            
+            # --- NOVO: ENVIAR E-MAIL PARA O ADMIN ---
+            try:
+                assunto = f"🎫 Novo Ticket #{novo_ticket.protocolo} - {novo_ticket.titulo}"
+                mensagem = f"""
+                Olá Admin,
+                
+                O usuário {request.user.get_full_name() or request.user.username} abriu um novo chamado.
+                
+                Assunto: {novo_ticket.titulo}
+                Descrição: {novo_ticket.descricao}
+                
+                Acesse o painel para responder: https://vamos-frotas-sla.onrender.com/tickets/{novo_ticket.id}/
+                """
+                # Envia para o e-mail configurado no .env (EMAIL_HOST_USER)
+                send_mail(
+                    assunto, 
+                    mensagem, 
+                    settings.DEFAULT_FROM_EMAIL, 
+                    [settings.EMAIL_HOST_USER], # Envia para o próprio e-mail do sistema/admin
+                    fail_silently=True
+                )
+            except Exception as e:
+                print(f"Erro ao enviar e-mail de ticket: {e}")
+            # -----------------------------------------
+
+            messages.success(request, "Ticket aberto com sucesso! O suporte foi notificado.")
             return redirect("ticket_list")
     else:
         form = TicketForm()
 
+    # Lógica de listagem (Mantida igual)
     if request.user.is_staff:
         qs = Ticket.objects.all().order_by("-created_at")
     else:
         qs = Ticket.objects.filter(usuario=request.user).order_by("-created_at")
-      
+    
     tickets_abertos = qs.exclude(status__in=['Concluído', 'Cancelado'])
     tickets_finalizados = qs.filter(status__in=['Concluído', 'Cancelado'])
-          
+        
     return render(request, "vamos/tickets.html", {
         "tickets_abertos": tickets_abertos, 
         "tickets_finalizados": tickets_finalizados, 
@@ -437,29 +467,66 @@ def ticket_list_view(request):
 
 @login_required(login_url='login')
 def ticket_detail_view(request, pk):
+    # Permite Admin ou Dono do ticket
     ticket = get_object_or_404(Ticket, pk=pk)
     if not request.user.is_staff and ticket.usuario != request.user:
         messages.error(request, "Acesso negado.")
         return redirect('ticket_list')
 
+    # Lógica de Resposta do Admin (POST)
     if request.method == "POST" and request.user.is_staff:
         resposta = request.POST.get('resposta_admin')
         novo_status = request.POST.get('status')
+        
+        alterou_algo = False
+
         if resposta:
             ticket.resposta_admin = resposta
             ticket.data_resposta = timezone.now()
-        if novo_status:
+            alterou_algo = True
+        
+        if novo_status and novo_status != ticket.status:
             ticket.status = novo_status
-        ticket.save()
-        messages.success(request, "Ticket atualizado com sucesso!")
+            alterou_algo = True
+            
+        if alterou_algo:
+            ticket.save()
+
+            # --- NOVO: ENVIAR E-MAIL PARA O USUÁRIO ---
+            try:
+                if ticket.usuario.email: # Só manda se o usuário tiver e-mail cadastrado
+                    assunto_email = f"📣 Atualização no Ticket #{ticket.protocolo}"
+                    corpo_email = f"""
+                    Olá {ticket.usuario.first_name or ticket.usuario.username},
+                    
+                    Houve uma movimentação no seu chamado: "{ticket.titulo}"
+                    
+                    Novo Status: {ticket.status}
+                    
+                    Resposta do Suporte:
+                    --------------------------------------
+                    {resposta if resposta else "(Apenas mudança de status)"}
+                    --------------------------------------
+                    
+                    Acesse o sistema para ver detalhes: https://vamos-frotas-sla.onrender.com/tickets/{ticket.id}/
+                    """
+                    
+                    send_mail(
+                        assunto_email,
+                        corpo_email,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [ticket.usuario.email],
+                        fail_silently=True
+                    )
+            except Exception as e:
+                print(f"Erro ao notificar usuário: {e}")
+            # -----------------------------------------
+
+            messages.success(request, "Ticket atualizado e usuário notificado por e-mail!")
+        
         return redirect('ticket_detail', pk=pk)
+
     return render(request, "vamos/ticket_detail.html", {"ticket": ticket})
-
-@login_required(login_url='login')
-def ticket_update_status_view(request, pk):
-    messages.warning(request, "Use a tela de detalhe para gerenciar o ticket.")
-    return redirect("ticket_detail", pk=pk)
-
 
 # =============================================================================
 # 6. GERENCIAMENTO DE USUÁRIOS
