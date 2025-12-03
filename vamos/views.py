@@ -876,20 +876,37 @@ def backup_database_view(request):
     except Exception as e:
         return HttpResponse(f"❌ Erro ao gerar backup: {str(e)}", status=500)
 
+# =============================================================================
+# 14. MINHA CONTA (PERFIL E FOTO)
+# =============================================================================
+
 @login_required(login_url='login')
 def minha_conta_view(request):
-    # Garante que o perfil existe
+    # Garante que o perfil existe, caso tenha sido criado manualmente sem signals
     if not hasattr(request.user, 'perfil'):
         Perfil.objects.create(user=request.user)
 
     if request.method == 'POST':
-        # Processa o upload da foto
+        # IMPORTANTE: request.FILES é obrigatório para upload de arquivos
         form = PerfilForm(request.POST, request.FILES, instance=request.user.perfil)
         if form.is_valid():
             form.save()
-            messages.success(request, "Foto de perfil atualizada!")
+            messages.success(request, "Foto de perfil atualizada com sucesso!")
             return redirect('minha_conta')
     else:
         form = PerfilForm(instance=request.user.perfil)
 
     return render(request, "vamos/profile.html", {"user": request.user, "form": form})
+
+@login_required(login_url='login')
+def delete_foto_perfil_view(request):
+    """Remove a foto de perfil do usuário."""
+    # Verifica se o perfil existe e se tem uma foto anexada
+    if hasattr(request.user, 'perfil') and request.user.perfil.foto:
+        request.user.perfil.foto.delete() # Apaga o arquivo do sistema de arquivos
+        request.user.perfil.save()        # Atualiza o banco de dados
+        messages.success(request, "Foto removida com sucesso.")
+    else:
+        messages.warning(request, "Você não tem foto para remover.")
+    
+    return redirect('minha_conta')
