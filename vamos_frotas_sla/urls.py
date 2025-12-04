@@ -7,9 +7,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # Redireciona tudo para o arquivo de urls do app 'vamos'
-    path('', include('vamos.urls')), 
+    path('', include('vamos.urls')),        # Manda para o app principal
+    path('sinistros/', include('sinistros.urls')), # Manda para o NOVO app
 ]
 
 # --- ADICIONE ESTE BLOCO NO FINAL ---

@@ -32,9 +32,6 @@ urlpatterns = [
     path("buscar-clientes/", views.buscar_clientes_view, name="buscar_clientes"),
     path("analises/", views.analise_list_view, name="lista_analises"), # Histórico costuma ficar na manutenção
     
-    # === MÓDULO SINISTROS (NOVO) ===
-    path("sinistros/home/", views.sinistros_home_view, name="sinistros_home"),
-
     # === Funcionalidades Gerais / Admin ===
     path("assistente-ia/", views.assistente_ia_view, name="assistente_ia"),
     path("gestao/upload-bases/", views.admin_upload_base_view, name="admin_upload_base"),
