@@ -5,7 +5,7 @@ Django settings for vamos_frotas_sla project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url  # <--- IMPORTANTE PARA O BANCO DA NUVEM
+import dj_database_url  # Importante para o banco na nuvem
 
 # Carrega as variáveis do arquivo .env (apenas localmente)
 load_dotenv()
@@ -35,15 +35,16 @@ INSTALLED_APPS = [
     # Biblioteca para AWS S3 (Necessária para a configuração nova)
     "storages", 
 
-    # Seu app principal
-    "vamos",
-    "accounts",
+    # Seus Apps
+    "vamos",      # Core/Manutenção
+    "accounts",   # Login
+    "sinistros",  # Novo App de Sinistros (Correto!)
 ]
 
 # === MIDDLEWARE (ORDEM IMPORTA!) ===
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware", # <--- ADICIONADO (Essencial para CSS na nuvem)
+    "whitenoise.middleware.WhiteNoiseMiddleware", # Essencial para CSS na nuvem
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,7 +68,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 
-                # --- LINHA ADICIONADA PARA NOTIFICAÇÕES GLOBAIS ---
+                # --- NOTIFICAÇÕES GLOBAIS ---
+                # Certifique-se que o arquivo vamos/context_processors.py existe!
                 "vamos.context_processors.notificacoes_globais",
             ],
         },
@@ -139,7 +141,7 @@ MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
 # === LOGIN / LOGOUT ===
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"
+LOGIN_REDIRECT_URL = "portal"  # <--- ALTERADO: Redireciona para o Portal após login
 LOGOUT_REDIRECT_URL = "login"
 
 

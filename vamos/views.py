@@ -179,21 +179,6 @@ def manutencao_home_view(request):
 
     return render(request, "vamos/home.html")
 
-# --- NOVO: HOME DE SINISTROS ---
-@login_required(login_url='login')
-def sinistros_home_view(request):
-    """Dashboard/Home principal do setor de Sinistros."""
-    request.session['modulo_ativo'] = 'sinistros'
-    
-    # Verificação de segurança (Termos)
-    try:
-        if not request.user.perfil.termos_aceitos_em:
-            return redirect('termos_uso')
-    except AttributeError:
-        return redirect('termos_uso')
-        
-    return render(request, "vamos/sinistros_home.html")
-
 # --- DASHBOARD (Manutenção) ---
 @login_required(login_url='login')
 def dashboard_view(request):
