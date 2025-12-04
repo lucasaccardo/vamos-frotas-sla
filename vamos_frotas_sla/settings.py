@@ -161,3 +161,16 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+
+# ==========================================
+# CONFIGURAÇÃO DE SESSÃO (TIMEOUT)
+# ==========================================
+# Tempo em segundos que a sessão dura (30 minutos x 60 segundos = 1800)
+SESSION_COOKIE_AGE = 1800
+
+# Se True, o tempo reseta a cada clique/ação do usuário.
+# Se ficar False, o usuário cai após 30min mesmo se estiver trabalhando.
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Segurança extra: Fecha a sessão se fechar o navegador
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
