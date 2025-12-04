@@ -37,7 +37,7 @@
                                    placeholder="ABC-1234" maxlength="8" required
                                    onblur="buscarDadosPlaca()">
                             <span class="input-group-text bg-white d-none" id="loading_icon">
-                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                             </span>
                         </div>
                         <div id="msg_placa" class="form-text small"></div>
@@ -182,7 +182,7 @@
                 const selectSegmento = document.querySelector('select[name="segmento"]');
                 if(selectSegmento) selectSegmento.value = data.segmento;
 
-                // 5. Marca a Proteção do Casco
+                // 5. Marca a Proteção do Casco e Sugere Processo
                 const checkProtecao = document.querySelector('input[name="tem_protecao_casco"]');
                 const labelProtecao = document.getElementById('label_protecao');
                 const selectProcesso = document.querySelector('select[name="tipo_processo"]');
@@ -193,14 +193,14 @@
                     labelProtecao.className = "form-check-label small text-success fw-bold";
                     
                     // Sugere o Tipo de Processo: Cliente 20%
-                    if(selectProcesso) selectProcesso.value = 'PAG_CLIENTE_20';
+                    if(selectProcesso) selectProcesso.value = 'CLIENTE_20';
                 } else {
                     checkProtecao.checked = false;
                     labelProtecao.innerText = "NÃO";
                     labelProtecao.className = "form-check-label small text-muted";
                     
-                    // Sugere o Tipo de Processo: Cliente 100% (Padrão)
-                    if(selectProcesso) selectProcesso.value = 'PAG_CLIENTE_100';
+                    // Sugere o Tipo de Processo: Cliente 100% (Padrão se não for Seguradora)
+                    if(selectProcesso) selectProcesso.value = 'CLIENTE_100';
                 }
 
                 // 6. Sucesso
