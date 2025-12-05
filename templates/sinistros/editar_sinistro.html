@@ -6,28 +6,36 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold text-dark mb-0">Processo #{{ sinistro.id }} - {{ sinistro.placa }}</h4>
-            <span class="badge bg-secondary">{{ sinistro.get_segmento_display }}</span>
-            <span class="badge bg-info text-dark ms-2">{{ sinistro.get_setor_atual_display }}</span>
+            <h4 class="fw-bold text-dark mb-0">
+                Processo #{{ sinistro.id }} - <span class="text-danger">{{ sinistro.placa }}</span>
+            </h4>
+            <div class="mt-1">
+                <span class="badge bg-secondary">{{ sinistro.get_segmento_display }}</span>
+                <span class="badge bg-info text-dark ms-1">{{ sinistro.get_setor_atual_display }}</span>
+            </div>
         </div>
         <div>
             <a href="{% url 'sinistros_home' %}" class="btn btn-outline-secondary me-2">Voltar</a>
-            <button type="submit" form="formEditar" class="btn btn-primary fw-bold">
+            <button type="submit" form="formEditar" class="btn btn-primary fw-bold px-4">
                 <i class="bi bi-save me-2"></i> Salvar Alterações
             </button>
         </div>
     </div>
 
     <div class="row">
+        
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
                     <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
                         <li class="nav-item">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dados">Dados Gerais</button>
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#status">Workflow</button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#docs">Documentação</button>
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#dados">Dados</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#docs">Documentos</button>
                         </li>
                         <li class="nav-item">
                             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#finan">Financeiro</button>
@@ -40,110 +48,102 @@
                         {% csrf_token %}
                         
                         <div class="tab-content">
-                            <div class="tab-pane fade show active" id="dados">
-                                <h6 class="fw-bold text-muted mb-3">Status e Responsabilidade</h6>
-                                <div class="row g-3 mb-4">
+                            
+                            <div class="tab-pane fade show active" id="status">
+                                <div class="alert alert-light border mb-4">
+                                    <i class="bi bi-info-circle me-2"></i> Use esta aba para mover o processo entre os setores.
+                                </div>
+                                <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Setor Atual</label>
+                                        <label class="form-label fw-bold text-primary">Mudar Setor Atual</label>
                                         {{ form.setor_atual }}
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Responsável</label>
                                         {{ form.responsavel_setor }}
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">Prazo (Retornar Até)</label>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Status da O.S.</label>
+                                        {{ form.status_os }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-danger">Prazo Limite</label>
                                         {{ form.retornar_ate }}
                                     </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold">Observações</label>
+                                        {{ form.observacoes }}
+                                    </div>
                                 </div>
-                                
-                                <h6 class="fw-bold text-muted mb-3">Dados do Veículo (Leitura)</h6>
+                            </div>
+
+                            <div class="tab-pane fade" id="dados">
                                 <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Cliente</label>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Cliente</label>
                                         <input type="text" class="form-control bg-light" value="{{ sinistro.cliente }}" readonly>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Contrato</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.n_contrato }}" readonly>
+                                    </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small">Modelo</label>
+                                        <label class="form-label small text-muted">Modelo</label>
                                         <input type="text" class="form-control bg-light" value="{{ sinistro.modelo_ativo }}" readonly>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small">Contrato</label>
-                                        <input type="text" class="form-control bg-light" value="{{ sinistro.n_contrato }}" readonly>
+                                        <label class="form-label small text-muted">Chassi</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.chassi }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Chamado Origem</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.n_chamado }}" readonly>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="tab-pane fade" id="docs">
-                                <div class="alert alert-light border">
-                                    <i class="bi bi-info-circle me-2"></i> Marque os documentos já recebidos.
-                                </div>
+                                <h6 class="fw-bold mb-3">Checklist de Recebimento</h6>
                                 <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            {{ form.check_bo }}
-                                            <label class="form-check-label">B.O. Oficial</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            {{ form.check_cnh }}
-                                            <label class="form-check-label">CNH Condutor</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            {{ form.check_fotos }}
-                                            <label class="form-check-label">Fotos das Avarias</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            {{ form.check_laudo }}
-                                            <label class="form-check-label">Laudo Pericial (BVQI)</label>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-6"><div class="form-check form-switch">{{ form.check_bo }} <label class="form-check-label">B.O. Oficial</label></div></div>
+                                    <div class="col-md-6"><div class="form-check form-switch">{{ form.check_cnh }} <label class="form-check-label">CNH Condutor</label></div></div>
+                                    <div class="col-md-6"><div class="form-check form-switch">{{ form.check_fotos }} <label class="form-check-label">Fotos Avarias</label></div></div>
+                                    <div class="col-md-6"><div class="form-check form-switch">{{ form.check_laudo }} <label class="form-check-label">Laudo Pericial</label></div></div>
                                 </div>
-                                <hr>
-                                <label class="form-label fw-bold">Observações do Processo</label>
-                                {{ form.observacoes }}
                             </div>
 
                             <div class="tab-pane fade" id="finan">
                                 <h6 class="fw-bold text-success mb-3">Valores e Indenização</h6>
                                 <div class="row g-3">
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Valor FIPE</label>
+                                        <label class="form-label">Valor FIPE</label>
                                         {{ form.valor_fipe }}
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Valor Franquia</label>
-                                        {{ form.valor_franquia }}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold">Valor Implemento</label>
+                                        <label class="form-label">Valor Implemento</label>
                                         {{ form.valor_implemento }}
                                     </div>
-                                    
+                                    <div class="col-md-4">
+                                        <label class="form-label">Franquia</label>
+                                        {{ form.valor_franquia }}
+                                    </div>
                                     <div class="col-12"><hr></div>
-                                    
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold text-primary">Valor Pago (Seguradora)</label>
+                                        <label class="form-label fw-bold text-primary">A Pagar (Seguradora)</label>
                                         {{ form.valor_seguradora }}
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold text-primary">Valor Pago (Cliente)</label>
+                                        <label class="form-label fw-bold text-primary">A Pagar (Cliente)</label>
                                         {{ form.valor_cliente }}
                                     </div>
-
-                                    <div class="col-12 mt-4">
-                                        <div class="alert alert-success d-flex justify-content-between align-items-center">
-                                            <span class="fw-bold">TOTAL PREVISTO (Automático):</span>
-                                            <span class="fs-4 fw-bold">R$ {{ sinistro.total_a_pagar|floatformat:2 }}</span>
+                                    <div class="col-12 mt-3">
+                                        <div class="alert alert-success fw-bold text-center">
+                                            TOTAL PREVISTO: R$ {{ sinistro.total_a_pagar|floatformat:2 }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </form>
                 </div>
@@ -152,36 +152,46 @@
 
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white fw-bold">
-                    <i class="bi bi-clock-history me-2"></i>Histórico de Movimentação
+                <div class="card-header bg-light fw-bold">
+                    <i class="bi bi-clock-history me-2"></i>Histórico
                 </div>
                 <div class="card-body p-0">
-                    <div class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">
+                    <div class="list-group list-group-flush" style="max-height: 600px; overflow-y: auto;">
                         {% for h in historico %}
-                        <div class="list-group-item">
+                        <div class="list-group-item p-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <small class="text-muted">{{ h.data_mudanca|date:"d/m/Y H:i" }}</small>
                                 <span class="badge bg-light text-dark border">{{ h.alterado_por.username }}</span>
                             </div>
                             <div class="small">
-                                <strong>{{ h.setor_anterior }}</strong> <i class="bi bi-arrow-right mx-1 text-muted"></i> <strong>{{ h.setor_novo }}</strong>
+                                <span class="text-secondary">{{ h.setor_anterior }}</span> 
+                                <i class="bi bi-arrow-right mx-1"></i> 
+                                <span class="fw-bold text-primary">{{ h.setor_novo }}</span>
                             </div>
-                            {% if h.comentario %}
-                            <div class="small text-muted mt-1 fst-italic">"{{ h.comentario }}"</div>
-                            {% endif %}
                         </div>
                         {% empty %}
-                        <div class="p-3 text-center text-muted small">Nenhuma movimentação registrada.</div>
+                        <div class="p-4 text-center text-muted small">Sem movimentações.</div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    // Adiciona classes bootstrap aos campos automaticamente
+    // Ativa as abas
+    var triggerTabList = [].slice.call(document.querySelectorAll('#myTab button'))
+    triggerTabList.forEach(function (triggerEl) {
+      var tabTrigger = new bootstrap.Tab(triggerEl)
+      triggerEl.addEventListener('click', function (event) {
+        event.preventDefault()
+        tabTrigger.show()
+      })
+    })
+    
+    // Estilo Bootstrap nos campos
     document.querySelectorAll('input, select, textarea').forEach(e => {
         if(e.type !== 'checkbox') e.classList.add('form-control');
         else e.classList.add('form-check-input');
