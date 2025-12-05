@@ -5,17 +5,34 @@
 <div class="container-fluid">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- TÍTULO DINÂMICO BASEADO NO SEGMENTO SELECIONADO -->
         <div>
             <h2 class="fw-bold text-dark mb-1">
-                <i class="bi bi-shield-exclamation text-danger me-2"></i>Gestão de Sinistros
+                {% if request.GET.segmento == 'AGRO' %}
+                    <i class="bi bi-tree-fill text-success me-2"></i>Gestão Agro
+                {% elif request.GET.segmento == 'PESADOS' %}
+                    <i class="bi bi-truck-front-fill text-primary me-2"></i>Gestão Pesados
+                {% elif request.GET.segmento == 'INTRA' %}
+                    <i class="bi bi-box-seam-fill text-warning me-2"></i>Gestão Intra
+                {% else %}
+                    <i class="bi bi-shield-exclamation text-danger me-2"></i>Visão Geral
+                {% endif %}
             </h2>
-            <p class="text-muted">Controle de ocorrências, vistorias e indenizações.</p>
+            <p class="text-muted">
+                {% if request.GET.segmento %}
+                    Filtrando apenas processos de {{ request.GET.segmento }}.
+                {% else %}
+                    Controle de ocorrências, vistorias e indenizações.
+                {% endif %}
+            </p>
         </div>
+        
         <a href="{% url 'novo_sinistro' %}" class="btn btn-danger fw-bold shadow-sm px-4 py-2">
             <i class="bi bi-plus-lg me-2"></i> Novo Processo
         </a>
     </div>
 
+    <!-- CARDS DE ATALHO / FILTRO -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100 bg-white">
@@ -61,6 +78,7 @@
         </div>
     </div>
 
+    <!-- LISTAGEM DE SINISTROS -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 fw-bold text-primary">
