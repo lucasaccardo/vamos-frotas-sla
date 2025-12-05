@@ -10,7 +10,14 @@ from .forms import SinistroForm
 @login_required(login_url='login')
 def sinistros_home_view(request):
     request.session['modulo_ativo'] = 'sinistros'
-    sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
+    
+    # Filtro Opcional por Segmento (clicou no botão)
+    segmento = request.GET.get('segmento')
+    if segmento:
+        sinistros = Sinistro.objects.filter(segmento=segmento).order_by('-ultima_interacao')
+    else:
+        sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
+
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
 @login_required(login_url='login')
