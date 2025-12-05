@@ -91,6 +91,20 @@ class Sinistro(models.Model):
     criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     observacoes = models.TextField(blank=True, null=True)
 
+    # --- PROPRIEDADES DE SLA (ADICIONADAS AGORA) ---
+    @property
+    def esta_atrasado(self):
+        """Retorna True se a data de 'Retornar Até' já passou e não foi finalizado."""
+        if self.retornar_ate and self.setor_atual != 'FINALIZADO':
+            return self.retornar_ate < timezone.now().date()
+        return False
+
+    @property
+    def dias_no_setor(self):
+        """Conta há quantos dias o processo está parado no setor atual."""
+        delta = timezone.now() - self.ultima_interacao
+        return delta.days
+
     def save(self, *args, **kwargs):
         # Soma automática: Total = Cliente + Seguradora
         self.total_a_pagar = float(self.valor_seguradora) + float(self.valor_cliente)
