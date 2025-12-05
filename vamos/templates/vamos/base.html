@@ -183,7 +183,6 @@
                     <i class="bi bi-person-circle"></i> Minha Conta
                 </a>
 
-                <!-- MÓDULO MANUTENÇÃO -->
                 {% if request.session.modulo_ativo == 'manutencao' %}
                     <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Operacional</small>
                     <a href="{% url 'manutencao_home' %}" class="nav-link {% if request.path == '/manutencao/home/' %}active{% endif %}">
@@ -207,13 +206,16 @@
                         <i class="bi bi-folder"></i> Relatórios
                     </a>
                 
-                <!-- MÓDULO SINISTROS (ATUALIZADO) -->
                 {% elif request.session.modulo_ativo == 'sinistros' %}
                     
                     <div class="sidebar-heading text-uppercase fw-bold mt-3 mb-2 ms-3" style="font-size: 0.75rem; color: #64748b; letter-spacing: 1px;">
                         Gestão de Sinistros
                     </div>
                     
+                    <a href="{% url 'dashboard_sinistros' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow text-success"></i> Dashboard BI
+                    </a>
+
                     <a href="{% url 'sinistros_home' %}" class="nav-link {% if request.resolver_match.url_name == 'sinistros_home' and not request.GET.segmento %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Visão Geral
                     </a>
@@ -240,7 +242,6 @@
 
                 {% endif %}
 
-                <!-- MENU COMUM -->
                 <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Ajuda</small>
                 <a href="{% url 'ticket_list' %}" class="nav-link {% if 'tickets' in request.path %}active{% endif %}">
                     <i class="bi bi-ticket-perforated"></i> Tickets
@@ -249,7 +250,6 @@
                     <i class="bi bi-robot"></i> Assistente IA
                 </a>
 
-                <!-- MENU ADMIN -->
                 {% if user.is_staff %}
                     <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Administração</small>
                     <a href="{% url 'lista_usuarios' %}" class="nav-link {% if 'usuarios' in request.path %}active{% endif %}">

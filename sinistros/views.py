@@ -1,14 +1,100 @@
 import os
+import json # Adicionado para tratar os dados dos gráficos
 import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
-from django.utils import timezone  # Adicionado conforme solicitado
+from django.utils import timezone
+from django.db.models import Sum, Count, Avg # Adicionado para cálculos matemáticos
 
 # Importação dos modelos e forms do app de Sinistros
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm
+
+# --- DASHBOARD (TORRE DE CONTROLE) ---
+@login_required(login_url='login')
+def dashboard_sinistros_view(request):
+    # 1. Filtros
+    segmento_filtro = request.GET.get('segmento', 'TODOS')
+    
+    qs = Sinistro.objects.all()
+    
+    # Aplica filtro se não for "TODOS"
+    if segmento_filtro != 'TODOS':
+        qs = qs.filter(segmento=segmento_filtro)
+
+    # 2. Financeiro
+    # A Pagar (Pipeline) = Soma do total_a_pagar dos processos NÃO finalizados
+    # Pago (Caixa) = Soma do total_pago de TODOS os processos (inclusive finalizados)
+    financeiro_pipeline = qs.exclude(setor_atual='FINALIZADO').aggregate(Sum('total_a_pagar'))['total_a_pagar__sum'] or 0
+    financeiro_caixa = qs.aggregate(Sum('total_pago'))['total_pago__sum'] or 0
+
+    # 3. Volumetria
+    total_abertos = qs.exclude(setor_atual='FINALIZADO').count()
+    total_finalizados = qs.filter(setor_atual='FINALIZADO').count()
+
+    # 4. Cálculo de SLA (Gargalos)
+    # Vamos calcular a média de dias parado em cada setor (apenas ativos)
+    processos_ativos = qs.exclude(setor_atual='FINALIZADO')
+    
+    sla_por_setor = {} # Ex: {'JURIDICO': [5, 10, 2], 'MANUTENCAO': [1, 2]}
+    
+    now = timezone.now()
+    
+    for p in processos_ativos:
+        # Se ultima_interacao for None, usa a data de criação ou agora para não quebrar
+        data_base = p.ultima_interacao or p.created_at or now
+        dias_parado = (now - data_base).days
+        
+        nome_setor = p.get_setor_atual_display()
+        
+        if nome_setor not in sla_por_setor:
+            sla_por_setor[nome_setor] = []
+        sla_por_setor[nome_setor].append(dias_parado)
+    
+    # Calcula a média simples
+    graf_sla_labels = []
+    graf_sla_data = []
+    
+    for setor, lista_dias in sla_por_setor.items():
+        if lista_dias:
+            media = sum(lista_dias) / len(lista_dias)
+            graf_sla_labels.append(setor)
+            graf_sla_data.append(round(media, 1))
+
+    # 5. Gráfico de Motivos (Pizza)
+    motivos_qs = qs.values('motivo').annotate(total=Count('id'))
+    
+    # Tratamento para exibir nome bonito no gráfico
+    graf_motivo_labels = []
+    graf_motivo_data = []
+    
+    for m in motivos_qs:
+        label = m['motivo']
+        if label: # Se não estiver vazio
+            label = label.replace('_', ' ').title()
+        else:
+            label = "Não Classificado"
+            
+        graf_motivo_labels.append(label)
+        graf_motivo_data.append(m['total'])
+
+    return render(request, "sinistros/dashboard.html", {
+        "segmento_atual": segmento_filtro,
+        "financeiro_pipeline": financeiro_pipeline,
+        "financeiro_caixa": financeiro_caixa,
+        "total_abertos": total_abertos,
+        "total_finalizados": total_finalizados,
+        
+        # Dados Gráficos JSON (Para o Chart.js ler no HTML)
+        "graf_sla_labels": json.dumps(graf_sla_labels),
+        "graf_sla_data": json.dumps(graf_sla_data),
+        "graf_motivo_labels": json.dumps(graf_motivo_labels),
+        "graf_motivo_data": json.dumps(graf_motivo_data),
+    })
+
+# --- VIEWS EXISTENTES ---
 
 @login_required(login_url='login')
 def sinistros_home_view(request):

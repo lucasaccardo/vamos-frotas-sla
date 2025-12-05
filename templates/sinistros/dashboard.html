@@ -1,0 +1,136 @@
+{% extends 'vamos/base.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">BI de Sinistros</h2>
+            <p class="text-muted">Indicadores de performance e financeiro.</p>
+        </div>
+        
+        <form method="get" class="d-flex gap-2">
+            <select name="segmento" class="form-select fw-bold text-primary" onchange="this.form.submit()" style="width: 200px;">
+                <option value="TODOS" {% if segmento_atual == 'TODOS' %}selected{% endif %}>Todos os Segmentos</option>
+                <option value="AGRO" {% if segmento_atual == 'AGRO' %}selected{% endif %}>Agro</option>
+                <option value="PESADOS" {% if segmento_atual == 'PESADOS' %}selected{% endif %}>Pesados</option>
+                <option value="INTRA" {% if segmento_atual == 'INTRA' %}selected{% endif %}>Intra</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted fw-bold small">Pipeline (A Receber)</h6>
+                    <h3 class="fw-bold text-dark mb-0">R$ {{ financeiro_pipeline|floatformat:2 }}</h3>
+                    <small class="text-muted">Soma de processos em aberto</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted fw-bold small">Realizado (Em Caixa)</h6>
+                    <h3 class="fw-bold text-success mb-0">R$ {{ financeiro_caixa|floatformat:2 }}</h3>
+                    <small class="text-muted">Total de indenizações pagas</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Em Andamento</h6>
+                    <h2 class="fw-bold text-primary">{{ total_abertos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Finalizados</h6>
+                    <h2 class="fw-bold text-secondary">{{ total_finalizados }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-danger"><i class="bi bi-hourglass-split me-2"></i>Média de Dias Parado (Por Setor)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartSLA" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2"></i>Volume por Motivo</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="width: 100%; max-width: 300px;">
+                        <canvas id="chartMotivo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // --- 1. SLA (BARRAS HORIZONTAIS) ---
+        const ctxSLA = document.getElementById('chartSLA').getContext('2d');
+        new Chart(ctxSLA, {
+            type: 'bar',
+            data: {
+                labels: {{ graf_sla_labels|safe }},
+                datasets: [{
+                    label: 'Dias Médios Parado',
+                    data: {{ graf_sla_data|safe }},
+                    backgroundColor: '#dc3545', // Vermelho
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Barras deitadas
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+
+        // --- 2. MOTIVOS (DONUT) ---
+        const ctxMotivo = document.getElementById('chartMotivo').getContext('2d');
+        new Chart(ctxMotivo, {
+            type: 'doughnut',
+            data: {
+                labels: {{ graf_motivo_labels|safe }},
+                datasets: [{
+                    data: {{ graf_motivo_data|safe }},
+                    backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#6c757d'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '60%',
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    });
+</script>
+{% endblock %}
