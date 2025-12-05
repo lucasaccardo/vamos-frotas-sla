@@ -1,0 +1,190 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-0">Processo #{{ sinistro.id }} - {{ sinistro.placa }}</h4>
+            <span class="badge bg-secondary">{{ sinistro.get_segmento_display }}</span>
+            <span class="badge bg-info text-dark ms-2">{{ sinistro.get_setor_atual_display }}</span>
+        </div>
+        <div>
+            <a href="{% url 'sinistros_home' %}" class="btn btn-outline-secondary me-2">Voltar</a>
+            <button type="submit" form="formEditar" class="btn btn-primary fw-bold">
+                <i class="bi bi-save me-2"></i> Salvar Alterações
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dados">Dados Gerais</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#docs">Documentação</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#finan">Financeiro</button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="post" id="formEditar">
+                        {% csrf_token %}
+                        
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="dados">
+                                <h6 class="fw-bold text-muted mb-3">Status e Responsabilidade</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Setor Atual</label>
+                                        {{ form.setor_atual }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Responsável</label>
+                                        {{ form.responsavel_setor }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Prazo (Retornar Até)</label>
+                                        {{ form.retornar_ate }}
+                                    </div>
+                                </div>
+                                
+                                <h6 class="fw-bold text-muted mb-3">Dados do Veículo (Leitura)</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Cliente</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.cliente }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Modelo</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.modelo_ativo }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Contrato</label>
+                                        <input type="text" class="form-control bg-light" value="{{ sinistro.n_contrato }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="docs">
+                                <div class="alert alert-light border">
+                                    <i class="bi bi-info-circle me-2"></i> Marque os documentos já recebidos.
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            {{ form.check_bo }}
+                                            <label class="form-check-label">B.O. Oficial</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            {{ form.check_cnh }}
+                                            <label class="form-check-label">CNH Condutor</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            {{ form.check_fotos }}
+                                            <label class="form-check-label">Fotos das Avarias</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            {{ form.check_laudo }}
+                                            <label class="form-check-label">Laudo Pericial (BVQI)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <label class="form-label fw-bold">Observações do Processo</label>
+                                {{ form.observacoes }}
+                            </div>
+
+                            <div class="tab-pane fade" id="finan">
+                                <h6 class="fw-bold text-success mb-3">Valores e Indenização</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Valor FIPE</label>
+                                        {{ form.valor_fipe }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Valor Franquia</label>
+                                        {{ form.valor_franquia }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Valor Implemento</label>
+                                        {{ form.valor_implemento }}
+                                    </div>
+                                    
+                                    <div class="col-12"><hr></div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-primary">Valor Pago (Seguradora)</label>
+                                        {{ form.valor_seguradora }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold text-primary">Valor Pago (Cliente)</label>
+                                        {{ form.valor_cliente }}
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold">TOTAL PREVISTO (Automático):</span>
+                                            <span class="fs-4 fw-bold">R$ {{ sinistro.total_a_pagar|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-bold">
+                    <i class="bi bi-clock-history me-2"></i>Histórico de Movimentação
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">
+                        {% for h in historico %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">{{ h.data_mudanca|date:"d/m/Y H:i" }}</small>
+                                <span class="badge bg-light text-dark border">{{ h.alterado_por.username }}</span>
+                            </div>
+                            <div class="small">
+                                <strong>{{ h.setor_anterior }}</strong> <i class="bi bi-arrow-right mx-1 text-muted"></i> <strong>{{ h.setor_novo }}</strong>
+                            </div>
+                            {% if h.comentario %}
+                            <div class="small text-muted mt-1 fst-italic">"{{ h.comentario }}"</div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="p-3 text-center text-muted small">Nenhuma movimentação registrada.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Adiciona classes bootstrap aos campos automaticamente
+    document.querySelectorAll('input, select, textarea').forEach(e => {
+        if(e.type !== 'checkbox') e.classList.add('form-control');
+        else e.classList.add('form-check-input');
+    });
+</script>
+{% endblock %}

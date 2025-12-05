@@ -135,7 +135,10 @@
                             {% endif %}
                         </td>
                         <td class="text-end pe-4">
-                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i></button>
+                            <!-- BOTÃO ATUALIZADO PARA EDIÇÃO -->
+                            <a href="{% url 'editar_sinistro' s.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}

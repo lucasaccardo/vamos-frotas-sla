@@ -1,17 +1,21 @@
 import os
 import pandas as pd
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
+from django.utils import timezone  # Adicionado conforme solicitado
+
+# Importação dos modelos e forms do app de Sinistros
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm
 
 @login_required(login_url='login')
 def sinistros_home_view(request):
+    # Garante que a sessão está marcada como sinistros
     request.session['modulo_ativo'] = 'sinistros'
     
-    # Filtro Opcional por Segmento (clicou no botão)
+    # Filtro Opcional por Segmento (clicou no botão da dashboard)
     segmento = request.GET.get('segmento')
     if segmento:
         sinistros = Sinistro.objects.filter(segmento=segmento).order_by('-ultima_interacao')
@@ -29,7 +33,7 @@ def novo_sinistro_view(request):
             sinistro.criado_por = request.user
             sinistro.save()
             
-            # Registra no histórico
+            # Registra a abertura no histórico
             HistoricoSinistro.objects.create(
                 sinistro=sinistro,
                 setor_anterior='-',
@@ -45,14 +49,14 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# === API DE BUSCA INTELIGENTE ===
+# === API DE BUSCA INTELIGENTE (Lê a base Excel existente) ===
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
     if not placa: return JsonResponse({'encontrado': False})
 
     try:
-        # Sobe um nível para achar a pasta 'vamos/data' onde está o arquivo
+        # Sobe dois níveis para achar a pasta 'vamos/data' (sinistros/views.py -> sinistros -> raiz -> vamos)
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         file_path = os.path.join(base_dir, 'vamos', 'data', 'Base De Clientes Total.xlsx') # Tenta Excel primeiro
         
@@ -72,17 +76,17 @@ def api_buscar_dados_sinistro(request):
             
         df.columns = df.columns.astype(str).str.strip().str.upper()
         
-        # Procura a coluna PLACA
+        # Procura a coluna PLACA de forma flexível
         col_placa = next((c for c in df.columns if 'PLACA' in c), None)
-        if not col_placa: return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada.'})
+        if not col_placa: return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na base.'})
 
-        # Busca a linha
+        # Busca a linha correspondente
         row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
 
         if not row.empty:
             data = row.iloc[0]
             
-            # --- REGRA 1: SEGMENTO (Pelo Centro de Custo) ---
+            # --- REGRA 1: SEGMENTO (Define se é AGRO, PESADOS ou INTRA pelo Centro de Custo) ---
             col_cc = next((c for c in df.columns if 'CENTRO' in c and 'CUSTO' in c), '')
             cc = str(data.get(col_cc, '')).upper()
             segmento = 'OUTROS'
@@ -90,7 +94,7 @@ def api_buscar_dados_sinistro(request):
             elif cc.startswith('H15') or cc.startswith('H16'): segmento = 'PESADOS'
             elif cc.startswith('H30') or cc.startswith('H60'): segmento = 'INTRA'
             
-            # --- REGRA 2: PROTEÇÃO DO CASCO ---
+            # --- REGRA 2: PROTEÇÃO DO CASCO (Verifica se o cliente tem seguro interno) ---
             col_prot = next((c for c in df.columns if 'PROTECAO' in c or 'CASCO' in c), None)
             tem_protecao = False
             if col_prot:
@@ -105,10 +109,50 @@ def api_buscar_dados_sinistro(request):
                 'contrato': str(data.get('CONTRATO', '')),
                 'segmento': segmento,
                 'tem_protecao': tem_protecao,
-                'msg': 'Dados encontrados!'
+                'msg': 'Dados encontrados com sucesso!'
             })
             
-        return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada.'})
+        return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada na base.'})
 
     except Exception as e:
-        return JsonResponse({'encontrado': False, 'msg': str(e)})
+        return JsonResponse({'encontrado': False, 'msg': f'Erro ao processar arquivo: {str(e)}'})
+
+# === SALVAR O HISTORICO AUTOMATICAMENTE SEMPRE QUE ALTERAR O SETOR ===
+@login_required(login_url='login')
+def editar_sinistro_view(request, pk):
+    sinistro = get_object_or_404(Sinistro, pk=pk)
+    
+    # Guarda o estado anterior para comparar mudanças de fase
+    setor_anterior = sinistro.setor_atual
+
+    if request.method == 'POST':
+        form = SinistroForm(request.POST, instance=sinistro)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            
+            # Se mudou de setor, registra no histórico automaticamente
+            if obj.setor_atual != setor_anterior:
+                HistoricoSinistro.objects.create(
+                    sinistro=obj,
+                    setor_anterior=setor_anterior,
+                    setor_novo=obj.setor_atual,
+                    alterado_por=request.user,
+                    comentario=f"Mudança de fase: {obj.get_setor_atual_display()}"
+                )
+                obj.ultima_interacao = timezone.now()
+                messages.info(request, f"Processo movido para: {obj.get_setor_atual_display()}")
+
+            obj.save()
+            messages.success(request, "Sinistro atualizado com sucesso!")
+            return redirect('editar_sinistro', pk=pk)
+    else:
+        form = SinistroForm(instance=sinistro)
+
+    # Pega o histórico para mostrar na timeline da tela de edição
+    historico = sinistro.historico.all().order_by('-data_mudanca')
+
+    return render(request, "sinistros/editar_sinistro.html", {
+        "form": form, 
+        "sinistro": sinistro,
+        "historico": historico
+    })
