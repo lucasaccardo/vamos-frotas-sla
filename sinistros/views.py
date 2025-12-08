@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Avg # Adicionado para cálculos matemáticos
+from datetime import datetime  # Adicionado conforme solicitado
 
 # Importação dos modelos e forms do app de Sinistros
 from .models import Sinistro, HistoricoSinistro
