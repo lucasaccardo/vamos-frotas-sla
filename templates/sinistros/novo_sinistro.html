@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid" id="main_container">
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -16,18 +16,33 @@
         </a>
     </div>
 
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Atenção, corrija os erros abaixo:</h5>
+        <ul>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
             <h6 class="m-0 fw-bold text-primary">Dados do Processo</h6>
         </div>
         <div class="card-body p-4">
             
-            <form method="post">
+            <form method="post" id="formNovoSinistro" onsubmit="mostrarLoading()">
                 {% csrf_token %}
 
                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem;">Identificação do Ativo</h6>
                 <div class="row g-3 mb-4">
-                    
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Placa *</label>
                         <div class="input-group">
@@ -51,7 +66,6 @@
                         <label class="form-label fw-bold">Modelo</label>
                         <input type="text" name="{{ form.modelo_ativo.name }}" id="id_modelo" class="form-control bg-light" readonly tabindex="-1">
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Chassi</label>
                         <input type="text" name="{{ form.chassi.name }}" id="id_chassi" class="form-control bg-light" readonly tabindex="-1">
@@ -60,6 +74,7 @@
                         <label class="form-label fw-bold">Contrato</label>
                         <input type="text" name="{{ form.n_contrato.name }}" id="id_contrato" class="form-control bg-light" readonly tabindex="-1">
                     </div>
+                    
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Segmento</label>
                         {{ form.segmento }} 
@@ -86,63 +101,52 @@
                         <label class="form-label fw-bold">Data Ocorrência *</label>
                         {{ form.data_ocorrencia }}
                     </div>
+                    
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Motivo *</label>
-                        {{ form.motivo }}
+                        <select name="{{ form.motivo.name }}" class="form-select" id="id_motivo" onchange="verificarMotivo()">
+                            {% for x, y in form.fields.motivo.choices %}
+                                <option value="{{ x }}" {% if form.motivo.value == x %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+                    
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Telefone Contato</label>
                         {{ form.telefone_contato }}
                     </div>
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold">Endereço Atual do Ativo</label>
+                    
+                    <div class="col-md-12" id="div_endereco">
+                        <label class="form-label fw-bold">Endereço Atual do Ativo *</label>
                         {{ form.endereco_ativo }}
                     </div>
                 </div>
 
                 <div class="bg-light p-3 rounded border mb-4">
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-check2-square me-2"></i>Checklist de Documentos Iniciais</h6>
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-check2-square me-2"></i>Checklist Inicial</h6>
                     <div class="d-flex gap-4 flex-wrap">
                         <div class="form-check">
-                            {{ form.check_bo }}
-                            <label class="form-check-label" for="{{ form.check_bo.id_for_label }}">B.O. Oficial</label>
+                            {{ form.check_bo }} <label class="form-check-label">B.O. Oficial</label>
                         </div>
                         <div class="form-check">
-                            {{ form.check_ficha }}
-                            <label class="form-check-label" for="{{ form.check_ficha.id_for_label }}">Ficha de Ocorrência</label>
+                            {{ form.check_ficha }} <label class="form-check-label">Ficha de Ocorrência</label>
                         </div>
                         <div class="form-check">
-                            {{ form.check_cnh }}
-                            <label class="form-check-label" for="{{ form.check_cnh.id_for_label }}">CNH Condutor</label>
+                            {{ form.check_cnh }} <label class="form-check-label">CNH Condutor</label>
                         </div>
                         <div class="form-check">
-                            {{ form.check_fotos }}
-                            <label class="form-check-label" for="{{ form.check_fotos.id_for_label }}">Fotos Avarias</label>
-                        </div>
-                        <div class="form-check">
-                            {{ form.check_laudo }}
-                            <label class="form-check-label" for="{{ form.check_laudo.id_for_label }}">Laudo Pericial</label>
+                            {{ form.check_fotos }} <label class="form-check-label">Fotos Avarias</label>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Tipo de Processo (Sugestão)</label>
-                        {{ form.tipo_processo }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Setor Inicial</label>
-                        {{ form.setor_atual }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Prazo (Retornar Até)</label>
-                        {{ form.retornar_ate }}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold">Observações Iniciais</label>
-                        {{ form.observacoes }}
-                    </div>
+                <div class="row g-3 d-none"> {{ form.tipo_processo }}
+                    {{ form.setor_atual }}
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label fw-bold">Observações Iniciais</label>
+                    {{ form.observacoes }}
                 </div>
 
                 <div class="mt-4 text-end">
@@ -156,85 +160,91 @@
     </div>
 </div>
 
+<div id="loading_overlay" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-white d-flex flex-column justify-content-center align-items-center" style="z-index: 9999; opacity: 0.9;">
+    <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h4 class="fw-bold text-dark">Processo Incluído!</h4>
+    <p class="text-muted">Redirecionando para a lista...</p>
+</div>
+
 <script>
+    // 1. ANIMAÇÃO DE SUCESSO AO ENVIAR
+    function mostrarLoading() {
+        document.getElementById('main_container').classList.add('d-none'); // Esconde formulário
+        document.getElementById('loading_overlay').classList.remove('d-none'); // Mostra loading
+        // O form continua sendo enviado para o servidor
+    }
+
+    // 2. LÓGICA DO ENDEREÇO (FURTO/ROUBO)
+    function verificarMotivo() {
+        const motivo = document.getElementById('id_motivo').value;
+        const divEnd = document.getElementById('div_endereco');
+        const inputEnd = document.getElementById('id_endereco_ativo'); // Django gera esse ID padrão
+
+        if (motivo === 'FURTO_ROUBO') {
+            divEnd.classList.add('d-none');
+            if(inputEnd) inputEnd.value = "N/A (Furto/Roubo)"; // Preenche automático para não dar erro
+        } else {
+            divEnd.classList.remove('d-none');
+            if(inputEnd && inputEnd.value === "N/A (Furto/Roubo)") inputEnd.value = "";
+        }
+    }
+
+    // 3. BUSCA PLACA (MANTIDA)
     async function buscarDadosPlaca() {
         const placaInput = document.getElementById('id_placa');
         const loading = document.getElementById('loading_icon');
         const msg = document.getElementById('msg_placa');
-        
         const placa = placaInput.value.trim();
         if (!placa) return;
 
-        // 1. Ativa loading
         loading.classList.remove('d-none');
-        msg.innerText = "Consultando Base Total...";
-        msg.className = "form-text text-primary fw-bold";
+        msg.innerText = "Consultando...";
+        msg.className = "form-text text-primary";
 
         try {
-            // 2. Chama a API de Sinistros
             const response = await fetch(`/sinistros/api/buscar-placa/?placa=${placa}`);
             const data = await response.json();
 
             if (data.encontrado) {
-                // 3. Preenche os campos
                 document.getElementById('id_cliente').value = data.cliente;
                 document.getElementById('id_chassi').value = data.chassi;
                 document.getElementById('id_modelo').value = data.modelo;
                 document.getElementById('id_contrato').value = data.contrato;
-
-                // 4. Seleciona o Segmento
+                
                 const selectSegmento = document.querySelector('select[name="segmento"]');
                 if(selectSegmento) selectSegmento.value = data.segmento;
 
-                // 5. Lógica de Proteção e Tipo de Processo
                 const checkProtecao = document.querySelector('input[name="tem_protecao_casco"]');
                 const labelProtecao = document.getElementById('label_protecao');
-                const selectProcesso = document.querySelector('select[name="tipo_processo"]');
-
+                
                 if (data.tem_protecao) {
                     checkProtecao.checked = true;
-                    labelProtecao.innerText = "SIM (Automático)";
+                    labelProtecao.innerText = "SIM";
                     labelProtecao.className = "form-check-label small text-success fw-bold";
-                    // Sugere Cliente 20%
-                    if(selectProcesso) selectProcesso.value = 'CLIENTE_20';
                 } else {
                     checkProtecao.checked = false;
                     labelProtecao.innerText = "NÃO";
                     labelProtecao.className = "form-check-label small text-muted";
-                    // Sugere Cliente 100%
-                    if(selectProcesso) selectProcesso.value = 'CLIENTE_100';
                 }
-
-                // 6. Sucesso
-                msg.innerText = "✅ Veículo encontrado e dados carregados.";
+                msg.innerText = "✅ Dados carregados.";
                 msg.className = "form-text text-success fw-bold";
-
             } else {
-                // Erro
                 msg.innerText = `❌ ${data.msg}`;
                 msg.className = "form-text text-danger fw-bold";
-                document.getElementById('id_cliente').value = "";
             }
-
         } catch (error) {
-            console.error(error);
             msg.innerText = "Erro de conexão.";
         } finally {
             loading.classList.add('d-none');
         }
     }
 
-    // Adiciona estilo Bootstrap aos campos
+    // Inicialização
     document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('input[type="text"], input[type="date"], select, textarea');
-        inputs.forEach(input => {
-            if (!input.classList.contains('form-control') && !input.classList.contains('form-check-input')) {
-                input.classList.add('form-control');
-            }
-        });
-        const checks = document.querySelectorAll('input[type="checkbox"]');
-        checks.forEach(check => {
-            check.classList.add('form-check-input');
+        verificarMotivo(); // Roda ao abrir para garantir estado certo
+        
+        document.querySelectorAll('input, select, textarea').forEach(e => {
+            if(!e.classList.contains('form-check-input')) e.classList.add('form-control');
         });
     });
 </script>
