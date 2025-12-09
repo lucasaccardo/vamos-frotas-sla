@@ -30,7 +30,9 @@
                     <div class="col-md-3">
                         <label class="fw-bold">Placa *</label>
                         {{ form.placa }}
-                        <div class="form-text small" id="msg_placa">Digite para buscar.</div>
+                        <div class="form-text small fw-bold text-primary" id="msg_placa">
+                            <i class="bi bi-search me-1"></i>Digite e saia do campo para buscar.
+                        </div>
                     </div>
                     <div class="col-md-5">
                         <label class="fw-bold">Cliente</label>
@@ -148,9 +150,8 @@
 </div>
 
 <script>
-    // 1. ANIMAÇÃO DE SUCESSO (SÓ RODA SE O FORM FOR VÁLIDO)
+    // 1. TELA DE CARREGAMENTO
     function mostrarLoading() {
-        // Delay minúsculo para garantir que o navegador validou os campos obrigatórios
         if(document.getElementById('formNovo').checkValidity()){
             document.getElementById('main_container').classList.add('d-none');
             document.getElementById('loading_screen').classList.remove('d-none');
@@ -173,15 +174,21 @@
         }
     }
 
-    // 3. BUSCA PLACA
+    // 3. FUNÇÃO DE BUSCA (API)
     async function buscarDadosPlaca() {
-        const placa = document.getElementById('id_placa').value.trim();
-        if(!placa) return;
+        const placaInput = document.getElementById('id_placa');
+        const placa = placaInput.value.trim();
+        const msg = document.getElementById('msg_placa');
+
+        if(!placa || placa.length < 5) return;
         
-        document.getElementById('msg_placa').innerText = "Buscando...";
+        msg.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Buscando...';
+        msg.className = "form-text text-primary fw-bold";
+        
         try {
             const res = await fetch(`/sinistros/api/buscar-placa/?placa=${placa}`);
             const data = await res.json();
+            
             if(data.encontrado) {
                 document.getElementById('id_cliente').value = data.cliente;
                 document.getElementById('id_modelo').value = data.modelo;
@@ -191,25 +198,36 @@
                 let selSeg = document.querySelector('select[name="segmento"]');
                 if(selSeg) selSeg.value = data.segmento;
 
-                document.getElementById('msg_placa').innerText = "✅ Encontrado!";
-                document.getElementById('msg_placa').className = "form-text text-success fw-bold";
+                msg.innerText = "✅ Cliente Encontrado!";
+                msg.className = "form-text text-success fw-bold";
             } else {
-                document.getElementById('msg_placa').innerText = "Placa não encontrada na base.";
+                msg.innerText = "❌ Placa não encontrada na base.";
+                msg.className = "form-text text-danger fw-bold";
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e);
+            msg.innerText = "Erro na conexão.";
+        }
     }
 
+    // 4. INICIALIZAÇÃO
     document.addEventListener("DOMContentLoaded", function() {
         toggleEndereco();
         
-        // ⚠️ CORREÇÃO DOS CHECKBOXES ⚠️
+        // Estiliza os campos
         document.querySelectorAll('input, select, textarea').forEach(e => {
             if(e.type === 'checkbox') {
-                e.classList.add('form-check-input'); // Agora sim vira um quadrado de marcar
+                e.classList.add('form-check-input');
             } else {
                 e.classList.add('form-control');
             }
         });
+
+        // 🔥 AQUI ESTÁ A CORREÇÃO: Conecta a busca ao sair do campo Placa
+        const campoPlaca = document.getElementById('id_placa');
+        if(campoPlaca) {
+            campoPlaca.addEventListener('blur', buscarDadosPlaca);
+        }
     });
 </script>
 {% endblock %}
