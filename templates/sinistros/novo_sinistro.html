@@ -6,29 +6,16 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-dark mb-1">
-                <i class="bi bi-file-earmark-medical text-danger me-2"></i>Abertura de Sinistro
-            </h2>
-            <p class="text-muted">Preencha os dados iniciais para registrar uma nova ocorrência.</p>
+            <h2 class="fw-bold text-dark mb-1">Abertura de Sinistro</h2>
+            <p class="text-muted">Preenchimento inicial.</p>
         </div>
-        <a href="{% url 'sinistros_home' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Voltar
-        </a>
+        <a href="{% url 'sinistros_home' %}" class="btn btn-outline-secondary">Voltar</a>
     </div>
 
     {% if form.errors %}
     <div class="alert alert-danger">
-        <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Atenção, corrija os erros abaixo:</h5>
-        <ul>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
+        <strong>Atenção:</strong> Corrija os erros abaixo.
+        {{ form.errors }}
     </div>
     {% endif %}
 
@@ -38,47 +25,35 @@
             <form method="post" id="formNovo" onsubmit="mostrarLoading()">
                 {% csrf_token %}
 
-                <h6 class="fw-bold text-muted mb-3">Veículo</h6>
+                <h6 class="fw-bold text-muted mb-3">Dados do Ativo</h6>
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <label class="fw-bold">Placa *</label>
-                        <div class="input-group">
-                            <input type="text" name="{{ form.placa.name }}" id="id_placa" 
-                                   class="form-control text-uppercase fw-bold" 
-                                   placeholder="ABC-1234" maxlength="20" required
-                                   onblur="buscarDadosPlaca()">
-                            <span class="input-group-text bg-white d-none" id="loading_icon">
-                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                            </span>
-                        </div>
-                        <div id="msg_placa" class="form-text small"></div>
+                        {{ form.placa }}
+                        <div class="form-text small" id="msg_placa">Digite para buscar.</div>
                     </div>
                     <div class="col-md-5">
                         <label class="fw-bold">Cliente</label>
-                        <input type="text" name="{{ form.cliente.name }}" id="id_cliente" class="form-control bg-light" readonly tabindex="-1">
+                        {{ form.cliente }}
                     </div>
                     <div class="col-md-4">
                         <label class="fw-bold">Modelo</label>
-                        <input type="text" name="{{ form.modelo_ativo.name }}" id="id_modelo" class="form-control bg-light" readonly tabindex="-1">
+                        {{ form.modelo_ativo }}
                     </div>
                     <div class="col-md-4">
                         <label class="fw-bold">Chassi</label>
-                        <input type="text" name="{{ form.chassi.name }}" id="id_chassi" class="form-control bg-light" readonly tabindex="-1">
+                        {{ form.chassi }}
                     </div>
                     <div class="col-md-4">
                         <label class="fw-bold">Contrato</label>
-                        <input type="text" name="{{ form.n_contrato.name }}" id="id_contrato" class="form-control bg-light" readonly tabindex="-1">
+                        {{ form.n_contrato }}
                     </div>
                     <div class="col-md-4">
                         <label class="fw-bold">Segmento</label>
                         {{ form.segmento }}
                     </div>
-                    <div class="col-md-12">
-                        <label class="fw-bold">Tem Proteção Casco?</label>
-                        <div class="form-check form-switch">
-                            {{ form.tem_protecao_casco }}
-                            <label class="form-check-label small ms-2" for="{{ form.tem_protecao_casco.id_for_label }}" id="label_protecao">Não</label>
-                        </div>
+                    <div class="d-none">
+                        {{ form.tem_protecao_casco }}
                     </div>
                 </div>
 
@@ -87,11 +62,11 @@
                 <h6 class="fw-bold text-muted mb-3">Ocorrência</h6>
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <label class="fw-bold">Chamado (GEO/Vetor) *</label>
+                        <label class="fw-bold">Chamado *</label>
                         {{ form.n_chamado }}
                     </div>
                     <div class="col-md-3">
-                        <label class="fw-bold">Data Ocorrência *</label>
+                        <label class="fw-bold">Data *</label>
                         {{ form.data_ocorrencia }}
                     </div>
                     <div class="col-md-3">
@@ -113,133 +88,112 @@
                     </div>
                 </div>
 
-                <div class="bg-light p-3 rounded mb-4">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-check2-square me-2"></i>Checklist Inicial</h6>
-                    <div class="d-flex gap-4 flex-wrap">
-                        <div class="form-check">
-                            {{ form.check_bo }} <label class="form-check-label">B.O.</label>
+                <div class="bg-light p-4 rounded mb-4 border">
+                    <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-list-check me-2"></i>Documentos Recebidos</h6>
+                    <div class="d-flex gap-5">
+                        <div class="form-check form-switch">
+                            {{ form.check_bo }}
+                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_bo.id_for_label }}">B.O. Oficial</label>
                         </div>
-                        <div class="form-check">
-                            {{ form.check_ficha }} <label class="form-check-label">Ficha</label>
+                        <div class="form-check form-switch">
+                            {{ form.check_ficha }}
+                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_ficha.id_for_label }}">Ficha</label>
                         </div>
-                        <div class="form-check">
-                            {{ form.check_cnh }} <label class="form-check-label">CNH</label>
+                        <div class="form-check form-switch">
+                            {{ form.check_cnh }}
+                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_cnh.id_for_label }}">CNH</label>
                         </div>
-                        <div class="form-check">
-                            {{ form.check_fotos }} <label class="form-check-label">Fotos</label>
+                        <div class="form-check form-switch">
+                            {{ form.check_fotos }}
+                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_fotos.id_for_label }}">Fotos</label>
                         </div>
                     </div>
                 </div>
-                
-                <div class="d-none">
-                    {{ form.tipo_processo }}
-                    {{ form.setor_atual }}
-                    {{ form.status_os }}
-                </div>
 
                 <div class="col-12 mb-3">
-                    <label class="fw-bold">Observações</label>
+                    <label class="fw-bold">Observações Iniciais</label>
                     {{ form.observacoes }}
                 </div>
 
-                <button type="submit" class="btn btn-danger w-100 fw-bold py-2 shadow-sm">
-                    <i class="bi bi-save me-2"></i> ABRIR SINISTRO
-                </button>
+                <div class="d-none">
+                    {{ form.tipo_processo }}
+                    {{ form.setor_atual }}
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-danger btn-lg fw-bold px-5 shadow">
+                        <i class="bi bi-check-lg me-2"></i> ABRIR SINISTRO
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
 <div id="loading_screen" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-white flex-column justify-content-center align-items-center" style="z-index:9999;">
-    <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;"></div>
-    <h3>Processo Incluído!</h3>
-    <p class="text-muted">Redirecionando...</p>
+    <div class="text-center">
+        <div class="spinner-border text-danger mb-4" style="width: 4rem; height: 4rem;" role="status"></div>
+        <h2 class="fw-bold text-dark mb-2">Processo Incluído!</h2>
+        <p class="text-muted fs-5">Redirecionando para a lista...</p>
+    </div>
 </div>
 
 <script>
-    // 1. ANIMAÇÃO TELA BRANCA
+    // 1. ANIMAÇÃO DE SUCESSO
     function mostrarLoading() {
-        // Pequeno delay para garantir que o 'submit' aconteça antes de esconder
-        setTimeout(() => {
-            document.getElementById('main_container').classList.add('d-none');
-            document.getElementById('loading_screen').classList.remove('d-none');
-            document.getElementById('loading_screen').style.display = 'flex';
-        }, 50);
+        // Mostra a tela branca de sucesso imediatamente ao clicar
+        document.getElementById('main_container').classList.add('d-none');
+        document.getElementById('loading_screen').classList.remove('d-none');
+        document.getElementById('loading_screen').style.display = 'flex';
     }
 
-    // 2. LÓGICA DO ENDEREÇO (FURTO/ROUBO)
+    // 2. ENDEREÇO (ROUBO)
     function toggleEndereco() {
         let motivo = document.getElementById('id_motivo').value;
         let div = document.getElementById('div_endereco');
-        let inputEnd = document.getElementById('id_endereco_ativo'); // Padrão Django id_nomecampo
+        let input = document.getElementById('id_endereco_ativo');
 
         if (motivo === 'FURTO_ROUBO') {
             div.style.display = 'none';
-            // Preenche auto para passar na validação HTML required se houver
-            if(inputEnd) inputEnd.value = "N/A (Furto/Roubo)"; 
+            if(input) input.value = "N/A (Furto/Roubo)";
         } else {
             div.style.display = 'block';
-            if(inputEnd && inputEnd.value === "N/A (Furto/Roubo)") inputEnd.value = "";
+            if(input && input.value.includes("N/A")) input.value = "";
         }
     }
 
-    // 3. BUSCA DE PLACA (MANTIDA SUA LÓGICA)
+    // 3. BUSCA PLACA (MANTIDO)
     async function buscarDadosPlaca() {
-        const placaInput = document.getElementById('id_placa');
-        const loading = document.getElementById('loading_icon');
-        const msg = document.getElementById('msg_placa');
-        const placa = placaInput.value.trim();
-        if (!placa) return;
-
-        loading.classList.remove('d-none');
-        msg.innerText = "Consultando...";
-        msg.className = "form-text text-primary";
-
-        try {
-            const response = await fetch(`/sinistros/api/buscar-placa/?placa=${placa}`);
-            const data = await response.json();
-
-            if (data.encontrado) {
-                document.getElementById('id_cliente').value = data.cliente;
-                document.getElementById('id_chassi').value = data.chassi;
-                document.getElementById('id_modelo').value = data.modelo;
-                document.getElementById('id_contrato').value = data.contrato;
-                
-                const selectSegmento = document.querySelector('select[name="segmento"]');
-                if(selectSegmento) selectSegmento.value = data.segmento;
-
-                const checkProtecao = document.querySelector('input[name="tem_protecao_casco"]');
-                const labelProtecao = document.getElementById('label_protecao');
-                
-                if (data.tem_protecao) {
-                    checkProtecao.checked = true;
-                    labelProtecao.innerText = "SIM";
-                    labelProtecao.className = "form-check-label small text-success fw-bold ms-2";
-                } else {
-                    checkProtecao.checked = false;
-                    labelProtecao.innerText = "NÃO";
-                    labelProtecao.className = "form-check-label small text-muted ms-2";
-                }
-                msg.innerText = "✅ Dados carregados.";
-                msg.className = "form-text text-success fw-bold";
-            } else {
-                msg.innerText = `❌ ${data.msg}`;
-                msg.className = "form-text text-danger fw-bold";
-            }
-        } catch (error) {
-            msg.innerText = "Erro de conexão.";
-        } finally {
-            loading.classList.add('d-none');
-        }
-    }
-    
-    // Inicialização ao carregar a página
-    document.addEventListener("DOMContentLoaded", function() {
-        toggleEndereco(); // Garante estado correto se voltar de um erro de validação
+        const placa = document.getElementById('id_placa').value.trim();
+        if(!placa) return;
         
-        // Estilização global dos inputs (caso não venha do forms.py)
+        document.getElementById('msg_placa').innerText = "Buscando...";
+        try {
+            const res = await fetch(`/sinistros/api/buscar-placa/?placa=${placa}`);
+            const data = await res.json();
+            if(data.encontrado) {
+                document.getElementById('id_cliente').value = data.cliente;
+                document.getElementById('id_modelo').value = data.modelo;
+                document.getElementById('id_chassi').value = data.chassi;
+                document.getElementById('id_n_contrato').value = data.contrato;
+                
+                let selSeg = document.querySelector('select[name="segmento"]');
+                if(selSeg) selSeg.value = data.segmento;
+
+                document.getElementById('msg_placa').innerText = "✅ Encontrado!";
+                document.getElementById('msg_placa').className = "form-text text-success fw-bold";
+            } else {
+                document.getElementById('msg_placa').innerText = "Placa não encontrada na base.";
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleEndereco();
+        // Garante estilo Bootstrap nos inputs
         document.querySelectorAll('input, select, textarea').forEach(e => {
             if(!e.classList.contains('form-check-input')) e.classList.add('form-control');
+            else e.classList.add('form-check-input'); // Para os checkboxes ficarem bonitos
         });
     });
 </script>
