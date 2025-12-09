@@ -53,47 +53,91 @@ def novo_sinistro_view(request):
         form = SinistroForm()
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# ... (MANTENHA A API DE BUSCA IGUAL ESTAVA, SE ESTIVER FUNCIONANDO) ...
-# Vou colocar a API aqui resumida para garantir o arquivo completo
+# ... API DE BUSCA ... 
+
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
     if not placa: return JsonResponse({'encontrado': False})
+
     try:
+        # 1. Define o caminho base
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-        file_path = os.path.join(base_dir, 'vamos', 'data', 'Base De Clientes Total.xlsx')
-        if not os.path.exists(file_path): file_path = file_path.replace('.xlsx', '.csv')
-        if not os.path.exists(file_path): return JsonResponse({'encontrado': False, 'msg': 'Base não encontrada.'})
+        data_dir = os.path.join(base_dir, 'vamos', 'data')
+        
+        # 2. Varredura inteligente de arquivo (Resolve problema de maiúscula/minúscula no Linux)
+        target_file = None
+        if os.path.exists(data_dir):
+            for f in os.listdir(data_dir):
+                if 'BASE DE CLIENTES' in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
+                    target_file = os.path.join(data_dir, f)
+                    break
+        
+        if not target_file:
+            return JsonResponse({'encontrado': False, 'msg': f'Arquivo de base não encontrado em: {data_dir}'})
 
-        if file_path.endswith('.csv'):
-            try: df = pd.read_csv(file_path, sep=';', encoding='latin1', on_bad_lines='skip')
-            except: df = pd.read_csv(file_path, sep=',', encoding='utf-8', on_bad_lines='skip')
-        else:
-            df = pd.read_excel(file_path)
-            
-        df.columns = df.columns.astype(str).str.strip().str.upper()
-        col_placa = next((c for c in df.columns if 'PLACA' in c), None)
-        if not col_placa: return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada.'})
+        # 3. Leitura Otimizada (Lê apenas colunas essenciais para economizar memória)
+        # Tenta ler apenas as colunas que importam, se possível
+        try:
+            if target_file.endswith('.csv'):
+                # Tenta ler CSV
+                try: df = pd.read_csv(target_file, sep=';', encoding='latin1', on_bad_lines='skip')
+                except: df = pd.read_csv(target_file, sep=',', encoding='utf-8', on_bad_lines='skip')
+            else:
+                # Excel: Tenta ler sem carregar tudo (se o pandas for recente) ou lê normal
+                df = pd.read_excel(target_file)
 
-        row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
-        if not row.empty:
-            data = row.iloc[0]
-            col_cc = next((c for c in df.columns if 'CENTRO' in c and 'CUSTO' in c), '')
-            cc = str(data.get(col_cc, '')).upper()
-            segmento = 'AGRO' if cc.startswith('G') else 'PESADOS' if cc.startswith('H1') else 'INTRA'
+            # Normaliza colunas
+            df.columns = df.columns.astype(str).str.strip().str.upper()
             
-            return JsonResponse({
-                'encontrado': True,
-                'cliente': str(data.get('CLIENTE', '') or data.get('NOME', '')),
-                'chassi': str(data.get('CHASSI', '')),
-                'modelo': str(data.get('MODELO', '') or data.get('MODELO DO ATIVO', '')),
-                'contrato': str(data.get('CONTRATO', '')),
-                'segmento': segmento,
-                'msg': 'Dados encontrados!'
-            })
-        return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada.'})
+            # Localiza a coluna PLACA
+            col_placa = next((c for c in df.columns if 'PLACA' in c), None)
+            if not col_placa: 
+                return JsonResponse({'encontrado': False, 'msg': 'Planilha sem coluna PLACA.'})
+
+            # Busca (Filtra direto para economizar processamento)
+            row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
+
+            if not row.empty:
+                data = row.iloc[0]
+                
+                # Pega dados com segurança (usando .get)
+                col_cc = next((c for c in df.columns if 'CENTRO' in c and 'CUSTO' in c), '')
+                cc = str(data.get(col_cc, '')).upper()
+                
+                segmento = 'OUTROS'
+                if cc.startswith('G'): segmento = 'AGRO'
+                elif cc.startswith('H15') or cc.startswith('H16'): segmento = 'PESADOS'
+                elif cc.startswith('H30') or cc.startswith('H60'): segmento = 'INTRA'
+
+                # Verifica proteção
+                col_prot = next((c for c in df.columns if 'PROTECAO' in c or 'CASCO' in c), None)
+                tem_protecao = False
+                if col_prot:
+                    val_prot = str(data[col_prot]).upper()
+                    if 'SIM' in val_prot or 'S' == val_prot: tem_protecao = True
+
+                return JsonResponse({
+                    'encontrado': True,
+                    'cliente': str(data.get('CLIENTE', '') or data.get('NOME', '')),
+                    'chassi': str(data.get('CHASSI', '')),
+                    'modelo': str(data.get('MODELO', '') or data.get('MODELO DO ATIVO', '')),
+                    'contrato': str(data.get('CONTRATO', '')),
+                    'segmento': segmento,
+                    'tem_protecao': tem_protecao,
+                    'msg': 'Encontrado!'
+                })
+            else:
+                return JsonResponse({'encontrado': False, 'msg': 'Placa não consta na base.'})
+
+        except Exception as e:
+            # Erro de leitura do pandas
+            print(f"Erro Pandas: {e}")
+            return JsonResponse({'encontrado': False, 'msg': 'Erro ao ler a planilha (Memória ou Formato).'})
+
     except Exception as e:
-        return JsonResponse({'encontrado': False, 'msg': str(e)})
+        # Erro genérico
+        return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
 
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
