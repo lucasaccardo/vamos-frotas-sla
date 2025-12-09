@@ -1,30 +1,27 @@
 """
 Django settings for vamos_frotas_sla project.
+Versão Final - Segura para Produção
 """
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url  # Importante para o banco na nuvem
+import dj_database_url
 
-# Carrega as variáveis do arquivo .env (apenas localmente)
 load_dotenv()
 
-# Caminho base do projeto (onde fica o manage.py)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA ===
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
 
-# ⚠️ ALTERAÇÃO FEITA AQUI: DEBUG FORÇADO PARA TRUE
-# Isso vai obrigar o Render a mostrar a tela amarela com o erro
-DEBUG = True 
+# ⚠️ LÓGICA INTELIGENTE:
+# Por padrão é FALSE (Seguro). Se precisar debugar, você muda lá nas "Environment Variables" do Render.
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-# Permite qualquer host
 ALLOWED_HOSTS = ["*"]
 
-
-# === APPS INSTALADOS ===
+# === APPS ===
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -33,20 +30,16 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
-    
-    # Biblioteca para AWS S3
     "storages", 
-
-    # Seus Apps
-    "vamos",      # Core/Manutenção
-    "accounts",   # Login
-    "sinistros",  # Novo App de Sinistros
+    "vamos",
+    "accounts",
+    "sinistros",
 ]
 
-# === MIDDLEWARE (ORDEM IMPORTA!) ===
+# === MIDDLEWARE ===
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware", # Essencial para CSS na nuvem
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -57,7 +50,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "vamos_frotas_sla.urls"
 
-# === TEMPLATES (HTML) ===
+# === TEMPLATES ===
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -69,8 +62,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                
-                # --- NOTIFICAÇÕES GLOBAIS ---
                 "vamos.context_processors.notificacoes_globais",
             ],
         },
@@ -78,7 +69,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "vamos_frotas_sla.wsgi.application"
-
 
 # === BANCO DE DADOS ===
 DATABASES = {
@@ -88,8 +78,7 @@ DATABASES = {
     )
 }
 
-
-# === VALIDAÇÃO DE SENHA ===
+# === SENHAS ===
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -97,21 +86,18 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# === INTERNACIONALIZAÇÃO ===
+# === GERAL ===
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
 USE_TZ = True
 
-
-# === ARQUIVOS ESTÁTICOS ===
+# === ESTÁTICOS E MÍDIA ===
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# === ARQUIVOS DE MÍDIA (AWS S3) ===
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
@@ -121,31 +107,23 @@ AWS_DEFAULT_ACL = None
 AWS_S3_FILE_OVERWRITE = False
 
 STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
+    "default": {"BACKEND": "storages.backends.s3.S3Storage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
-
-# === LOGIN / LOGOUT ===
+# === LOGIN ===
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "portal" 
 LOGOUT_REDIRECT_URL = "login"
 
-
-# === CONFIGURAÇÃO PADRÃO ===
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# === CONFIGURAÇÕES I.A. ===
+# === I.A. E EMAIL ===
 GOOGLE_API_KEY = "AIzaSyA821yX6bOVatN5bf2BNikhAhngRSlo6p4" 
 GEMINI_MODEL = "gemini-2.0-flash"
 
-# === CONFIGURAÇÃO DE E-MAIL ===
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -154,7 +132,6 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
-# === SESSÃO ===
 SESSION_COOKIE_AGE = 1800
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
