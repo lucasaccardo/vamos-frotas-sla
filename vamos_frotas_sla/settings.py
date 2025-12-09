@@ -15,8 +15,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA ===
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
-# Se DJANGO_DEBUG não estiver definido (na nuvem), assume False por segurança
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+
+# ⚠️ MUDANÇA TEMPORÁRIA PARA VER O ERRO NA TELA
+DEBUG = True
 
 # Permite qualquer host (necessário para o Render funcionar sem configurar domínio)
 ALLOWED_HOSTS = ["*"]
