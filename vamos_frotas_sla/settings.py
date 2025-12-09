@@ -16,11 +16,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # === SEGURANÇA ===
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
 
-# Volta ao padrão: Lê do .env ou assume True localmente para desenvolvimento
-# Na nuvem (Render), certifique-se de configurar a variável DJANGO_DEBUG = False nas Environment Variables
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+# ⚠️ ALTERAÇÃO FEITA AQUI: DEBUG FORÇADO PARA TRUE
+# Isso vai obrigar o Render a mostrar a tela amarela com o erro
+DEBUG = True 
 
-# Permite qualquer host (necessário para o Render funcionar sem configurar domínio)
+# Permite qualquer host
 ALLOWED_HOSTS = ["*"]
 
 
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     
-    # Biblioteca para AWS S3 (Necessária para a configuração nova)
+    # Biblioteca para AWS S3
     "storages", 
 
     # Seus Apps
@@ -80,8 +80,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "vamos_frotas_sla.wsgi.application"
 
 
-# === BANCO DE DADOS (LÓGICA INTELIGENTE) ===
-# Se tiver DATABASE_URL (Nuvem), usa ele. Senão, usa SQLite (Local).
+# === BANCO DE DADOS ===
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
@@ -106,26 +105,21 @@ USE_I18N = True
 USE_TZ = True
 
 
-# === ARQUIVOS ESTÁTICOS (CSS, JS, Imagens do Site) ===
-# Continuam no Render usando Whitenoise (mais rápido e barato)
+# === ARQUIVOS ESTÁTICOS ===
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# === ARQUIVOS DE MÍDIA (PDFs, Uploads) -> VÃO PARA AMAZON S3 ===
-# Configurações da AWS (Lê das variáveis de ambiente)
+# === ARQUIVOS DE MÍDIA (AWS S3) ===
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = 'us-east-1' # Região padrão (Norte da Virgínia)
+AWS_S3_REGION_NAME = 'us-east-1'
 AWS_S3_SIGNATURE_VERSION = 's3v4'
-
-# Configurações de Upload
 AWS_DEFAULT_ACL = None
-AWS_S3_FILE_OVERWRITE = False # Não substitui arquivos com mesmo nome (cria cópia)
+AWS_S3_FILE_OVERWRITE = False
 
-# Dita as regras: Static no Render, Media na Amazon
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
@@ -135,7 +129,6 @@ STORAGES = {
     },
 }
 
-# URL base para acessar os arquivos na Amazon
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
 
@@ -148,11 +141,11 @@ LOGOUT_REDIRECT_URL = "login"
 # === CONFIGURAÇÃO PADRÃO ===
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# === CONFIGURAÇÕES I.A. (GEMINI) ===
+# === CONFIGURAÇÕES I.A. ===
 GOOGLE_API_KEY = "AIzaSyA821yX6bOVatN5bf2BNikhAhngRSlo6p4" 
 GEMINI_MODEL = "gemini-2.0-flash"
 
-# === CONFIGURAÇÃO DE E-MAIL (GMAIL) ===
+# === CONFIGURAÇÃO DE E-MAIL ===
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -161,9 +154,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
-# ==========================================
-# CONFIGURAÇÃO DE SESSÃO (TIMEOUT)
-# ==========================================
+# === SESSÃO ===
 SESSION_COOKIE_AGE = 1800
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
