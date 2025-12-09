@@ -14,7 +14,7 @@
 
     {% if form.errors %}
     <div class="alert alert-danger">
-        <strong>Atenção:</strong> Corrija os erros abaixo.
+        <strong>Atenção:</strong> Corrija os erros abaixo antes de salvar.
         {{ form.errors }}
     </div>
     {% endif %}
@@ -52,6 +52,7 @@
                         <label class="fw-bold">Segmento</label>
                         {{ form.segmento }}
                     </div>
+                    
                     <div class="d-none">
                         {{ form.tem_protecao_casco }}
                     </div>
@@ -90,22 +91,30 @@
 
                 <div class="bg-light p-4 rounded mb-4 border">
                     <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-list-check me-2"></i>Documentos Recebidos</h6>
-                    <div class="d-flex gap-5">
-                        <div class="form-check form-switch">
-                            {{ form.check_bo }}
-                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_bo.id_for_label }}">B.O. Oficial</label>
+                    <div class="row">
+                        <div class="col-auto">
+                            <div class="form-check">
+                                {{ form.check_bo }}
+                                <label class="form-check-label fw-bold" for="{{ form.check_bo.id_for_label }}">B.O. Oficial</label>
+                            </div>
                         </div>
-                        <div class="form-check form-switch">
-                            {{ form.check_ficha }}
-                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_ficha.id_for_label }}">Ficha</label>
+                        <div class="col-auto">
+                            <div class="form-check">
+                                {{ form.check_ficha }}
+                                <label class="form-check-label fw-bold" for="{{ form.check_ficha.id_for_label }}">Ficha</label>
+                            </div>
                         </div>
-                        <div class="form-check form-switch">
-                            {{ form.check_cnh }}
-                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_cnh.id_for_label }}">CNH</label>
+                        <div class="col-auto">
+                            <div class="form-check">
+                                {{ form.check_cnh }}
+                                <label class="form-check-label fw-bold" for="{{ form.check_cnh.id_for_label }}">CNH</label>
+                            </div>
                         </div>
-                        <div class="form-check form-switch">
-                            {{ form.check_fotos }}
-                            <label class="form-check-label fw-bold ms-2" for="{{ form.check_fotos.id_for_label }}">Fotos</label>
+                        <div class="col-auto">
+                            <div class="form-check">
+                                {{ form.check_fotos }}
+                                <label class="form-check-label fw-bold" for="{{ form.check_fotos.id_for_label }}">Fotos</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,12 +148,14 @@
 </div>
 
 <script>
-    // 1. ANIMAÇÃO DE SUCESSO
+    // 1. ANIMAÇÃO DE SUCESSO (SÓ RODA SE O FORM FOR VÁLIDO)
     function mostrarLoading() {
-        // Mostra a tela branca de sucesso imediatamente ao clicar
-        document.getElementById('main_container').classList.add('d-none');
-        document.getElementById('loading_screen').classList.remove('d-none');
-        document.getElementById('loading_screen').style.display = 'flex';
+        // Delay minúsculo para garantir que o navegador validou os campos obrigatórios
+        if(document.getElementById('formNovo').checkValidity()){
+            document.getElementById('main_container').classList.add('d-none');
+            document.getElementById('loading_screen').classList.remove('d-none');
+            document.getElementById('loading_screen').style.display = 'flex';
+        }
     }
 
     // 2. ENDEREÇO (ROUBO)
@@ -162,7 +173,7 @@
         }
     }
 
-    // 3. BUSCA PLACA (MANTIDO)
+    // 3. BUSCA PLACA
     async function buscarDadosPlaca() {
         const placa = document.getElementById('id_placa').value.trim();
         if(!placa) return;
@@ -190,10 +201,14 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         toggleEndereco();
-        // Garante estilo Bootstrap nos inputs
+        
+        // ⚠️ CORREÇÃO DOS CHECKBOXES ⚠️
         document.querySelectorAll('input, select, textarea').forEach(e => {
-            if(!e.classList.contains('form-check-input')) e.classList.add('form-control');
-            else e.classList.add('form-check-input'); // Para os checkboxes ficarem bonitos
+            if(e.type === 'checkbox') {
+                e.classList.add('form-check-input'); // Agora sim vira um quadrado de marcar
+            } else {
+                e.classList.add('form-control');
+            }
         });
     });
 </script>
