@@ -55,7 +55,7 @@ def novo_sinistro_view(request):
 
 # ... API DE BUSCA ... 
 
-# --- FUNÇÃO api_buscar_dados_sinistro ---
+# --- SUBSTITUA APENAS A FUNÇÃO api_buscar_dados_sinistro ---
 
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
@@ -63,31 +63,29 @@ def api_buscar_dados_sinistro(request):
     if not placa: return JsonResponse({'encontrado': False})
 
     try:
-        # 1. Caminho da pasta de dados
+        # 1. Caminho da pasta
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         data_dir = os.path.join(base_dir, 'vamos', 'data')
         
-        # 2. PROCURA ESPECIFICAMENTE A "BASE DE CLIENTES TOTAL"
-        # O loop abaixo resolve o problema de maiúsculas/minúsculas do Linux
+        # 2. Varredura de Arquivo (Procura a Base Total)
         arquivo_alvo = None
-        nome_desejado = "BASE DE CLIENTES TOTAL" # Nome chave que buscamos
-        
         if os.path.exists(data_dir):
             for f in os.listdir(data_dir):
-                # Verifica se o nome do arquivo contém "BASE DE CLIENTES TOTAL" (ignorando .xlsx)
-                if nome_desejado in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
+                if "BASE DE CLIENTES TOTAL" in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
                     arquivo_alvo = os.path.join(data_dir, f)
                     break
         
-        # Se não achou a "Total", tenta pegar qualquer planilha disponível como fallback
+        # Fallback: se não achar a Total, pega a primeira planilha que tiver
         if not arquivo_alvo and os.path.exists(data_dir):
-             arquivos = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
-             if arquivos: arquivo_alvo = os.path.join(data_dir, arquivos[0])
+             for f in os.listdir(data_dir):
+                 if f.endswith('.xlsx') or f.endswith('.csv'):
+                     arquivo_alvo = os.path.join(data_dir, f)
+                     break
 
         if not arquivo_alvo:
-            return JsonResponse({'encontrado': False, 'msg': 'Planilha "Base De Clientes Total" não encontrada no servidor.'})
+            return JsonResponse({'encontrado': False, 'msg': 'Base de dados não encontrada.'})
 
-        # 3. LEITURA DOS DADOS
+        # 3. Leitura
         try:
             if arquivo_alvo.endswith('.csv'):
                 try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
@@ -95,58 +93,84 @@ def api_buscar_dados_sinistro(request):
             else:
                 df = pd.read_excel(arquivo_alvo)
 
-            # Normaliza colunas (Tudo maiúsculo e sem espaços extras)
+            # Normaliza colunas (Tudo maiúsculo e texto)
             df.columns = df.columns.astype(str).str.strip().str.upper()
             
+            # --- FUNÇÃO AUXILIAR PARA ACHAR COLUNA POR PALAVRA-CHAVE ---
+            def achar_valor(row_data, palavras_chaves):
+                # Tenta achar uma coluna que contenha uma das palavras chaves
+                for col in df.columns:
+                    for palavra in palavras_chaves:
+                        if palavra in col:
+                            valor = row_data.get(col)
+                            # Limpa valores nulos/vazios
+                            if pd.isna(valor) or str(valor).strip() == '' or str(valor).lower() == 'nan':
+                                continue
+                            return str(valor).strip()
+                return ""
+            # -----------------------------------------------------------
+
             # Localiza a coluna PLACA
             col_placa = next((c for c in df.columns if 'PLACA' in c), None)
-            if not col_placa: 
-                return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
+            if not col_placa: return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada.'})
 
-            # 4. BUSCA A PLACA
-            # Converte a coluna placa da planilha para texto e maiúsculo para comparar
+            # Busca a linha
             row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
 
             if not row.empty:
-                data = row.iloc[0]
+                data = row.iloc[0] # Pega a primeira linha encontrada
                 
-                # Inteligência de Segmento pelo Centro de Custo
-                col_cc = next((c for c in df.columns if 'CENTRO' in c and 'CUSTO' in c), '')
-                cc = str(data.get(col_cc, '')).upper()
+                # --- AQUI ESTÁ A MÁGICA: BUSCA POR VARIAÇÕES ---
+                
+                # 1. Cliente (Busca por CLIENTE, NOME, RAZAO)
+                cliente = achar_valor(data, ['CLIENTE', 'NOME', 'RAZAO', 'DESCRIÇÃO DO CLIENTE'])
+                
+                # 2. Modelo (Busca por MODELO, VEICULO, BEM, DESCRIÇÃO DO BEM)
+                modelo = achar_valor(data, ['MODELO', 'VEICULO', 'BEM', 'DESCRIÇÃO'])
+                
+                # 3. Chassi (Busca por CHASSI, CHASSIS, SERIE, VIN)
+                chassi = achar_valor(data, ['CHASSI', 'VIN', 'SERIE'])
+                
+                # 4. Contrato (Busca por CONTRATO)
+                contrato = achar_valor(data, ['CONTRATO'])
+                
+                # 5. Segmento (Pelo Centro de Custo)
+                cc = achar_valor(data, ['CENTRO', 'CUSTO', 'CC']).upper()
                 
                 segmento = 'OUTROS'
-                modelo = str(data.get('MODELO', '') or data.get('MODELO DO ATIVO', '')).upper()
-                
-                if cc.startswith('G'): segmento = 'AGRO'
-                elif cc.startswith('H1') or 'CAMINHAO' in modelo or 'CAVALO' in modelo: segmento = 'PESADOS'
-                elif cc.startswith('H3') or cc.startswith('H6') or 'EMPILHADEIRA' in modelo: segmento = 'INTRA'
-                
-                # Proteção Casco (Sim/Não)
-                col_prot = next((c for c in df.columns if 'PROTECAO' in c or 'CASCO' in c), None)
+                if cc.startswith('G') or 'AGRO' in cc: 
+                    segmento = 'AGRO'
+                elif cc.startswith('H1') or 'PESADO' in modelo.upper() or 'CAMINHAO' in modelo.upper(): 
+                    segmento = 'PESADOS'
+                elif cc.startswith('H3') or cc.startswith('H6') or 'INTRA' in cc or 'EMPILHADEIRA' in modelo.upper(): 
+                    segmento = 'INTRA'
+
+                # 6. Proteção Casco
                 tem_protecao = False
-                if col_prot:
-                    val_prot = str(data[col_prot]).upper()
-                    if 'SIM' in val_prot or 'S' == val_prot: tem_protecao = True
+                val_prot = achar_valor(data, ['PROTECAO', 'CASCO', 'SEGURO']).upper()
+                if 'SIM' in val_prot or 'S' == val_prot: 
+                    tem_protecao = True
 
                 return JsonResponse({
                     'encontrado': True,
-                    'cliente': str(data.get('CLIENTE', '') or data.get('NOME', '')),
-                    'chassi': str(data.get('CHASSI', '')),
-                    'modelo': str(data.get('MODELO', '') or data.get('MODELO DO ATIVO', '')),
-                    'contrato': str(data.get('CONTRATO', '')),
+                    'cliente': cliente,
+                    'chassi': chassi,
+                    'modelo': modelo,
+                    'contrato': contrato,
                     'segmento': segmento,
                     'tem_protecao': tem_protecao,
                     'msg': 'Encontrado!'
                 })
             else:
-                return JsonResponse({'encontrado': False, 'msg': f'Placa {placa} não encontrada na Base Total.'})
+                return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada.'})
 
         except Exception as e:
-            return JsonResponse({'encontrado': False, 'msg': f'Erro ao ler planilha: {str(e)}'})
+            print(f"Erro leitura: {e}")
+            return JsonResponse({'encontrado': False, 'msg': 'Erro ao ler arquivo.'})
 
     except Exception as e:
         return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
-
+        
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
