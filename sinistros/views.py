@@ -55,62 +55,73 @@ def novo_sinistro_view(request):
 
 # ... API DE BUSCA ... 
 
+# --- FUNÇÃO api_buscar_dados_sinistro ---
+
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
     if not placa: return JsonResponse({'encontrado': False})
 
     try:
-        # 1. Define o caminho base
+        # 1. Caminho da pasta de dados
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         data_dir = os.path.join(base_dir, 'vamos', 'data')
         
-        # 2. Varredura inteligente de arquivo (Resolve problema de maiúscula/minúscula no Linux)
-        target_file = None
+        # 2. PROCURA ESPECIFICAMENTE A "BASE DE CLIENTES TOTAL"
+        # O loop abaixo resolve o problema de maiúsculas/minúsculas do Linux
+        arquivo_alvo = None
+        nome_desejado = "BASE DE CLIENTES TOTAL" # Nome chave que buscamos
+        
         if os.path.exists(data_dir):
             for f in os.listdir(data_dir):
-                if 'BASE DE CLIENTES' in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
-                    target_file = os.path.join(data_dir, f)
+                # Verifica se o nome do arquivo contém "BASE DE CLIENTES TOTAL" (ignorando .xlsx)
+                if nome_desejado in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
+                    arquivo_alvo = os.path.join(data_dir, f)
                     break
         
-        if not target_file:
-            return JsonResponse({'encontrado': False, 'msg': f'Arquivo de base não encontrado em: {data_dir}'})
+        # Se não achou a "Total", tenta pegar qualquer planilha disponível como fallback
+        if not arquivo_alvo and os.path.exists(data_dir):
+             arquivos = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
+             if arquivos: arquivo_alvo = os.path.join(data_dir, arquivos[0])
 
-        # 3. Leitura Otimizada (Lê apenas colunas essenciais para economizar memória)
-        # Tenta ler apenas as colunas que importam, se possível
+        if not arquivo_alvo:
+            return JsonResponse({'encontrado': False, 'msg': 'Planilha "Base De Clientes Total" não encontrada no servidor.'})
+
+        # 3. LEITURA DOS DADOS
         try:
-            if target_file.endswith('.csv'):
-                # Tenta ler CSV
-                try: df = pd.read_csv(target_file, sep=';', encoding='latin1', on_bad_lines='skip')
-                except: df = pd.read_csv(target_file, sep=',', encoding='utf-8', on_bad_lines='skip')
+            if arquivo_alvo.endswith('.csv'):
+                try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
+                except: df = pd.read_csv(arquivo_alvo, sep=',', encoding='utf-8', on_bad_lines='skip')
             else:
-                # Excel: Tenta ler sem carregar tudo (se o pandas for recente) ou lê normal
-                df = pd.read_excel(target_file)
+                df = pd.read_excel(arquivo_alvo)
 
-            # Normaliza colunas
+            # Normaliza colunas (Tudo maiúsculo e sem espaços extras)
             df.columns = df.columns.astype(str).str.strip().str.upper()
             
             # Localiza a coluna PLACA
             col_placa = next((c for c in df.columns if 'PLACA' in c), None)
             if not col_placa: 
-                return JsonResponse({'encontrado': False, 'msg': 'Planilha sem coluna PLACA.'})
+                return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
 
-            # Busca (Filtra direto para economizar processamento)
+            # 4. BUSCA A PLACA
+            # Converte a coluna placa da planilha para texto e maiúsculo para comparar
             row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
 
             if not row.empty:
                 data = row.iloc[0]
                 
-                # Pega dados com segurança (usando .get)
+                # Inteligência de Segmento pelo Centro de Custo
                 col_cc = next((c for c in df.columns if 'CENTRO' in c and 'CUSTO' in c), '')
                 cc = str(data.get(col_cc, '')).upper()
                 
                 segmento = 'OUTROS'
+                modelo = str(data.get('MODELO', '') or data.get('MODELO DO ATIVO', '')).upper()
+                
                 if cc.startswith('G'): segmento = 'AGRO'
-                elif cc.startswith('H15') or cc.startswith('H16'): segmento = 'PESADOS'
-                elif cc.startswith('H30') or cc.startswith('H60'): segmento = 'INTRA'
-
-                # Verifica proteção
+                elif cc.startswith('H1') or 'CAMINHAO' in modelo or 'CAVALO' in modelo: segmento = 'PESADOS'
+                elif cc.startswith('H3') or cc.startswith('H6') or 'EMPILHADEIRA' in modelo: segmento = 'INTRA'
+                
+                # Proteção Casco (Sim/Não)
                 col_prot = next((c for c in df.columns if 'PROTECAO' in c or 'CASCO' in c), None)
                 tem_protecao = False
                 if col_prot:
@@ -128,15 +139,12 @@ def api_buscar_dados_sinistro(request):
                     'msg': 'Encontrado!'
                 })
             else:
-                return JsonResponse({'encontrado': False, 'msg': 'Placa não consta na base.'})
+                return JsonResponse({'encontrado': False, 'msg': f'Placa {placa} não encontrada na Base Total.'})
 
         except Exception as e:
-            # Erro de leitura do pandas
-            print(f"Erro Pandas: {e}")
-            return JsonResponse({'encontrado': False, 'msg': 'Erro ao ler a planilha (Memória ou Formato).'})
+            return JsonResponse({'encontrado': False, 'msg': f'Erro ao ler planilha: {str(e)}'})
 
     except Exception as e:
-        # Erro genérico
         return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
 
 @login_required(login_url='login')
