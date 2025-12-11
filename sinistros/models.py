@@ -39,10 +39,10 @@ class Sinistro(models.Model):
     n_chamado = models.CharField(max_length=50, verbose_name="Nº Chamado")
     data_ocorrencia = models.DateField()
     motivo = models.CharField(max_length=20, choices=MOTIVOS)
-    endereco_ativo = models.CharField(max_length=200, blank=True, null=True) # Já aceita vazio para Roubo
+    endereco_ativo = models.CharField(max_length=200, blank=True, null=True)
     telefone_contato = models.CharField(max_length=20, blank=True, null=True)
     
-    # --- FINANCEIRO (AGORA OPCIONAIS NA ABERTURA) ---
+    # --- FINANCEIRO (OPCIONAIS NA ABERTURA) ---
     valor_fipe = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     valor_implemento = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     valor_franquia = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -61,7 +61,7 @@ class Sinistro(models.Model):
     ultima_interacao = models.DateTimeField(auto_now=True)
     retornar_ate = models.DateField(blank=True, null=True, verbose_name="Prazo SLA")
 
-    # --- CHECKLIST (BOOLEANOS) ---
+    # --- CHECKLIST ---
     check_bo = models.BooleanField(default=False, verbose_name="B.O.")
     check_ficha = models.BooleanField(default=False, verbose_name="Ficha de Ocorrência")
     check_cnh = models.BooleanField(default=False, verbose_name="CNH")
@@ -84,7 +84,6 @@ class Sinistro(models.Model):
             return True
         return False
 
-# --- HISTÓRICO PARA AUDITORIA ---
 class HistoricoSinistro(models.Model):
     sinistro = models.ForeignKey(Sinistro, on_delete=models.CASCADE, related_name='historico')
     data_mudanca = models.DateTimeField(auto_now_add=True)
@@ -92,3 +91,18 @@ class HistoricoSinistro(models.Model):
     setor_novo = models.CharField(max_length=50)
     alterado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     comentario = models.TextField(blank=True, null=True)
+
+# === NOVA TABELA DE FROTA ===
+class Frota(models.Model):
+    placa = models.CharField(max_length=20, unique=True, db_index=True)
+    cliente = models.CharField(max_length=200, blank=True, null=True)
+    modelo = models.CharField(max_length=200, blank=True, null=True)
+    chassi = models.CharField(max_length=100, blank=True, null=True)
+    contrato = models.CharField(max_length=100, blank=True, null=True)
+    centro_custo = models.CharField(max_length=50, blank=True, null=True)
+    segmento = models.CharField(max_length=50, blank=True, null=True)
+    
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.placa} - {self.cliente}"
