@@ -1,5 +1,5 @@
+import os
 import pandas as pd
-import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -7,8 +7,9 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum
 from django.urls import reverse
-from .models import Sinistro, HistoricoSinistro, Frota
-from .forms import SinistroForm, UploadBaseForm
+from .models import Sinistro, HistoricoSinistro
+from .forms import SinistroForm
+import json 
 
 # --- HOME ---
 @login_required(login_url='login')
@@ -21,112 +22,109 @@ def sinistros_home_view(request):
         sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
-# --- SUBSTITUA APENAS A FUNÇÃO importar_frota_view ---
-
-@login_required(login_url='login')
-def importar_frota_view(request):
-    if request.method == 'POST':
-        form = UploadBaseForm(request.POST, request.FILES)
-        if form.is_valid():
-            arquivo = request.FILES['arquivo']
-            try:
-                # DICA: Se for Excel, usamos engine='openpyxl' explícito
-                if arquivo.name.endswith('.csv'):
-                    df = pd.read_csv(arquivo, sep=';', encoding='latin1', on_bad_lines='skip')
-                else:
-                    # Lê apenas as colunas essenciais para economizar memória RAM
-                    df = pd.read_excel(arquivo, engine='openpyxl')
-                
-                # Limpa nomes das colunas
-                df.columns = df.columns.astype(str).str.strip().str.upper()
-                
-                # Verifica coluna PLACA
-                col_placa = next((c for c in df.columns if 'PLACA' in c), None)
-                if not col_placa:
-                    messages.error(request, "A planilha precisa ter a coluna PLACA.")
-                    return redirect('importar_frota')
-
-                # Limpa tabela antiga
-                Frota.objects.all().delete()
-                
-                lista_frota = []
-                
-                # Função auxiliar segura
-                def get_val(row, keys):
-                    for col in df.columns:
-                        for k in keys:
-                            if k in col:
-                                val = row[col]
-                                if pd.notna(val): return str(val).strip().upper()
-                    return None
-
-                # Itera e cria objetos
-                for _, row in df.iterrows():
-                    placa = str(row[col_placa]).strip().upper()
-                    if not placa or placa == 'NAN': continue
-                    
-                    cliente = get_val(row, ['CLIENTE', 'NOME']) or ''
-                    modelo = get_val(row, ['MODELO', 'VEICULO', 'BEM']) or ''
-                    chassi = get_val(row, ['CHASSI', 'VIN']) or ''
-                    contrato = get_val(row, ['CONTRATO']) or ''
-                    cc = get_val(row, ['CENTRO', 'CUSTO']) or ''
-                    seg_excel = get_val(row, ['SEGMENTO']) or ''
-                    
-                    # Lógica Segmento
-                    segmento_final = 'OUTROS'
-                    if 'AGRO' in seg_excel: segmento_final = 'AGRO'
-                    elif 'PESADO' in seg_excel or 'CAMINHAO' in seg_excel: segmento_final = 'PESADOS'
-                    elif 'INTRA' in seg_excel or 'EMPILHADEIRA' in seg_excel: segmento_final = 'INTRA'
-                    elif cc.startswith('G'): segmento_final = 'AGRO'
-                    elif cc.startswith('H1') or 'PESADO' in modelo: segmento_final = 'PESADOS'
-                    elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
-                    
-                    lista_frota.append(Frota(
-                        placa=placa,
-                        cliente=cliente[:199],
-                        modelo=modelo[:199],
-                        chassi=chassi[:99],
-                        contrato=contrato[:99],
-                        centro_custo=cc[:49],
-                        segmento=segmento_final
-                    ))
-                
-                # Salva no banco em lote
-                Frota.objects.bulk_create(lista_frota, batch_size=1000)
-                
-                messages.success(request, f"Base atualizada! {len(lista_frota)} veículos.")
-                return redirect('sinistros_home')
-                
-            except Exception as e:
-                # Mostra o erro real na tela (ajuda a descobrir se é falta de lib)
-                messages.error(request, f"Erro técnico: {str(e)}")
-                return redirect('importar_frota')
-    else:
-        form = UploadBaseForm()
-    
-    return render(request, "sinistros/importar_base.html", {'form': form})
-    
-# --- NOVA API (Busca Instantânea no Banco de Dados) ---
+# --- API DE BUSCA (LÊ O ARQUIVO DA PASTA VAMOS/DATA) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
     if not placa: return JsonResponse({'encontrado': False})
 
-    # A mágica acontece aqui: Busca direto na tabela Frota
-    veiculo = Frota.objects.filter(placa=placa).first()
-    
-    if veiculo:
-        return JsonResponse({
-            'encontrado': True,
-            'cliente': veiculo.cliente,
-            'modelo': veiculo.modelo,
-            'chassi': veiculo.chassi,
-            'contrato': veiculo.contrato,
-            'segmento': veiculo.segmento,
-            'msg': 'Encontrado!'
-        })
-    else:
-        return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada na base atualizada. Por favor, importe a planilha mais recente.'})
+    try:
+        # 1. PEGA O CAMINHO DA PASTA 'VAMOS/DATA'
+        # Sobe dois níveis para achar a raiz e entra em vamos/data
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+        data_dir = os.path.join(base_dir, 'vamos', 'data')
+        
+        # 2. PROCURA O ARQUIVO (Excel ou CSV)
+        arquivo_alvo = None
+        
+        # Tenta achar exatamente "Base De Clientes Total"
+        if os.path.exists(data_dir):
+            for f in os.listdir(data_dir):
+                if "BASE DE CLIENTES TOTAL" in f.upper() and (f.endswith('.xlsx') or f.endswith('.csv')):
+                    arquivo_alvo = os.path.join(data_dir, f)
+                    break
+        
+        if not arquivo_alvo:
+            return JsonResponse({'encontrado': False, 'msg': 'Base de dados não encontrada na pasta vamos/data.'})
+
+        # 3. LÊ O ARQUIVO
+        try:
+            if arquivo_alvo.endswith('.csv'):
+                try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
+                except: df = pd.read_csv(arquivo_alvo, sep=',', encoding='utf-8', on_bad_lines='skip')
+            else:
+                df = pd.read_excel(arquivo_alvo)
+
+            # Normaliza colunas (Tudo Maiúsculo)
+            df.columns = df.columns.astype(str).str.strip().str.upper()
+            
+            # Procura a coluna PLACA
+            col_placa = next((c for c in df.columns if 'PLACA' in c), None)
+            
+            if not col_placa:
+                return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
+
+            # 4. FILTRA A PLACA
+            row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
+
+            if not row.empty:
+                data = row.iloc[0]
+                
+                # Função para pegar valor sem dar erro
+                def pegar(lista_chaves):
+                    for col in df.columns:
+                        for chave in lista_chaves:
+                            if chave == col: # Busca exata primeiro
+                                val = data.get(col)
+                                if pd.notna(val): return str(val).strip().upper()
+                    # Se não achou exato, busca parcial
+                    for col in df.columns:
+                        for chave in lista_chaves:
+                            if chave in col:
+                                val = data.get(col)
+                                if pd.notna(val): return str(val).strip().upper()
+                    return ""
+
+                # Mapeamento com base nas colunas que você mandou
+                cliente = pegar(['CLIENTE', 'NOME'])
+                modelo = pegar(['MODELO', 'VEICULO'])
+                chassi = pegar(['CHASSI'])
+                contrato = pegar(['CONTRATO'])
+                cc = pegar(['CENTRO DE CUSTO', 'CENTRO CUSTO'])
+                seg_planilha = pegar(['SEGMENTO'])
+
+                # Lógica de Segmento
+                segmento_final = 'OUTROS'
+                
+                # 1. Tenta ler direto da coluna SEGMENTO
+                if 'AGRO' in seg_planilha: segmento_final = 'AGRO'
+                elif 'PESADO' in seg_planilha or 'CAMINHAO' in seg_planilha: segmento_final = 'PESADOS'
+                elif 'INTRA' in seg_planilha or 'EMPILHADEIRA' in seg_planilha: segmento_final = 'INTRA'
+                
+                # 2. Se falhar, tenta pelo Centro de Custo
+                elif cc:
+                    if cc.startswith('G'): segmento_final = 'AGRO'
+                    elif cc.startswith('H1') or 'PESADO' in modelo: segmento_final = 'PESADOS'
+                    elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
+
+                return JsonResponse({
+                    'encontrado': True,
+                    'cliente': cliente,
+                    'chassi': chassi,
+                    'modelo': modelo,
+                    'contrato': contrato,
+                    'segmento': segmento_final,
+                    'msg': 'Encontrado!'
+                })
+            else:
+                return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada na Base.'})
+
+        except Exception as e:
+            return JsonResponse({'encontrado': False, 'msg': f'Erro ao ler planilha: {str(e)}'})
+
+    except Exception as e:
+        return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
+
 
 # --- NOVO SINISTRO ---
 @login_required(login_url='login')
@@ -136,24 +134,26 @@ def novo_sinistro_view(request):
         if form.is_valid():
             sinistro = form.save(commit=False)
             sinistro.criado_por = request.user
-            if sinistro.motivo == 'FURTO_ROUBO': sinistro.endereco_ativo = "N/A (Furto/Roubo)"
+            if sinistro.motivo == 'FURTO_ROUBO': 
+                sinistro.endereco_ativo = "N/A (Furto/Roubo)"
+            
             sinistro.save()
             
-            # Cria histórico inicial
             HistoricoSinistro.objects.create(
-                sinistro=sinistro, 
-                setor_anterior='-', 
-                setor_novo=sinistro.setor_atual, 
-                alterado_por=request.user, 
-                comentario="Abertura"
+                sinistro=sinistro,
+                setor_anterior='-',
+                setor_novo=sinistro.setor_atual,
+                alterado_por=request.user,
+                comentario="Abertura do processo"
             )
             
-            messages.success(request, f"Processo {sinistro.placa} aberto!")
+            messages.success(request, f"Processo {sinistro.placa} incluído!")
             return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
         else:
             messages.error(request, "Erro ao salvar. Verifique os campos.")
     else:
         form = SinistroForm()
+    
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
 # --- EDIÇÃO ---
@@ -180,8 +180,6 @@ def dashboard_sinistros_view(request):
     labels = ['ABERTURA', 'MANUTENCAO', 'CLIENTE', 'JURIDICO', 'FINANCEIRO']
     valores = []
     now = timezone.now()
-    
-    # Cálculo de SLA
     for setor in labels:
         procs = qs.filter(setor_atual=setor)
         if procs.exists():
