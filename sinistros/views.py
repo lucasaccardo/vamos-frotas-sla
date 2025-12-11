@@ -21,7 +21,8 @@ def sinistros_home_view(request):
         sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
-# --- IMPORTADOR DE BASE (O Grande Segredo: Sobe Excel -> Salva no Banco) ---
+# --- SUBSTITUA APENAS A FUNÇÃO importar_frota_view ---
+
 @login_required(login_url='login')
 def importar_frota_view(request):
     if request.method == 'POST':
@@ -29,37 +30,37 @@ def importar_frota_view(request):
         if form.is_valid():
             arquivo = request.FILES['arquivo']
             try:
-                # 1. Lê o arquivo (Excel ou CSV)
+                # DICA: Se for Excel, usamos engine='openpyxl' explícito
                 if arquivo.name.endswith('.csv'):
                     df = pd.read_csv(arquivo, sep=';', encoding='latin1', on_bad_lines='skip')
                 else:
-                    df = pd.read_excel(arquivo)
+                    # Lê apenas as colunas essenciais para economizar memória RAM
+                    df = pd.read_excel(arquivo, engine='openpyxl')
                 
-                # 2. Limpa nomes das colunas (Maiúsculo e sem espaço)
+                # Limpa nomes das colunas
                 df.columns = df.columns.astype(str).str.strip().str.upper()
                 
-                # Verifica se tem a coluna principal
+                # Verifica coluna PLACA
                 col_placa = next((c for c in df.columns if 'PLACA' in c), None)
                 if not col_placa:
                     messages.error(request, "A planilha precisa ter a coluna PLACA.")
                     return redirect('importar_frota')
 
-                # 3. Limpa a base antiga (Substituição total para não duplicar)
+                # Limpa tabela antiga
                 Frota.objects.all().delete()
                 
-                # 4. Prepara dados para salvar
                 lista_frota = []
                 
-                # Função auxiliar para pegar valor seguro de colunas variadas
+                # Função auxiliar segura
                 def get_val(row, keys):
-                    for k in df.columns:
-                        for key in keys:
-                            if key in k:
-                                val = row.get(k)
+                    for col in df.columns:
+                        for k in keys:
+                            if k in col:
+                                val = row[col]
                                 if pd.notna(val): return str(val).strip().upper()
                     return None
 
-                # Itera sobre cada linha da planilha
+                # Itera e cria objetos
                 for _, row in df.iterrows():
                     placa = str(row[col_placa]).strip().upper()
                     if not placa or placa == 'NAN': continue
@@ -71,17 +72,14 @@ def importar_frota_view(request):
                     cc = get_val(row, ['CENTRO', 'CUSTO']) or ''
                     seg_excel = get_val(row, ['SEGMENTO']) or ''
                     
-                    # Lógica de Segmento Inteligente
+                    # Lógica Segmento
                     segmento_final = 'OUTROS'
-                    # Prioridade 1: O que está escrito na planilha
                     if 'AGRO' in seg_excel: segmento_final = 'AGRO'
                     elif 'PESADO' in seg_excel or 'CAMINHAO' in seg_excel: segmento_final = 'PESADOS'
                     elif 'INTRA' in seg_excel or 'EMPILHADEIRA' in seg_excel: segmento_final = 'INTRA'
-                    
-                    # Prioridade 2: Centro de Custo ou Modelo (caso a coluna Segmento esteja vazia)
                     elif cc.startswith('G'): segmento_final = 'AGRO'
-                    elif cc.startswith('H1') or 'PESADO' in modelo or 'CAMINHAO' in modelo: segmento_final = 'PESADOS'
-                    elif cc.startswith('H3') or cc.startswith('H6') or 'EMPILHADEIRA' in modelo: segmento_final = 'INTRA'
+                    elif cc.startswith('H1') or 'PESADO' in modelo: segmento_final = 'PESADOS'
+                    elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
                     
                     lista_frota.append(Frota(
                         placa=placa,
@@ -93,19 +91,21 @@ def importar_frota_view(request):
                         segmento=segmento_final
                     ))
                 
-                # 5. Salva no Banco (Super Rápido com bulk_create)
-                Frota.objects.bulk_create(lista_frota)
+                # Salva no banco em lote
+                Frota.objects.bulk_create(lista_frota, batch_size=1000)
                 
-                messages.success(request, f"Base atualizada com sucesso! {len(lista_frota)} veículos importados.")
+                messages.success(request, f"Base atualizada! {len(lista_frota)} veículos.")
                 return redirect('sinistros_home')
                 
             except Exception as e:
-                messages.error(request, f"Erro ao processar arquivo: {str(e)}")
+                # Mostra o erro real na tela (ajuda a descobrir se é falta de lib)
+                messages.error(request, f"Erro técnico: {str(e)}")
+                return redirect('importar_frota')
     else:
         form = UploadBaseForm()
     
     return render(request, "sinistros/importar_base.html", {'form': form})
-
+    
 # --- NOVA API (Busca Instantânea no Banco de Dados) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
