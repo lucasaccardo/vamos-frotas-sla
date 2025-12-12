@@ -1,0 +1,85 @@
+{% extends 'vamos/base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold">Histórico Completo - Processo #{{ sinistro.id }} - {{ sinistro.placa }}</h4>
+            <div class="text-muted small">Visualização detalhada do tempo em cada setor e cada movimentação</div>
+        </div>
+        <div>
+            <a href="{% url 'editar_sinistro' sinistro.id %}" class="btn btn-outline-secondary">Voltar ao Processo</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title small text-muted">Tempo Total no Processo</h6>
+                    <div class="fs-4 fw-bold">{{ total_duration_human }}</div>
+                    <div class="small text-muted">Calculado até: {{ now|date:"d/m/Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title small text-muted">Tempo por Setor</h6>
+                    {% if per_sector %}
+                        <div class="row">
+                            {% for p in per_sector %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="border rounded p-2">
+                                        <div class="small text-muted">{{ p.setor }}</div>
+                                        <div class="fw-bold">{{ p.duration_human }}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-muted small">Nenhum dado de tempo por setor.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="m-0 fw-bold">Linha do Tempo</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="bg-light small text-muted text-uppercase">
+                        <tr>
+                            <th>Data / Hora</th>
+                            <th>De → Para</th>
+                            <th>Duração</th>
+                            <th>Usuário</th>
+                            <th>Comentário</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in timeline %}
+                        <tr>
+                            <td class="small text-muted">{{ e.data_mudanca|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="small text-muted">{{ e.setor_anterior or '-' }}</div>
+                                <div class="fw-bold">{{ e.setor_novo or '-' }}</div>
+                            </td>
+                            <td class="fw-bold">{{ e.duration_human }}</td>
+                            <td class="small">{{ e.usuario }}</td>
+                            <td class="small text-truncate" style="max-width:400px;" title="{{ e.comentario }}">{{ e.comentario }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">Sem histórico registrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

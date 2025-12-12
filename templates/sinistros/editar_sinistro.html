@@ -173,8 +173,11 @@
 
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-light fw-bold">
-                    <i class="bi bi-clock-history me-2"></i>Histórico
+                <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-clock-history me-2"></i>Histórico</div>
+                    <a href="{% url 'sinistro_history' sinistro.id %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.75rem;">
+                        <i class="bi bi-eye me-1"></i> Ver Tudo
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush" style="max-height: 600px; overflow-y: auto;">
@@ -234,9 +237,6 @@
                 statusBlock.style.display = 'block'; // Mostra
             } else {
                 statusBlock.style.display = 'none';  // Oculta
-                // Opcional: limpar o valor do status ao ocultar?
-                // const statusInput = statusBlock.querySelector('select, input');
-                // if(statusInput) statusInput.value = ''; 
             }
         }
 

@@ -9,5 +9,6 @@ urlpatterns = [
     path("dashboard/", views.dashboard_sinistros_view, name="dashboard_sinistros"),
     path("delete-selected/", views.delete_selected_sinistros, name="excluir_sinistros_selecionados"),
     path("delete-selected/", views.delete_selected_sinistros, name="delete_selected_sinistros"),
+    path('<int:pk>/history/', views.sinistro_history_view, name='sinistro_history'),
 
 ]
