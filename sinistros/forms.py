@@ -23,7 +23,6 @@ class EditarSinistroForm(forms.ModelForm):
         fields = [
             'setor_atual',
             'responsavel_setor',
-            # 'status_os' NÃO aqui — é declarado acima como campo do form
             'retornar_ate',
             'observacoes',
             # campos financeiros — inclua conforme necessidade

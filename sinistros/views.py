@@ -1,4 +1,7 @@
 import os
+import json
+import logging
+import traceback
 import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -7,12 +10,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count
 from django.urls import reverse
-import json 
-import logging
-import traceback
 
 from .models import Sinistro, HistoricoSinistro
-# ADICIONADO EditarSinistroForm AQUI
 from .forms import SinistroForm, EditarSinistroForm
 
 # --- HOME ---
@@ -26,7 +25,7 @@ def sinistros_home_view(request):
         sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
-# --- API DE BUSCA (MODO ROBUSTO - IGUAL MANUTENÇÃO) ---
+# --- API DE BUSCA (MODO ROBUSTO) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
@@ -77,8 +76,7 @@ def api_buscar_dados_sinistro(request):
             if not col_placa: 
                 return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
 
-            # 4. Busca a Linha
-            # Usa contains para achar mesmo se tiver texto misturado
+            # 4. Busca a Linha (usa contains para achar mesmo se tiver texto misturado)
             row = df[df[col_placa].astype(str).str.strip().str.upper().str.contains(placa, na=False)]
 
             if not row.empty:
@@ -162,7 +160,7 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# --- EDIÇÃO ATUALIZADA (USANDO EditarSinistroForm) ---
+# --- EDIÇÃO (SUBSTITUÍDA CONFORME SOLICITADO) ---
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
@@ -192,12 +190,10 @@ def editar_sinistro_view(request, pk):
                 # Redirect para a listagem filtrada pelo segmento (Opção A)
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
             except Exception as e:
-                import logging, traceback
                 logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
                 traceback.print_exc()
                 messages.error(request, f"Erro ao salvar: {str(e)}")
         else:
-            import logging
             logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors)
             messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
     else:
@@ -207,4 +203,37 @@ def editar_sinistro_view(request, pk):
         "form": form,
         "sinistro": sinistro,
         "historico": historico_qs
+    })
+
+# --- DASHBOARD (SUBSTITUÍDA CONFORME SOLICITADO) ---
+@login_required(login_url='login')
+def dashboard_sinistros_view(request):
+    segmento_filtro = request.GET.get('segmento', 'TODOS')
+    qs = Sinistro.objects.exclude(setor_atual='FINALIZADO')
+    if segmento_filtro != 'TODOS':
+        qs = qs.filter(segmento=segmento_filtro)
+
+    financeiro_pipeline = qs.aggregate(Sum('total_a_pagar'))['total_a_pagar__sum'] or 0
+    total_abertos = qs.count()
+    total_finalizados = Sinistro.objects.filter(setor_atual='FINALIZADO').count()
+
+    labels = ['ABERTURA', 'MANUTENCAO', 'CLIENTE', 'JURIDICO', 'FINANCEIRO']
+    valores = []
+    now = timezone.now()
+    for setor in labels:
+        procs = qs.filter(setor_atual=setor)
+        if procs.exists():
+            media = sum([(now - p.ultima_interacao).days for p in procs]) / procs.count()
+            valores.append(round(media, 1))
+        else:
+            valores.append(0)
+
+    return render(request, "sinistros/dashboard.html", {
+        "financeiro_pipeline": financeiro_pipeline,
+        "financeiro_caixa": 0,
+        "total_abertos": total_abertos,
+        "total_finalizados": total_finalizados,
+        "graf_sla_labels": json.dumps(labels),
+        "graf_sla_data": json.dumps(valores),
+        "segmento_atual": segmento_filtro
     })
