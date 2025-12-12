@@ -1,15 +1,15 @@
 import os
 import pandas as pd
-import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.urls import reverse
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm
+import json 
 
 # --- HOME ---
 @login_required(login_url='login')
@@ -22,18 +22,18 @@ def sinistros_home_view(request):
         sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
-# --- API DE BUSCA (ATUALIZADA) ---
+# --- API DE BUSCA (MODO ROBUSTO - IGUAL MANUTENÇÃO) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
-    placa_input = request.GET.get('placa', '').strip().upper()
-    if not placa_input: return JsonResponse({'encontrado': False})
+    placa = request.GET.get('placa', '').strip().upper()
+    if not placa: return JsonResponse({'encontrado': False})
 
     try:
-        # 1. Caminho da pasta
+        # 1. Caminho da pasta de dados
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         data_dir = os.path.join(base_dir, 'vamos', 'data')
         
-        # 2. Busca o arquivo (Prioridade: BASE DE CLIENTES TOTAL)
+        # 2. Varredura para achar "Base De Clientes Total"
         arquivo_alvo = None
         if os.path.exists(data_dir):
             for f in os.listdir(data_dir):
@@ -41,7 +41,7 @@ def api_buscar_dados_sinistro(request):
                     arquivo_alvo = os.path.join(data_dir, f)
                     break
         
-        # Fallback (pega qualquer planilha se não achar a específica)
+        # Se não achar pelo nome exato, pega qualquer Excel (Fallback)
         if not arquivo_alvo and os.path.exists(data_dir):
              for f in os.listdir(data_dir):
                  if f.endswith('.xlsx'):
@@ -51,7 +51,7 @@ def api_buscar_dados_sinistro(request):
         if not arquivo_alvo:
             return JsonResponse({'encontrado': False, 'msg': 'Base de dados não encontrada.'})
 
-        # 3. Leitura
+        # 3. Leitura Completa
         try:
             if arquivo_alvo.endswith('.csv'):
                 try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
@@ -62,28 +62,20 @@ def api_buscar_dados_sinistro(request):
             # Normaliza colunas
             df.columns = df.columns.astype(str).str.strip().str.upper()
             
-            # --- AGORA A MÁGICA: ACHAR A COLUNA DA PLACA ---
+            # Localiza a coluna PLACA
             col_placa = None
-            
-            # 1. Tenta achar coluna "PLACA" exata
-            if 'PLACA' in df.columns: 
-                col_placa = 'PLACA'
-            # 2. Tenta achar coluna "PLACA / CHASSI"
-            elif 'PLACA / CHASSI' in df.columns:
-                col_placa = 'PLACA / CHASSI'
-            # 3. Tenta qualquer coluna que tenha "PLACA" no nome
+            if 'PLACA' in df.columns: col_placa = 'PLACA'
+            elif 'PLACA / CHASSI' in df.columns: col_placa = 'PLACA / CHASSI'
             else:
                 for c in df.columns:
-                    if 'PLACA' in c: 
-                        col_placa = c
-                        break
-            
-            if not col_placa: 
-                return JsonResponse({'encontrado': False, 'msg': 'Coluna de PLACA não identificada na planilha.'})
+                    if 'PLACA' in c: col_placa = c; break
 
-            # Busca (usando 'contains' porque a coluna pode ter placa E chassi juntos)
-            # Isso permite achar a placa mesmo se estiver misturada no texto
-            row = df[df[col_placa].astype(str).str.strip().str.upper().str.contains(placa_input, na=False)]
+            if not col_placa: 
+                return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
+
+            # 4. Busca a Linha
+            # Usa contains para achar mesmo se tiver texto misturado
+            row = df[df[col_placa].astype(str).str.strip().str.upper().str.contains(placa, na=False)]
 
             if not row.empty:
                 data = row.iloc[0]
@@ -98,16 +90,9 @@ def api_buscar_dados_sinistro(request):
                     return ""
                 
                 cliente = obter(['CLIENTE', 'NOME'])
-                modelo = obter(['MODELO', 'VEICULO', 'BEM'])
-                
-                # Se a placa e chassi estão na mesma coluna, tenta buscar CHASSI separado, senão limpa da string
-                chassi = obter(['CHASSI', 'VIN']) 
-                if not chassi and col_placa == 'PLACA / CHASSI':
-                     chassi = str(data[col_placa]).replace(placa_input, '').strip() # Tenta limpar a placa para sobrar o chassi
-
+                modelo = obter(['MODELO', 'VEICULO'])
+                chassi = obter(['CHASSI', 'VIN'])
                 contrato = obter(['CONTRATO'])
-                
-                # Segmento
                 cc = obter(['CENTRO', 'CUSTO'])
                 seg = obter(['SEGMENTO'])
                 
@@ -119,7 +104,6 @@ def api_buscar_dados_sinistro(request):
                 elif cc.startswith('H1'): segmento_final = 'PESADOS'
                 elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
 
-                # Proteção
                 tem_protecao = False
                 prot = obter(['PROTECAO', 'CASCO'])
                 if 'SIM' in prot or 'S' == prot: tem_protecao = True
@@ -138,10 +122,11 @@ def api_buscar_dados_sinistro(request):
                 return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada.'})
 
         except Exception as e:
-            return JsonResponse({'encontrado': False, 'msg': 'Erro na leitura do arquivo.'})
+            return JsonResponse({'encontrado': False, 'msg': f'Erro leitura Excel: {str(e)}'})
 
     except Exception as e:
-        return JsonResponse({'encontrado': False, 'msg': str(e)})
+        return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
+
 
 # --- NOVO SINISTRO ---
 @login_required(login_url='login')
@@ -173,50 +158,85 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# -- EDITAR SINISTRO --
+# --- EDIÇÃO ---
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    # entrega o histórico ordenado para o template
-    historico_qs = sinistro.historico.order_by('-data_mudanca')
-
+    setor_anterior = sinistro.setor_atual
+    
     if request.method == 'POST':
-        setor_antigo = sinistro.setor_atual
         form = SinistroForm(request.POST, instance=sinistro)
-
         if form.is_valid():
-            try:
-                sinistro = form.save(commit=False)
-                # Opcional: atualiza ultima_interacao ao salvar (ajuste conforme regra de negócio)
-                sinistro.save()
-
-                # Cria registro de histórico se houve mudança de setor (ou sempre, se desejar)
-                if setor_antigo != sinistro.setor_atual:
-                    HistoricoSinistro.objects.create(
-                        sinistro=sinistro,
-                        setor_anterior=setor_antigo or '-',
-                        setor_novo=sinistro.setor_atual,
-                        alterado_por=request.user,
-                        comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
-                    )
-
-                messages.success(request, "Atualizado!")
-                return redirect('editar_sinistro', pk=pk)
-            except Exception as e:
-                import logging, traceback
-                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
-                traceback.print_exc()
-                messages.error(request, f"Erro ao salvar: {str(e)}")
-        else:
-            # Loga os erros do formulário para debug e mostra mensagem amigável
-            import logging
-            logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors.as_json())
-            messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
+            obj = form.save(commit=False)
+            # Verifica mudança de setor
+            if obj.setor_atual != setor_anterior:
+                HistoricoSinistro.objects.create(
+                    sinistro=obj,
+                    setor_anterior=setor_anterior,
+                    setor_novo=obj.setor_atual,
+                    alterado_por=request.user,
+                    comentario=f"Mudança de fase: {obj.get_setor_atual_display()}"
+                )
+                obj.ultima_interacao = timezone.now()
+                messages.info(request, f"Processo movido para: {obj.get_setor_atual_display()}")
+            
+            obj.save()
+            messages.success(request, "Atualizado!")
+            return redirect('editar_sinistro', pk=pk)
     else:
         form = SinistroForm(instance=sinistro)
+        
+    historico = sinistro.historico.all().order_by('-data_mudanca')
+    return render(request, "sinistros/editar_sinistro.html", {"form": form, "sinistro": sinistro, "historico": historico})
 
-    return render(request, "sinistros/editar_sinistro.html", {
-        "form": form,
-        "sinistro": sinistro,
-        "historico": historico_qs
+# --- DASHBOARD (A FUNÇÃO QUE FALTAVA) ---
+@login_required(login_url='login')
+def dashboard_sinistros_view(request):
+    segmento_filtro = request.GET.get('segmento', 'TODOS')
+    
+    # Base QuerySet
+    qs_all = Sinistro.objects.all()
+    if segmento_filtro != 'TODOS': 
+        qs_all = qs_all.filter(segmento=segmento_filtro)
+    
+    # Métricas Financeiras
+    financeiro_pipeline = qs_all.exclude(setor_atual='FINALIZADO').aggregate(Sum('total_a_pagar'))['total_a_pagar__sum'] or 0
+    financeiro_caixa = qs_all.aggregate(Sum('total_pago'))['total_pago__sum'] or 0
+    
+    # Volumetria
+    total_abertos = qs_all.exclude(setor_atual='FINALIZADO').count()
+    total_finalizados = qs_all.filter(setor_atual='FINALIZADO').count()
+    
+    # SLA Calc
+    labels = ['ABERTURA', 'MANUTENCAO', 'CLIENTE', 'JURIDICO', 'FINANCEIRO']
+    valores = []
+    now = timezone.now()
+    
+    # Usamos qs_all excluindo finalizados para calcular média de dias parado
+    processos_ativos = qs_all.exclude(setor_atual='FINALIZADO')
+    
+    for setor in labels:
+        procs = processos_ativos.filter(setor_atual=setor)
+        if procs.exists():
+            # Calcula média de dias desde a última interação
+            media = sum([(now - p.ultima_interacao).days for p in procs]) / procs.count()
+            valores.append(round(media, 1))
+        else:
+            valores.append(0)
+
+    # Gráfico de Motivos
+    motivos_qs = qs_all.values('motivo').annotate(total=Count('id'))
+    graf_motivo_labels = [m['motivo'].replace('_', ' ') for m in motivos_qs]
+    graf_motivo_data = [m['total'] for m in motivos_qs]
+
+    return render(request, "sinistros/dashboard.html", {
+        "financeiro_pipeline": financeiro_pipeline,
+        "financeiro_caixa": financeiro_caixa,
+        "total_abertos": total_abertos,
+        "total_finalizados": total_finalizados,
+        "graf_sla_labels": json.dumps(labels),
+        "graf_sla_data": json.dumps(valores),
+        "graf_motivo_labels": json.dumps(graf_motivo_labels),
+        "graf_motivo_data": json.dumps(graf_motivo_data),
+        "segmento_atual": segmento_filtro
     })
