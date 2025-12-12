@@ -174,9 +174,25 @@
         }
     }
 
-    // 3. FUNÇÃO DE BUSCA (API)
+    // utilitário seguro para setar value só se elemento existir
+    function setValueIfExistsById(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        try {
+            el.value = value == null ? '' : value;
+            // Dispara evento change para atualizar possíveis máscaras ou validações
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        } catch (e) {
+            console.error('Erro ao setar valor no elemento', id, e);
+            return false;
+        }
+    }
+
+    // 3. FUNÇÃO DE BUSCA (API) - agora mais resiliente
     async function buscarDadosPlaca() {
         const placaInput = document.getElementById('id_placa');
+        if (!placaInput) return;
         const placa = placaInput.value.trim();
         const msg = document.getElementById('msg_placa');
 
@@ -186,27 +202,50 @@
         msg.className = "form-text text-primary fw-bold";
         
         try {
-            const res = await fetch(`/sinistros/api/buscar-placa/?placa=${placa}`);
+            // Nota: certifique-se que sua URL no urls.py bate com este caminho
+            const res = await fetch(`/sinistros/api/buscar-placa/?placa=${encodeURIComponent(placa)}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+
+            if (!res.ok) {
+                const texto = await res.text().catch(()=> '');
+                console.error('Resposta não OK', res.status, texto);
+                msg.innerText = `Erro no servidor (${res.status}).`;
+                msg.className = "form-text text-danger fw-bold";
+                return;
+            }
+
             const data = await res.json();
-            
+
             if(data.encontrado) {
-                document.getElementById('id_cliente').value = data.cliente;
-                document.getElementById('id_modelo').value = data.modelo;
-                document.getElementById('id_chassi').value = data.chassi;
-                document.getElementById('id_n_contrato').value = data.contrato;
-                
-                let selSeg = document.querySelector('select[name="segmento"]');
-                if(selSeg) selSeg.value = data.segmento;
+                // Preenche os campos usando os IDs padrão do Django
+                setValueIfExistsById('id_cliente', data.cliente);
+                setValueIfExistsById('id_modelo_ativo', data.modelo); // ID corrigido
+                setValueIfExistsById('id_chassi', data.chassi);
+                setValueIfExistsById('id_n_contrato', data.contrato);
+
+                // Segmento: tenta pelo select com name (fallback) ou ID
+                let selSeg = document.querySelector('select[name="segmento"]') || document.getElementById('id_segmento');
+                if(selSeg && data.segmento) selSeg.value = data.segmento;
+
+                // checkbox oculto de proteção
+                const tp = document.getElementById('id_tem_protecao_casco');
+                if (tp && typeof data.tem_protecao !== 'undefined') {
+                    tp.checked = !!data.tem_protecao;
+                }
 
                 msg.innerText = "✅ Cliente Encontrado!";
                 msg.className = "form-text text-success fw-bold";
             } else {
-                msg.innerText = "❌ Placa não encontrada na base.";
+                msg.innerText = data.msg || "❌ Placa não encontrada na base.";
                 msg.className = "form-text text-danger fw-bold";
             }
         } catch(e) { 
-            console.error(e);
+            console.error('Erro de rede/fetch:', e);
             msg.innerText = "Erro na conexão.";
+            msg.className = "form-text text-danger fw-bold";
         }
     }
 
@@ -214,7 +253,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         toggleEndereco();
         
-        // Estiliza os campos
+        // Estiliza os campos para Bootstrap
         document.querySelectorAll('input, select, textarea').forEach(e => {
             if(e.type === 'checkbox') {
                 e.classList.add('form-check-input');
@@ -223,7 +262,7 @@
             }
         });
 
-        // 🔥 AQUI ESTÁ A CORREÇÃO: Conecta a busca ao sair do campo Placa
+        // Conecta a busca ao sair do campo Placa
         const campoPlaca = document.getElementById('id_placa');
         if(campoPlaca) {
             campoPlaca.addEventListener('blur', buscarDadosPlaca);
