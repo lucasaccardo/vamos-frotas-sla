@@ -22,6 +22,24 @@
         </div>
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Atenção:</strong> Verifique os erros abaixo antes de salvar.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="mt-2 small">
+                {{ form.errors }}
+            </div>
+        </div>
+    {% endif %}
     <div class="row">
         
         <div class="col-lg-8">
@@ -193,8 +211,12 @@
     
     // Estilo Bootstrap nos campos
     document.querySelectorAll('input, select, textarea').forEach(e => {
-        if(e.type !== 'checkbox') e.classList.add('form-control');
-        else e.classList.add('form-check-input');
+        // Aplica form-control apenas se já não tiver e não for checkbox/radio
+        if(e.type !== 'checkbox' && e.type !== 'radio' && !e.classList.contains('form-control')) {
+            e.classList.add('form-control');
+        } else if (e.type === 'checkbox') {
+            e.classList.add('form-check-input');
+        }
     });
 </script>
 {% endblock %}

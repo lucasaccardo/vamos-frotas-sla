@@ -173,42 +173,50 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# --- EDIÇÃO ---
+# -- EDITAR SINISTRO --
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
+    # entrega o histórico ordenado para o template
+    historico_qs = sinistro.historico.order_by('-data_mudanca')
+
     if request.method == 'POST':
+        setor_antigo = sinistro.setor_atual
         form = SinistroForm(request.POST, instance=sinistro)
+
         if form.is_valid():
-            form.save()
-            messages.success(request, "Atualizado!")
-            return redirect('editar_sinistro', pk=pk)
+            try:
+                sinistro = form.save(commit=False)
+                # Opcional: atualiza ultima_interacao ao salvar (ajuste conforme regra de negócio)
+                sinistro.save()
+
+                # Cria registro de histórico se houve mudança de setor (ou sempre, se desejar)
+                if setor_antigo != sinistro.setor_atual:
+                    HistoricoSinistro.objects.create(
+                        sinistro=sinistro,
+                        setor_anterior=setor_antigo or '-',
+                        setor_novo=sinistro.setor_atual,
+                        alterado_por=request.user,
+                        comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
+                    )
+
+                messages.success(request, "Atualizado!")
+                return redirect('editar_sinistro', pk=pk)
+            except Exception as e:
+                import logging, traceback
+                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
+                traceback.print_exc()
+                messages.error(request, f"Erro ao salvar: {str(e)}")
+        else:
+            # Loga os erros do formulário para debug e mostra mensagem amigável
+            import logging
+            logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors.as_json())
+            messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
     else:
         form = SinistroForm(instance=sinistro)
-    return render(request, "sinistros/editar_sinistro.html", {"form": form, "sinistro": sinistro})
 
-# --- DASHBOARD ---
-@login_required(login_url='login')
-def dashboard_sinistros_view(request):
-    segmento_filtro = request.GET.get('segmento', 'TODOS')
-    qs = Sinistro.objects.exclude(setor_atual='FINALIZADO')
-    if segmento_filtro != 'TODOS': qs = qs.filter(segmento=segmento_filtro)
-    
-    labels = ['ABERTURA', 'MANUTENCAO', 'CLIENTE', 'JURIDICO', 'FINANCEIRO']
-    valores = []
-    now = timezone.now()
-    for setor in labels:
-        procs = qs.filter(setor_atual=setor)
-        if procs.exists():
-            media = sum([(now - p.ultima_interacao).days for p in procs]) / procs.count()
-            valores.append(round(media, 1))
-        else:
-            valores.append(0)
-
-    return render(request, "sinistros/dashboard.html", {
-        "financeiro_pipeline": qs.aggregate(Sum('total_a_pagar'))['total_a_pagar__sum'] or 0,
-        "total_abertos": qs.count(),
-        "graf_sla_labels": json.dumps(labels),
-        "graf_sla_data": json.dumps(valores),
-        "segmento_atual": segmento_filtro
+    return render(request, "sinistros/editar_sinistro.html", {
+        "form": form,
+        "sinistro": sinistro,
+        "historico": historico_qs
     })
