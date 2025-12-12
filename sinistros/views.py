@@ -166,58 +166,6 @@ def novo_sinistro_view(request):
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    # Busca histórico para exibir na tela
-    historico_qs = sinistro.historico.order_by('-data_mudanca')
-
-    if request.method == 'POST':
-        setor_antigo = sinistro.setor_atual
-        # Usa o formulário específico de edição
-        form = EditarSinistroForm(request.POST, instance=sinistro)
-        
-        if form.is_valid():
-            try:
-                obj = form.save(commit=False)
-                
-                # Se mudou de setor, atualiza a data de interação
-                if obj.setor_atual != setor_antigo:
-                    obj.ultima_interacao = timezone.now()
-                
-                obj.save()
-
-                # Cria histórico se houve mudança de setor
-                if setor_antigo != obj.setor_atual:
-                    HistoricoSinistro.objects.create(
-                        sinistro=obj,
-                        setor_anterior=setor_antigo or '-',
-                        setor_novo=obj.setor_atual,
-                        alterado_por=request.user,
-                        comentario=request.POST.get('observacoes', '') or f"Mudança para {obj.get_setor_atual_display()}"
-                    )
-                    messages.info(request, f"Processo movido para: {obj.get_setor_atual_display()}")
-
-                messages.success(request, "Atualizado com sucesso!")
-                return redirect('editar_sinistro', pk=pk)
-            
-            except Exception as e:
-                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
-                messages.error(request, f"Erro ao salvar: {str(e)}")
-        else:
-            logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors)
-            messages.error(request, "Formulário inválido. Verifique os campos.")
-    else:
-        # Inicializa o form de edição
-        form = EditarSinistroForm(instance=sinistro)
-
-    return render(request, "sinistros/editar_sinistro.html", {
-        "form": form,
-        "sinistro": sinistro,
-        "historico": historico_qs
-    })
-
-# --- DASHBOARD ---
-@login_required(login_url='login')
-def editar_sinistro_view(request, pk):
-    sinistro = get_object_or_404(Sinistro, pk=pk)
     historico_qs = sinistro.historico.order_by('-data_mudanca')
 
     if request.method == 'POST':
