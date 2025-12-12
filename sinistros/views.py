@@ -7,9 +7,13 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count
 from django.urls import reverse
-from .models import Sinistro, HistoricoSinistro
-from .forms import SinistroForm
 import json 
+import logging
+import traceback
+
+from .models import Sinistro, HistoricoSinistro
+# ADICIONADO EditarSinistroForm AQUI
+from .forms import SinistroForm, EditarSinistroForm
 
 # --- HOME ---
 @login_required(login_url='login')
@@ -158,38 +162,59 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# --- EDIÇÃO ---
+# --- EDIÇÃO ATUALIZADA (USANDO EditarSinistroForm) ---
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    setor_anterior = sinistro.setor_atual
-    
-    if request.method == 'POST':
-        form = SinistroForm(request.POST, instance=sinistro)
-        if form.is_valid():
-            obj = form.save(commit=False)
-            # Verifica mudança de setor
-            if obj.setor_atual != setor_anterior:
-                HistoricoSinistro.objects.create(
-                    sinistro=obj,
-                    setor_anterior=setor_anterior,
-                    setor_novo=obj.setor_atual,
-                    alterado_por=request.user,
-                    comentario=f"Mudança de fase: {obj.get_setor_atual_display()}"
-                )
-                obj.ultima_interacao = timezone.now()
-                messages.info(request, f"Processo movido para: {obj.get_setor_atual_display()}")
-            
-            obj.save()
-            messages.success(request, "Atualizado!")
-            return redirect('editar_sinistro', pk=pk)
-    else:
-        form = SinistroForm(instance=sinistro)
-        
-    historico = sinistro.historico.all().order_by('-data_mudanca')
-    return render(request, "sinistros/editar_sinistro.html", {"form": form, "sinistro": sinistro, "historico": historico})
+    # Busca histórico para exibir na tela
+    historico_qs = sinistro.historico.order_by('-data_mudanca')
 
-# --- DASHBOARD (A FUNÇÃO QUE FALTAVA) ---
+    if request.method == 'POST':
+        setor_antigo = sinistro.setor_atual
+        # Usa o formulário específico de edição
+        form = EditarSinistroForm(request.POST, instance=sinistro)
+        
+        if form.is_valid():
+            try:
+                obj = form.save(commit=False)
+                
+                # Se mudou de setor, atualiza a data de interação
+                if obj.setor_atual != setor_antigo:
+                    obj.ultima_interacao = timezone.now()
+                
+                obj.save()
+
+                # Cria histórico se houve mudança de setor
+                if setor_antigo != obj.setor_atual:
+                    HistoricoSinistro.objects.create(
+                        sinistro=obj,
+                        setor_anterior=setor_antigo or '-',
+                        setor_novo=obj.setor_atual,
+                        alterado_por=request.user,
+                        comentario=request.POST.get('observacoes', '') or f"Mudança para {obj.get_setor_atual_display()}"
+                    )
+                    messages.info(request, f"Processo movido para: {obj.get_setor_atual_display()}")
+
+                messages.success(request, "Atualizado com sucesso!")
+                return redirect('editar_sinistro', pk=pk)
+            
+            except Exception as e:
+                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
+                messages.error(request, f"Erro ao salvar: {str(e)}")
+        else:
+            logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors)
+            messages.error(request, "Formulário inválido. Verifique os campos.")
+    else:
+        # Inicializa o form de edição
+        form = EditarSinistroForm(instance=sinistro)
+
+    return render(request, "sinistros/editar_sinistro.html", {
+        "form": form,
+        "sinistro": sinistro,
+        "historico": historico_qs
+    })
+
+# --- DASHBOARD ---
 @login_required(login_url='login')
 def dashboard_sinistros_view(request):
     segmento_filtro = request.GET.get('segmento', 'TODOS')
