@@ -174,7 +174,7 @@ def editar_sinistro_view(request, pk):
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
-                # opcional: atualiza ultima_interacao
+                # opcional: atualizar ultima_interacao ao salvar
                 # sinistro.ultima_interacao = timezone.now()
                 sinistro.save()
 
@@ -189,7 +189,7 @@ def editar_sinistro_view(request, pk):
                     )
 
                 messages.success(request, "Atualizado!")
-                # --- REDIRECT ALTERADO: volta para a listagem filtrada pelo segmento ---
+                # Redirect para a listagem filtrada pelo segmento (Opção A)
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
             except Exception as e:
                 import logging, traceback
