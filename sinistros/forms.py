@@ -1,12 +1,10 @@
 from django import forms
 from .models import Sinistro
 
-# --- FORMULÁRIO DE CRIAÇÃO (Novo Sinistro) ---
 class SinistroForm(forms.ModelForm):
     class Meta:
         model = Sinistro
         fields = '__all__'
-        # Excluímos campos automáticos ou calculados para não poluir o formulário de edição manual
         exclude = ['criado_por', 'criado_em', 'ultima_interacao', 'total_a_pagar', 'total_pago']
         widgets = {
             'data_ocorrencia': forms.DateInput(attrs={'type': 'date'}),
@@ -14,30 +12,31 @@ class SinistroForm(forms.ModelForm):
             'observacoes': forms.Textarea(attrs={'rows': 3}),
         }
 
-# --- FORMULÁRIO DE EDIÇÃO (Usado na visualização/edição do processo) ---
+# --- FORMULÁRIO DE EDIÇÃO (apenas campos que o usuário pode alterar no fluxo) ---
 class EditarSinistroForm(forms.ModelForm):
+    # Campos adicionais (não pertencem ao modelo) usados pelo template
+    status_os = forms.CharField(required=False, label='Status da O.S.', widget=forms.Textarea(attrs={'rows': 3}))
+    check_laudo = forms.BooleanField(required=False, label='Laudo Pericial')
+
     class Meta:
         model = Sinistro
         fields = [
-            # Workflow
             'setor_atual',
             'responsavel_setor',
-            'status_os',
+            # 'status_os' NÃO aqui — é declarado acima como campo do form
             'retornar_ate',
             'observacoes',
-            
-            # Financeiro
+            # campos financeiros — inclua conforme necessidade
             'valor_fipe',
             'valor_implemento',
             'valor_franquia',
             'valor_seguradora',
             'valor_cliente',
-            
-            # Documentos (Necessário para a aba Documentos funcionar)
+            # checklist existentes no modelo
             'check_bo',
+            'check_ficha',
             'check_cnh',
             'check_fotos',
-            'check_laudo',
         ]
         widgets = {
             'retornar_ate': forms.DateInput(attrs={'type': 'date'}),
