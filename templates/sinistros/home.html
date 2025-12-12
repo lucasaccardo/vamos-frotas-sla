@@ -33,154 +33,155 @@
         </div>
     </div>
 
-    {% if not request.GET.segmento %}
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <a href="?segmento=AGRO" class="text-decoration-none">
-                <div class="card border-0 shadow-sm h-100 bg-white hover-card">
-                    <div class="card-body d-flex align-items-center p-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success me-3">
-                            <i class="bi bi-tree-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-0">AGRO</h6>
-                            <small class="text-muted">Máquinas e Implementos</small>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="?segmento=PESADOS" class="text-decoration-none">
-                <div class="card border-0 shadow-sm h-100 bg-white hover-card">
-                    <div class="card-body d-flex align-items-center p-3">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-3">
-                            <i class="bi bi-truck-front-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-0">PESADOS</h6>
-                            <small class="text-muted">Caminhões e Carretas</small>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="?segmento=INTRA" class="text-decoration-none">
-                <div class="card border-0 shadow-sm h-100 bg-white hover-card">
-                    <div class="card-body d-flex align-items-center p-3">
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning me-3">
-                            <i class="bi bi-box-seam-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-0">INTRA</h6>
-                            <small class="text-muted">Empilhadeiras e Logística</small>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
     <div class="card border-0 shadow-sm">
+        
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 fw-bold text-primary">
                 <i class="bi bi-list-task me-2"></i>Processos em Andamento
             </h6>
-            
-            <div class="d-flex gap-2">
-                {% if request.GET.segmento %}
-                <a href="{% url 'sinistros_home' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Voltar
-                </a>
-                {% endif %}
-            </div>
+
+            <button type="submit" form="formBulkDelete" id="btnDeleteSelected" class="btn btn-sm btn-outline-danger" disabled>
+                <i class="bi bi-trash me-1"></i> Excluir Selecionados
+            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-uppercase small fw-bold text-muted">
-                    <tr>
-                        <th class="ps-4">Placa / Chamado</th>
-                        <th>Cliente</th>
-                        <th>Status / Setor</th>
-                        <th>SLA (Dias Parado)</th>
-                        <th>Prazo (Retorno)</th>
-                        <th class="text-end pe-4">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in sinistros %}
-                    <tr class="{% if s.esta_atrasado %}table-danger{% endif %}">
-                        <td class="ps-4">
-                            <div class="fw-bold text-dark">{{ s.placa }}</div>
-                            <small class="text-muted">#{{ s.n_chamado }}</small>
-                            {% if not request.GET.segmento and s.segmento %}
-                                <span class="badge bg-light text-dark border ms-1" style="font-size: 0.6rem;">{{ s.segmento }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="text-truncate" style="max-width: 250px;" title="{{ s.cliente }}">
-                                {{ s.cliente }}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">{{ s.get_setor_atual_display }}</span>
-                            {% if s.responsavel_setor %}
-                                <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                                    <i class="bi bi-person-fill"></i> {{ s.responsavel_setor }}
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if s.dias_no_setor > 5 %}
-                                <span class="fw-bold text-danger"><i class="bi bi-alarm-fill me-1"></i>{{ s.dias_no_setor }} dias</span>
-                            {% elif s.dias_no_setor > 2 %}
-                                <span class="fw-bold text-warning text-dark">{{ s.dias_no_setor }} dias</span>
-                            {% else %}
-                                <span class="fw-bold text-success">{{ s.dias_no_setor }} dias</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if s.retornar_ate %}
-                                {% if s.esta_atrasado %}
-                                    <div class="fw-bold text-danger">
-                                        {{ s.retornar_ate|date:"d/m/y" }} <i class="bi bi-exclamation-triangle-fill"></i>
+        <div class="card-body p-0">
+            <form method="post" id="formBulkDelete" action="{% url 'excluir_sinistros_selecionados' %}">
+                {% csrf_token %}
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-uppercase small fw-bold text-muted">
+                            <tr>
+                                <th style="width:40px" class="ps-3">
+                                    <input type="checkbox" id="selectAll" class="form-check-input" title="Selecionar todos">
+                                </th>
+                                <th class="ps-3">Placa / Chamado</th>
+                                <th>Cliente</th>
+                                <th>Status / Setor</th>
+                                <th>SLA (Dias Parado)</th>
+                                <th>Prazo (Retorno)</th>
+                                <th class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in sinistros %}
+                            <tr class="{% if s.esta_atrasado %}table-danger{% endif %}">
+                                <td class="ps-3">
+                                    <input type="checkbox" name="selected_ids" value="{{ s.id }}" class="form-check-input select-row">
+                                </td>
+                                <td class="ps-3">
+                                    <div class="fw-bold text-dark">{{ s.placa }}</div>
+                                    <small class="text-muted">#{{ s.n_chamado }}</small>
+                                    {% if not request.GET.segmento and s.segmento %}
+                                        <span class="badge bg-light text-dark border ms-1" style="font-size: 0.6rem;">{{ s.segmento }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 250px;" title="{{ s.cliente }}">
+                                        {{ s.cliente }}
                                     </div>
-                                    <small class="text-danger">Vencido!</small>
-                                {% else %}
-                                    <div class="text-dark">{{ s.retornar_ate|date:"d/m/Y" }}</div>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-4">
-                            <a href="{% url 'editar_sinistro' s.id %}" class="btn btn-sm btn-outline-primary fw-bold">
-                                <i class="bi bi-pencil-square me-1"></i> Tratar
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                            Nenhum processo encontrado neste filtro.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark">{{ s.get_setor_atual_display }}</span>
+                                    {% if s.responsavel_setor %}
+                                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-person-fill"></i> {{ s.responsavel_setor }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if s.dias_no_setor > 5 %}
+                                        <span class="fw-bold text-danger"><i class="bi bi-alarm-fill me-1"></i>{{ s.dias_no_setor }} dias</span>
+                                    {% elif s.dias_no_setor > 2 %}
+                                        <span class="fw-bold text-warning text-dark">{{ s.dias_no_setor }} dias</span>
+                                    {% else %}
+                                        <span class="fw-bold text-success">{{ s.dias_no_setor }} dias</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if s.retornar_ate %}
+                                        {% if s.esta_atrasado %}
+                                            <div class="fw-bold text-danger">
+                                                {{ s.retornar_ate|date:"d/m/y" }} <i class="bi bi-exclamation-triangle-fill"></i>
+                                            </div>
+                                            <small class="text-danger">Vencido!</small>
+                                        {% else %}
+                                            <div class="text-dark">{{ s.retornar_ate|date:"d/m/Y" }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{% url 'editar_sinistro' s.id %}" class="btn btn-sm btn-outline-primary fw-bold">
+                                        <i class="bi bi-pencil-square me-1"></i> Tratar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Nenhum processo encontrado neste filtro.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<style>
-    .hover-card:hover {
-        transform: translateY(-5px);
-        transition: transform 0.2s;
-        border-color: #dc2626 !important;
-    }
-</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = Array.from(document.querySelectorAll('.select-row'));
+        const btnDelete = document.getElementById('btnDeleteSelected');
+        const form = document.getElementById('formBulkDelete');
+
+        // Função para habilitar/desabilitar botão
+        function updateButtonState() {
+            const anyChecked = document.querySelectorAll('.select-row:checked').length > 0;
+            if(btnDelete) {
+                btnDelete.disabled = !anyChecked;
+            }
+        }
+
+        // Evento no Checkbox "Selecionar Todos"
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateButtonState();
+            });
+        }
+
+        // Evento em cada Checkbox da linha
+        checkboxes.forEach(cb => cb.addEventListener('change', function () {
+            // Se desmarcar um, desmarca o "Todos"
+            if (!cb.checked && selectAll) selectAll.checked = false;
+            // Se marcar todos manualmente, marca o "Todos"
+            if (checkboxes.every(c => c.checked) && selectAll) selectAll.checked = true;
+            
+            updateButtonState();
+        }));
+
+        // Confirmação antes do Submit
+        if(form) {
+            form.addEventListener('submit', function (e) {
+                const count = document.querySelectorAll('.select-row:checked').length;
+                if (count === 0) {
+                    e.preventDefault();
+                    return;
+                }
+                const confirmMsg = `Tem certeza que deseja excluir ${count} processo(s)?\n\nEsta ação NÃO pode ser desfeita.`;
+                if (!confirm(confirmMsg)) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

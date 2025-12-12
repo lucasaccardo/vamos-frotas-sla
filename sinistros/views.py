@@ -237,3 +237,42 @@ def dashboard_sinistros_view(request):
         "graf_sla_data": json.dumps(valores),
         "segmento_atual": segmento_filtro
     })
+# -- DELETE SINISTRO --
+
+@login_required(login_url='login')
+def delete_selected_sinistros(request):
+    """
+    Exclui em lote os sinistros selecionados na listagem.
+    Somente aceita POST. Usuários não staff são proibidos (ajuste conforme necessidade).
+    """
+    if request.method != 'POST':
+        messages.error(request, "Método inválido.")
+        return redirect('sinistros_home')
+
+    # Se quiser permitir só staff:
+    if not request.user.is_staff:
+        messages.error(request, "Permissão negada.")
+        return redirect('sinistros_home')
+
+    ids = request.POST.getlist('selected_ids')
+    if not ids:
+        messages.error(request, "Nenhum processo selecionado.")
+        return redirect('sinistros_home')
+
+    # Segurança: garantir que ids são inteiros
+    try:
+        ids = [int(i) for i in ids]
+    except ValueError:
+        messages.error(request, "IDs inválidos.")
+        return redirect('sinistros_home')
+
+    qs = Sinistro.objects.filter(pk__in=ids)
+    count = qs.count()
+    if count == 0:
+        messages.warning(request, "Nenhum processo válido encontrado para exclusão.")
+        return redirect('sinistros_home')
+
+    # Excluir (operação destrutiva)
+    qs.delete()
+    messages.success(request, f"{count} processo(s) excluído(s).")
+    return redirect('sinistros_home')
