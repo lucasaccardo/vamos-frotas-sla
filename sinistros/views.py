@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -9,7 +10,6 @@ from django.db.models import Sum
 from django.urls import reverse
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm
-import json 
 
 # --- HOME ---
 @login_required(login_url='login')
@@ -22,18 +22,18 @@ def sinistros_home_view(request):
         sinistros = Sinistro.objects.all().order_by('-ultima_interacao')
     return render(request, "sinistros/home.html", {'sinistros': sinistros})
 
-# --- API DE BUSCA (MODO ROBUSTO - IGUAL MANUTENÇÃO) ---
+# --- API DE BUSCA (ATUALIZADA) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
-    placa = request.GET.get('placa', '').strip().upper()
-    if not placa: return JsonResponse({'encontrado': False})
+    placa_input = request.GET.get('placa', '').strip().upper()
+    if not placa_input: return JsonResponse({'encontrado': False})
 
     try:
-        # 1. Caminho da pasta de dados
+        # 1. Caminho da pasta
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         data_dir = os.path.join(base_dir, 'vamos', 'data')
         
-        # 2. Varredura para achar "Base De Clientes Total"
+        # 2. Busca o arquivo (Prioridade: BASE DE CLIENTES TOTAL)
         arquivo_alvo = None
         if os.path.exists(data_dir):
             for f in os.listdir(data_dir):
@@ -41,7 +41,7 @@ def api_buscar_dados_sinistro(request):
                     arquivo_alvo = os.path.join(data_dir, f)
                     break
         
-        # Se não achar pelo nome exato, pega qualquer Excel (Fallback)
+        # Fallback (pega qualquer planilha se não achar a específica)
         if not arquivo_alvo and os.path.exists(data_dir):
              for f in os.listdir(data_dir):
                  if f.endswith('.xlsx'):
@@ -51,7 +51,7 @@ def api_buscar_dados_sinistro(request):
         if not arquivo_alvo:
             return JsonResponse({'encontrado': False, 'msg': 'Base de dados não encontrada.'})
 
-        # 3. Leitura Completa (Sem filtros para garantir que pegamos tudo)
+        # 3. Leitura
         try:
             if arquivo_alvo.endswith('.csv'):
                 try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
@@ -59,64 +59,69 @@ def api_buscar_dados_sinistro(request):
             else:
                 df = pd.read_excel(arquivo_alvo)
 
-            # Normaliza colunas (Maiúsculo e sem espaços)
+            # Normaliza colunas
             df.columns = df.columns.astype(str).str.strip().str.upper()
             
-            # Localiza a coluna PLACA
-            col_placa = next((c for c in df.columns if 'PLACA' in c), None)
+            # --- AGORA A MÁGICA: ACHAR A COLUNA DA PLACA ---
+            col_placa = None
+            
+            # 1. Tenta achar coluna "PLACA" exata
+            if 'PLACA' in df.columns: 
+                col_placa = 'PLACA'
+            # 2. Tenta achar coluna "PLACA / CHASSI"
+            elif 'PLACA / CHASSI' in df.columns:
+                col_placa = 'PLACA / CHASSI'
+            # 3. Tenta qualquer coluna que tenha "PLACA" no nome
+            else:
+                for c in df.columns:
+                    if 'PLACA' in c: 
+                        col_placa = c
+                        break
+            
             if not col_placa: 
-                return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
+                return JsonResponse({'encontrado': False, 'msg': 'Coluna de PLACA não identificada na planilha.'})
 
-            # 4. Busca a Linha
-            row = df[df[col_placa].astype(str).str.strip().str.upper() == placa]
+            # Busca (usando 'contains' porque a coluna pode ter placa E chassi juntos)
+            # Isso permite achar a placa mesmo se estiver misturada no texto
+            row = df[df[col_placa].astype(str).str.strip().str.upper().str.contains(placa_input, na=False)]
 
             if not row.empty:
                 data = row.iloc[0]
                 
-                # --- FUNÇÃO FAREJADORA DE COLUNAS ---
-                def obter_dado(palavras_chave):
-                    # Tenta achar uma coluna que contenha uma das palavras
+                # --- FUNÇÃO FAREJADORA ---
+                def obter(chaves):
                     for col in df.columns:
-                        for chave in palavras_chave:
-                            if chave == col: # Prioridade exata
-                                val = data.get(col)
-                                if pd.notna(val) and str(val).strip() != "": return str(val).strip().upper()
-                    
-                    # Se não achou exato, tenta parcial (ex: "MODELO" dentro de "DESCRIÇÃO MODELO")
-                    for col in df.columns:
-                        for chave in palavras_chave:
-                            if chave in col:
+                        for k in chaves:
+                            if k in col: 
                                 val = data.get(col)
                                 if pd.notna(val) and str(val).strip() != "": return str(val).strip().upper()
                     return ""
-                # -------------------------------------
-
-                # Mapeamento com múltiplas tentativas de nome
-                cliente = obter_dado(['CLIENTE', 'NOME', 'RAZAO'])
-                modelo = obter_dado(['MODELO', 'VEICULO', 'BEM', 'ATIVO', 'DESCRIÇÃO'])
-                chassi = obter_dado(['CHASSI', 'VIN', 'SERIE'])
-                contrato = obter_dado(['CONTRATO', 'PEDIDO'])
                 
-                # Inteligência de Segmento
-                cc = obter_dado(['CENTRO DE CUSTO', 'CENTRO CUSTO', 'CC'])
-                seg_planilha = obter_dado(['SEGMENTO'])
+                cliente = obter(['CLIENTE', 'NOME'])
+                modelo = obter(['MODELO', 'VEICULO', 'BEM'])
+                
+                # Se a placa e chassi estão na mesma coluna, tenta buscar CHASSI separado, senão limpa da string
+                chassi = obter(['CHASSI', 'VIN']) 
+                if not chassi and col_placa == 'PLACA / CHASSI':
+                     chassi = str(data[col_placa]).replace(placa_input, '').strip() # Tenta limpar a placa para sobrar o chassi
+
+                contrato = obter(['CONTRATO'])
+                
+                # Segmento
+                cc = obter(['CENTRO', 'CUSTO'])
+                seg = obter(['SEGMENTO'])
                 
                 segmento_final = 'OUTROS'
-                
-                # Regra 1: O que está escrito na coluna Segmento
-                if 'AGRO' in seg_planilha: segmento_final = 'AGRO'
-                elif 'PESADO' in seg_planilha or 'CAMINHAO' in seg_planilha: segmento_final = 'PESADOS'
-                elif 'INTRA' in seg_planilha or 'EMPILHADEIRA' in seg_planilha: segmento_final = 'INTRA'
-                
-                # Regra 2: Centro de Custo
-                elif cc:
-                    if cc.startswith('G'): segmento_final = 'AGRO'
-                    elif cc.startswith('H1') or 'PESADO' in modelo: segmento_final = 'PESADOS'
-                    elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
+                if 'AGRO' in seg: segmento_final = 'AGRO'
+                elif 'PESADO' in seg or 'CAMINHAO' in seg: segmento_final = 'PESADOS'
+                elif 'INTRA' in seg or 'EMPILHADEIRA' in seg: segmento_final = 'INTRA'
+                elif cc.startswith('G'): segmento_final = 'AGRO'
+                elif cc.startswith('H1'): segmento_final = 'PESADOS'
+                elif cc.startswith('H3') or cc.startswith('H6'): segmento_final = 'INTRA'
 
-                # Proteção Casco (Tenta achar coluna Proteção ou Casco)
+                # Proteção
                 tem_protecao = False
-                prot = obter_dado(['PROTECAO', 'CASCO', 'SEGURO'])
+                prot = obter(['PROTECAO', 'CASCO'])
                 if 'SIM' in prot or 'S' == prot: tem_protecao = True
 
                 return JsonResponse({
@@ -133,12 +138,10 @@ def api_buscar_dados_sinistro(request):
                 return JsonResponse({'encontrado': False, 'msg': 'Placa não encontrada.'})
 
         except Exception as e:
-            print(f"Erro leitura Excel: {e}")
-            return JsonResponse({'encontrado': False, 'msg': 'Erro ao ler arquivo Excel.'})
+            return JsonResponse({'encontrado': False, 'msg': 'Erro na leitura do arquivo.'})
 
     except Exception as e:
-        return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
-
+        return JsonResponse({'encontrado': False, 'msg': str(e)})
 
 # --- NOVO SINISTRO ---
 @login_required(login_url='login')
