@@ -40,6 +40,7 @@
             </div>
         </div>
     {% endif %}
+    
     <div class="row">
         
         <div class="col-lg-8">
@@ -64,7 +65,18 @@
                 <div class="card-body p-4">
                     <form method="post" id="formEditar">
                         {% csrf_token %}
-                        
+
+                        <input type="hidden" name="placa" value="{{ sinistro.placa }}">
+                        <input type="hidden" name="cliente" value="{{ sinistro.cliente }}">
+                        <input type="hidden" name="modelo_ativo" value="{{ sinistro.modelo_ativo }}">
+                        <input type="hidden" name="chassi" value="{{ sinistro.chassi }}">
+                        <input type="hidden" name="n_contrato" value="{{ sinistro.n_contrato }}">
+                        <input type="hidden" name="segmento" value="{{ sinistro.segmento }}">
+                        <input type="hidden" name="n_chamado" value="{{ sinistro.n_chamado }}">
+                        <input type="hidden" name="data_ocorrencia" value="{{ sinistro.data_ocorrencia|date:'Y-m-d' }}">
+                        <input type="hidden" name="motivo" value="{{ sinistro.motivo }}">
+                        <input type="hidden" name="endereco_ativo" value="{{ sinistro.endereco_ativo }}">
+                        <input type="hidden" name="telefone_contato" value="{{ sinistro.telefone_contato }}">
                         <div class="tab-content">
                             
                             <div class="tab-pane fade show active" id="status">
