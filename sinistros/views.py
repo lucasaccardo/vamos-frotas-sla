@@ -216,52 +216,47 @@ def editar_sinistro_view(request, pk):
 
 # --- DASHBOARD ---
 @login_required(login_url='login')
-def dashboard_sinistros_view(request):
-    segmento_filtro = request.GET.get('segmento', 'TODOS')
-    
-    # Base QuerySet
-    qs_all = Sinistro.objects.all()
-    if segmento_filtro != 'TODOS': 
-        qs_all = qs_all.filter(segmento=segmento_filtro)
-    
-    # Métricas Financeiras
-    financeiro_pipeline = qs_all.exclude(setor_atual='FINALIZADO').aggregate(Sum('total_a_pagar'))['total_a_pagar__sum'] or 0
-    financeiro_caixa = qs_all.aggregate(Sum('total_pago'))['total_pago__sum'] or 0
-    
-    # Volumetria
-    total_abertos = qs_all.exclude(setor_atual='FINALIZADO').count()
-    total_finalizados = qs_all.filter(setor_atual='FINALIZADO').count()
-    
-    # SLA Calc
-    labels = ['ABERTURA', 'MANUTENCAO', 'CLIENTE', 'JURIDICO', 'FINANCEIRO']
-    valores = []
-    now = timezone.now()
-    
-    # Usamos qs_all excluindo finalizados para calcular média de dias parado
-    processos_ativos = qs_all.exclude(setor_atual='FINALIZADO')
-    
-    for setor in labels:
-        procs = processos_ativos.filter(setor_atual=setor)
-        if procs.exists():
-            # Calcula média de dias desde a última interação
-            media = sum([(now - p.ultima_interacao).days for p in procs]) / procs.count()
-            valores.append(round(media, 1))
+def editar_sinistro_view(request, pk):
+    sinistro = get_object_or_404(Sinistro, pk=pk)
+    historico_qs = sinistro.historico.order_by('-data_mudanca')
+
+    if request.method == 'POST':
+        setor_antigo = sinistro.setor_atual
+        form = EditarSinistroForm(request.POST, instance=sinistro)
+        if form.is_valid():
+            try:
+                sinistro = form.save(commit=False)
+                # opcional: atualiza ultima_interacao
+                # sinistro.ultima_interacao = timezone.now()
+                sinistro.save()
+
+                # cria histórico se houve mudança de setor
+                if setor_antigo != sinistro.setor_atual:
+                    HistoricoSinistro.objects.create(
+                        sinistro=sinistro,
+                        setor_anterior=setor_antigo or '-',
+                        setor_novo=sinistro.setor_atual,
+                        alterado_por=request.user,
+                        comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
+                    )
+
+                messages.success(request, "Atualizado!")
+                # --- REDIRECT ALTERADO: volta para a listagem filtrada pelo segmento ---
+                return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
+            except Exception as e:
+                import logging, traceback
+                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
+                traceback.print_exc()
+                messages.error(request, f"Erro ao salvar: {str(e)}")
         else:
-            valores.append(0)
+            import logging
+            logging.warning("Form inválido ao salvar sinistro %s: %s", pk, form.errors)
+            messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
+    else:
+        form = EditarSinistroForm(instance=sinistro)
 
-    # Gráfico de Motivos
-    motivos_qs = qs_all.values('motivo').annotate(total=Count('id'))
-    graf_motivo_labels = [m['motivo'].replace('_', ' ') for m in motivos_qs]
-    graf_motivo_data = [m['total'] for m in motivos_qs]
-
-    return render(request, "sinistros/dashboard.html", {
-        "financeiro_pipeline": financeiro_pipeline,
-        "financeiro_caixa": financeiro_caixa,
-        "total_abertos": total_abertos,
-        "total_finalizados": total_finalizados,
-        "graf_sla_labels": json.dumps(labels),
-        "graf_sla_data": json.dumps(valores),
-        "graf_motivo_labels": json.dumps(graf_motivo_labels),
-        "graf_motivo_data": json.dumps(graf_motivo_data),
-        "segmento_atual": segmento_filtro
+    return render(request, "sinistros/editar_sinistro.html", {
+        "form": form,
+        "sinistro": sinistro,
+        "historico": historico_qs
     })
