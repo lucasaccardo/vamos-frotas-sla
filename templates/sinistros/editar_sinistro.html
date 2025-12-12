@@ -22,7 +22,14 @@
         </div>
     </div>
 
-    {# Removido bloco de messages duplicado - base.html já mostra messages #}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     {% if form.errors %}
         <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
@@ -33,6 +40,7 @@
             </div>
         </div>
     {% endif %}
+    
     <div class="row">
         
         <div class="col-lg-8">
@@ -73,10 +81,12 @@
                                         <label class="form-label fw-bold">Responsável</label>
                                         {{ form.responsavel_setor }}
                                     </div>
-                                    <div class="col-md-6">
+                                    
+                                    <div class="col-md-6" id="status_os_block" style="display:none;">
                                         <label class="form-label fw-bold">Status da O.S.</label>
                                         {{ form.status_os }}
                                     </div>
+
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-danger">Prazo Limite</label>
                                         {{ form.retornar_ate }}
@@ -204,11 +214,36 @@
     
     // Estilo Bootstrap nos campos
     document.querySelectorAll('input, select, textarea').forEach(e => {
-        // Aplica form-control apenas se já não tiver e não for checkbox/radio
         if(e.type !== 'checkbox' && e.type !== 'radio' && !e.classList.contains('form-control')) {
             e.classList.add('form-control');
         } else if (e.type === 'checkbox') {
             e.classList.add('form-check-input');
+        }
+    });
+
+    // --- SCRIPT PARA MOSTRAR/OCULTAR STATUS DA OS ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const setorSelect = document.querySelector('select[name="setor_atual"]');
+        const statusBlock = document.getElementById('status_os_block');
+
+        function updateStatusVisibility() {
+            if (!setorSelect || !statusBlock) return;
+            const val = setorSelect.value ? setorSelect.value.toString().toUpperCase() : '';
+            // Ajuste aqui se o seu valor no banco for diferente (ex: 'MANUTENCAO')
+            if (val === 'MANUTENCAO' || val === 'MANUTENÇÃO') {
+                statusBlock.style.display = 'block'; // Mostra
+            } else {
+                statusBlock.style.display = 'none';  // Oculta
+                // Opcional: limpar o valor do status ao ocultar?
+                // const statusInput = statusBlock.querySelector('select, input');
+                // if(statusInput) statusInput.value = ''; 
+            }
+        }
+
+        if (setorSelect) {
+            setorSelect.addEventListener('change', updateStatusVisibility);
+            // Executa uma vez no carregamento para checar o valor inicial
+            updateStatusVisibility();
         }
     });
 </script>
