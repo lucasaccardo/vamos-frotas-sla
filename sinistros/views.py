@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 import pandas as pd
-from datetime import timedelta  # <--- Import necessário adicionado
+from datetime import timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -15,6 +15,9 @@ from django.urls import reverse
 
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm, EditarSinistroForm
+
+# Configuração de Log
+logger = logging.getLogger(__name__)
 
 # --- HELPER: FORMATAR TEMPO ---
 def format_timedelta(td: timedelta):
@@ -219,10 +222,6 @@ def editar_sinistro_view(request, pk):
     if request.method == 'POST':
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
-            # ... salva e redirect ...
-            pass # (Mantido vazio conforme seu snippet anterior, o Django cuidaria se tivesse lógica aqui, mas como você usa views separadas, ok)
-            # NOTA: Se você precisa da lógica de salvamento aqui, certifique-se de que ela está presente como no arquivo anterior.
-            # Vou REINSERIR a lógica de salvamento padrão para garantir funcionalidade caso você tenha tirado sem querer.
             try:
                 setor_antigo = sinistro.setor_atual
                 sinistro = form.save(commit=False)
@@ -239,7 +238,11 @@ def editar_sinistro_view(request, pk):
                 messages.success(request, "Atualizado!")
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
             except Exception as e:
+                logger.exception("Erro ao salvar edição: %s", e)
                 messages.error(request, f"Erro: {e}")
+        else:
+            # Caso o form seja inválido, o log abaixo ajuda a entender o motivo
+            logger.warning("Formulário de edição inválido: %s", form.errors)
     else:
         form = EditarSinistroForm(instance=sinistro)
 
@@ -252,68 +255,119 @@ def editar_sinistro_view(request, pk):
         "show_status": show_status,
     })
 
-# --- HISTÓRICO DETALHADO (TIMELINE) ---
+# --- HISTÓRICO DETALHADO (VERSÃO ROBUSTA) ---
 @login_required(login_url='login')
 def sinistro_history_view(request, pk):
+    """
+    Histórico detalhado do sinistro com tolerância a campos ausentes e nomes de relação variados.
+    Em caso de erro, registra o traceback e mostra uma mensagem amigável (não dispara 500).
+    """
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    eventos = list(sinistro.historico.order_by('data_mudanca').all())
-
-    timeline = []
-    per_sector = {}  # acumula tempo por setor
-    total_duration = timedelta(0)
     now = timezone.now()
+    try:
+        # Tentar obter queryset de histórico de formas diferentes
+        if hasattr(sinistro, 'historico'):
+            eventos_qs = sinistro.historico.all().order_by('data_mudanca')
+        elif hasattr(sinistro, 'historicos'):
+            eventos_qs = sinistro.historicos.all().order_by('data_mudanca')
+        else:
+            # fallback: consulta direta ao modelo HistoricoSinistro assumindo campo sinistro FK
+            eventos_qs = HistoricoSinistro.objects.filter(sinistro=sinistro).order_by('data_mudanca')
 
-    if not eventos:
+        eventos = list(eventos_qs)
+
+        timeline = []
+        per_sector = {}
+        total_duration = timedelta(0)
+
+        if not eventos:
+            # Não há eventos: devolve view vazia (sem erro)
+            context = {
+                'sinistro': sinistro,
+                'timeline': [],
+                'per_sector': [],
+                'total_duration_human': format_timedelta(total_duration),
+                'now': now,
+            }
+            return render(request, 'sinistros/history_detail.html', context)
+
+        # Itera analisando cada evento
+        for idx, ev in enumerate(eventos):
+            # defensiva: obtenção de data
+            start = getattr(ev, 'data_mudanca', None) or getattr(ev, 'created_at', None) or getattr(ev, 'criado_em', None)
+            if not start:
+                # se não há data, usa agora como fallback
+                start = now
+
+            # end é a data do próximo evento, ou agora se for o último
+            if idx + 1 < len(eventos):
+                end = getattr(eventos[idx + 1], 'data_mudanca', None) or now
+            else:
+                end = now
+
+            # garantir que start/end são datetimes compatíveis (tz-aware vs naive)
+            try:
+                # Se um tem tzinfo e o outro não, pode dar erro no subtração direta
+                if (hasattr(end, 'tzinfo') and end.tzinfo) and (hasattr(start, 'tzinfo') and start.tzinfo):
+                    duration = end - start
+                else:
+                    # Fallback simples se houver confusão de fuso
+                    duration = end - start
+            except Exception:
+                duration = timedelta(0)
+
+            total_duration += duration
+
+            setor = getattr(ev, 'setor_novo', None) or getattr(ev, 'setor', None) or sinistro.setor_atual or '—'
+            per_sector.setdefault(setor, timedelta(0))
+            per_sector[setor] += duration
+
+            # Recupera usuário de forma segura
+            usuario = getattr(getattr(ev, 'alterado_por', None), 'username', None) or str(getattr(ev, 'alterado_por', '—'))
+
+            timeline.append({
+                'data_mudanca': start,
+                'usuario': usuario,
+                'setor_anterior': getattr(ev, 'setor_anterior', '') or '-',
+                'setor_novo': getattr(ev, 'setor_novo', '') or '-',
+                'comentario': getattr(ev, 'comentario', '') or '',
+                'start': start,
+                'end': end,
+                'duration': duration,
+                'duration_human': format_timedelta(duration)
+            })
+
+        per_sector_list = [
+            {'setor': s, 'duration': d, 'duration_human': format_timedelta(d)}
+            for s, d in per_sector.items()
+        ]
+        per_sector_list.sort(key=lambda x: x['duration'], reverse=True)
+
         context = {
             'sinistro': sinistro,
-            'timeline': [],
-            'per_sector': per_sector,
-            'total_duration': total_duration,
+            'timeline': timeline,
+            'per_sector': per_sector_list,
+            'total_duration_human': format_timedelta(total_duration),
             'now': now,
         }
         return render(request, 'sinistros/history_detail.html', context)
 
-    for idx, ev in enumerate(eventos):
-        start = ev.data_mudanca
-        if idx + 1 < len(eventos):
-            end = eventos[idx + 1].data_mudanca
-        else:
-            end = now
-
-        duration = end - start if end and start else timedelta(0)
-        total_duration += duration
-
-        setor = ev.setor_novo or sinistro.setor_atual or '—'
-        per_sector.setdefault(setor, timedelta(0))
-        per_sector[setor] += duration
-
-        timeline.append({
-            'data_mudanca': ev.data_mudanca,
-            'usuario': getattr(ev.alterado_por, 'username', str(ev.alterado_por)),
-            'setor_anterior': ev.setor_anterior,
-            'setor_novo': ev.setor_novo,
-            'comentario': ev.comentario or '',
-            'start': start,
-            'end': end,
-            'duration': duration,
-            'duration_human': format_timedelta(duration)
+    except Exception as exc:
+        # Log completo para depuração (pegar traceback nos logs)
+        logger.exception("Erro ao gerar histórico detalhado do sinistro %s: %s", pk, exc)
+        # Não levanta 500 — retorna template com mensagem amigável
+        error_msgs = [
+            "Ocorreu um erro ao carregar o histórico completo deste processo.",
+            "Verifique os logs do servidor para mais detalhes."
+        ]
+        return render(request, 'sinistros/history_detail.html', {
+            'sinistro': sinistro,
+            'timeline': [],
+            'per_sector': [],
+            'total_duration_human': format_timedelta(timedelta(0)),
+            'now': now,
+            'errors': error_msgs
         })
-
-    per_sector_list = [
-        {'setor': s, 'duration': d, 'duration_human': format_timedelta(d)}
-        for s, d in per_sector.items()
-    ]
-    per_sector_list.sort(key=lambda x: x['duration'], reverse=True)
-
-    context = {
-        'sinistro': sinistro,
-        'timeline': timeline,
-        'per_sector': per_sector_list,
-        'total_duration': total_duration,
-        'total_duration_human': format_timedelta(total_duration),
-        'now': now,
-    }
-    return render(request, 'sinistros/history_detail.html', context)
 
 # --- DASHBOARD ---
 @login_required(login_url='login')
