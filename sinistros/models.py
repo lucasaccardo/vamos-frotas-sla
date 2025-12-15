@@ -56,6 +56,12 @@ class Sinistro(models.Model):
     # --- CONTROLE E SLA ---
     setor_atual = models.CharField(max_length=20, choices=SETORES, default='ABERTURA')
     responsavel_setor = models.CharField(max_length=100, blank=True, null=True)
+    
+    # [NOVOS CAMPOS ADICIONADOS]
+    aguarda_aprovacao_os = models.BooleanField(default=False, help_text="Se o processo está aguardando aprovação de O.S.")
+    aprovador_os = models.CharField(max_length=255, blank=True, null=True, help_text="Nome do aprovador da O.S., se houver")
+    # --------------------------
+
     criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     ultima_interacao = models.DateTimeField(auto_now=True)

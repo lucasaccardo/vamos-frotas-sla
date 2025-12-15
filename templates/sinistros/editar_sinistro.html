@@ -82,7 +82,7 @@
                                         {{ form.responsavel_setor }}
                                     </div>
                                     
-                                    <div class="col-md-6" id="status_os_block" style="display:none;">
+                                    <div class="col-md-6" id="status_os_block" style="{% if not show_status %}display:none;{% endif %}">
                                         <label class="form-label fw-bold">Status da O.S.</label>
                                         {{ form.status_os }}
                                     </div>
@@ -91,6 +91,19 @@
                                         <label class="form-label fw-bold text-danger">Prazo Limite</label>
                                         {{ form.retornar_ate }}
                                     </div>
+
+                                    <div class="col-12 mt-3 p-3 bg-light border rounded" id="aprovacao_block" style="{% if not show_aprovacao %}display:none;{% endif %}">
+                                        <div class="form-check mb-2">
+                                            {{ form.aguarda_aprovacao_os }} 
+                                            <label class="form-check-label ms-2 fw-bold">Aguardando Aprovação de O.S.</label>
+                                        </div>
+
+                                        <div id="aprovador_field" class="mt-2" style="{% if not form.initial.aguarda_aprovacao_os and not form.data.aguarda_aprovacao_os %}display:none;{% endif %}">
+                                            <label class="form-label">Nome do Aprovador</label>
+                                            {{ form.aprovador_os }}
+                                        </div>
+                                    </div>
+
                                     <div class="col-12">
                                         <label class="form-label fw-bold">Observações</label>
                                         {{ form.observacoes }}
@@ -224,26 +237,55 @@
         }
     });
 
-    // --- SCRIPT PARA MOSTRAR/OCULTAR STATUS DA OS ---
+    // --- SCRIPT PARA CONTROLE DE VISIBILIDADE (STATUS OS + APROVAÇÃO) ---
     document.addEventListener('DOMContentLoaded', function () {
         const setorSelect = document.querySelector('select[name="setor_atual"]');
         const statusBlock = document.getElementById('status_os_block');
+        const aprovacaoBlock = document.getElementById('aprovacao_block');
+        const aguardCheck = document.querySelector('input[name="aguarda_aprovacao_os"]');
+        const aprovadorField = document.getElementById('aprovador_field');
 
-        function updateStatusVisibility() {
-            if (!setorSelect || !statusBlock) return;
-            const val = setorSelect.value ? setorSelect.value.toString().toUpperCase() : '';
-            // Ajuste aqui se o seu valor no banco for diferente (ex: 'MANUTENCAO')
-            if (val === 'MANUTENCAO' || val === 'MANUTENÇÃO') {
-                statusBlock.style.display = 'block'; // Mostra
-            } else {
-                statusBlock.style.display = 'none';  // Oculta
+        function isManutencao(val) {
+            if (!val) return false;
+            return val.toString().toUpperCase().includes('MANUT'); // cobre MANUTENCAO, MANUTENÇÃO, ETC
+        }
+
+        function updateFieldsVisibility() {
+            if (!setorSelect) return;
+            const setorVal = setorSelect.value;
+            const ehManutencao = isManutencao(setorVal);
+
+            // 1. Controle do Status OS
+            if (statusBlock) {
+                statusBlock.style.display = ehManutencao ? 'block' : 'none';
+            }
+
+            // 2. Controle do Bloco de Aprovação
+            if (aprovacaoBlock) {
+                if (ehManutencao) {
+                    aprovacaoBlock.style.display = ''; // Mostra
+                } else {
+                    aprovacaoBlock.style.display = 'none'; // Oculta e limpa visualmente
+                    if (aguardCheck) aguardCheck.checked = false;
+                    if (aprovadorField) aprovadorField.style.display = 'none';
+                }
             }
         }
 
+        // Lógica interna do checkbox de aprovação
+        if (aguardCheck) {
+            aguardCheck.addEventListener('change', function () {
+                if (aprovadorField) {
+                    aprovadorField.style.display = this.checked ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Listener no Setor
         if (setorSelect) {
-            setorSelect.addEventListener('change', updateStatusVisibility);
-            // Executa uma vez no carregamento para checar o valor inicial
-            updateStatusVisibility();
+            setorSelect.addEventListener('change', updateFieldsVisibility);
+            // Roda ao carregar a página
+            updateFieldsVisibility();
         }
     });
 </script>

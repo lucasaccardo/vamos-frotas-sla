@@ -213,20 +213,23 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# --- EDIÇÃO ---
+# --- EDIÇÃO ATUALIZADA ---
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    historico_qs = sinistro.historico.order_by('-data_mudanca')
+    # Tenta pegar histórico com segurança
+    historico_qs = sinistro.historico.order_by('-data_mudanca') if hasattr(sinistro, 'historico') else []
 
     if request.method == 'POST':
+        setor_antigo = sinistro.setor_atual
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
             try:
-                setor_antigo = sinistro.setor_atual
                 sinistro = form.save(commit=False)
+                # Já que os campos fazem parte do model, apenas salva
                 sinistro.save()
 
+                # Cria histórico se houve mudança de setor
                 if setor_antigo != sinistro.setor_atual:
                     HistoricoSinistro.objects.create(
                         sinistro=sinistro,
@@ -235,24 +238,32 @@ def editar_sinistro_view(request, pk):
                         alterado_por=request.user,
                         comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
                     )
+
                 messages.success(request, "Atualizado!")
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
             except Exception as e:
-                logger.exception("Erro ao salvar edição: %s", e)
-                messages.error(request, f"Erro: {e}")
+                # Log e mensagem de erro
+                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
+                traceback.print_exc()
+                messages.error(request, f"Erro ao salvar: {str(e)}")
         else:
-            # Caso o form seja inválido, o log abaixo ajuda a entender o motivo
-            logger.warning("Formulário de edição inválido: %s", form.errors)
+            messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
     else:
         form = EditarSinistroForm(instance=sinistro)
 
-    show_status = (str(sinistro.setor_atual).upper() == 'MANUTENCAO') or (form.initial.get('setor_atual', '').upper() == 'MANUTENCAO')
+    # Flags de exibição (controle de visibilidade no template)
+    setor_val = str(sinistro.setor_atual).upper() if sinistro.setor_atual is not None else ''
+    # Mostra aprovação se for MANUTENCAO
+    show_aprovacao = ('MANUT' in setor_val)
+    # Mostra status se for MANUTENCAO (lógica anterior mantida)
+    show_status = (setor_val == 'MANUTENCAO' or 'MANUT' in setor_val)
 
     return render(request, "sinistros/editar_sinistro.html", {
         "form": form,
         "sinistro": sinistro,
         "historico": historico_qs,
         "show_status": show_status,
+        "show_aprovacao": show_aprovacao,
     })
 
 # --- HISTÓRICO DETALHADO (VERSÃO ROBUSTA) ---
@@ -296,7 +307,6 @@ def sinistro_history_view(request, pk):
             # defensiva: obtenção de data
             start = getattr(ev, 'data_mudanca', None) or getattr(ev, 'created_at', None) or getattr(ev, 'criado_em', None)
             if not start:
-                # se não há data, usa agora como fallback
                 start = now
 
             # end é a data do próximo evento, ou agora se for o último
@@ -305,13 +315,11 @@ def sinistro_history_view(request, pk):
             else:
                 end = now
 
-            # garantir que start/end são datetimes compatíveis (tz-aware vs naive)
+            # garantir que start/end são datetimes compatíveis
             try:
-                # Se um tem tzinfo e o outro não, pode dar erro no subtração direta
                 if (hasattr(end, 'tzinfo') and end.tzinfo) and (hasattr(start, 'tzinfo') and start.tzinfo):
                     duration = end - start
                 else:
-                    # Fallback simples se houver confusão de fuso
                     duration = end - start
             except Exception:
                 duration = timedelta(0)
@@ -353,9 +361,8 @@ def sinistro_history_view(request, pk):
         return render(request, 'sinistros/history_detail.html', context)
 
     except Exception as exc:
-        # Log completo para depuração (pegar traceback nos logs)
+        # Log completo para depuração
         logger.exception("Erro ao gerar histórico detalhado do sinistro %s: %s", pk, exc)
-        # Não levanta 500 — retorna template com mensagem amigável
         error_msgs = [
             "Ocorreu um erro ao carregar o histórico completo deste processo.",
             "Verifique os logs do servidor para mais detalhes."

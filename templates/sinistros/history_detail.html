@@ -66,12 +66,12 @@
                         <tr>
                             <td class="small text-muted">{{ e.data_mudanca|date:"d/m/Y H:i" }}</td>
                             <td>
-                                <div class="small text-muted">{{ e.setor_anterior or '-' }}</div>
-                                <div class="fw-bold">{{ e.setor_novo or '-' }}</div>
+                                <div class="small text-muted">{{ e.setor_anterior|default:"-" }}</div>
+                                <div class="fw-bold">{{ e.setor_novo|default:"-" }}</div>
                             </td>
-                            <td class="fw-bold">{{ e.duration_human }}</td>
-                            <td class="small">{{ e.usuario }}</td>
-                            <td class="small text-truncate" style="max-width:400px;" title="{{ e.comentario }}">{{ e.comentario }}</td>
+                            <td class="fw-bold">{{ e.duration_human|default:"0m" }}</td>
+                            <td class="small">{{ e.usuario|default:"-" }}</td>
+                            <td class="small text-truncate" style="max-width:400px;" title="{{ e.comentario|default:'' }}">{{ e.comentario|default:'' }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="5" class="text-center text-muted py-4">Sem histórico registrado.</td></tr>
@@ -79,6 +79,13 @@
                     </tbody>
                 </table>
             </div>
+            {% if errors %}
+                <div class="p-3">
+                    {% for err in errors %}
+                        <div class="alert alert-warning">{{ err }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
