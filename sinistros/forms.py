@@ -78,7 +78,7 @@ class EditarSinistroForm(forms.ModelForm):
         setor_str = str(setor).upper() if setor else ''
         is_manutencao = 'MANUT' in setor_str  # Pega MANUTENCAO e MANUTENÇÃO
 
-        # Regra 1: Se setor for MANUTENCAO, status_os é obrigatório (lógica antiga mantida)
+        # Regra 1: Se setor for MANUTENCAO, status_os é obrigatório
         if is_manutencao and not status:
             self.add_error('status_os', 'O Status da O.S. é obrigatório quando o setor for Manutenção.')
 
@@ -86,6 +86,11 @@ class EditarSinistroForm(forms.ModelForm):
         if is_manutencao and aguarda and not aprovador:
             self.add_error('aprovador_os', 'Informe o nome do aprovador quando marcar "Aguardando Aprovação de O.S.".')
         
+        # Opcional: Se não for manutenção, limpar os campos para não ficarem "sujos" no banco
+        if not is_manutencao:
+            cleaned['aguarda_aprovacao_os'] = False
+            cleaned['aprovador_os'] = ''
+
         return cleaned
 
 # --- FORMULÁRIO DE UPLOAD ---

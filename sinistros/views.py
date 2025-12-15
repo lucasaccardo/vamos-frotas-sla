@@ -16,12 +16,12 @@ from django.urls import reverse
 from .models import Sinistro, HistoricoSinistro
 from .forms import SinistroForm, EditarSinistroForm
 
-# Configuração de Log
+# Logger configuration
 logger = logging.getLogger(__name__)
 
-# --- HELPER: FORMATAR TEMPO ---
+# --- HELPER: FORMAT TIME ---
 def format_timedelta(td: timedelta):
-    """Retorna string legível: Xd Yh Zm"""
+    """Returns readable string: Xd Yh Zm"""
     total_seconds = int(td.total_seconds())
     days, rem = divmod(total_seconds, 86400)
     hours, rem = divmod(rem, 3600)
@@ -35,30 +35,30 @@ def format_timedelta(td: timedelta):
         parts.append(f"{minutes}m")
     return " ".join(parts)
 
-# --- HOME (COM NOVOS FILTROS DE SETOR E SEGMENTO) ---
+# --- HOME (WITH SECTOR AND SEGMENT FILTERS) ---
 @login_required(login_url='login')
 def sinistros_home_view(request):
     request.session['modulo_ativo'] = 'sinistros'
     
-    # 1. Captura parâmetros
+    # 1. Capture parameters
     segmento = request.GET.get('segmento')
     setor = request.GET.get('setor')
 
-    # 2. QuerySet Base
+    # 2. Base QuerySet
     qs = Sinistro.objects.all()
 
-    # 3. Filtro por Segmento
+    # 3. Filter by Segment
     if segmento:
         qs = qs.filter(segmento=segmento)
 
-    # 4. Exclui FINALIZADO por padrão (para limpar a visão)
+    # 4. Exclude FINALIZED by default (to clean up the view)
     qs = qs.exclude(setor_atual='FINALIZADO')
 
-    # 5. Filtro por Setor Específico
+    # 5. Filter by Specific Sector
     if setor and setor != 'TODOS':
         qs = qs.filter(setor_atual=setor)
 
-    # 6. Construir lista de opções para o Select de Setores
+    # 6. Build options list for Sector Select
     try:
         field = Sinistro._meta.get_field('setor_atual')
         raw_choices = getattr(field, 'choices', []) or []
@@ -67,7 +67,7 @@ def sinistros_home_view(request):
         distinct_values = list(Sinistro.objects.values_list('setor_atual', flat=True).distinct())
         setor_choices = [('TODOS', 'Todos os Setores')] + [(v, v) for v in distinct_values]
 
-    # 7. Ordenação
+    # 7. Ordering
     qs = qs.order_by('-ultima_interacao')
 
     context = {
@@ -79,18 +79,18 @@ def sinistros_home_view(request):
     return render(request, "sinistros/home.html", context)
 
 
-# --- API DE BUSCA (MODO ROBUSTO) ---
+# --- SEARCH API (ROBUST MODE) ---
 @login_required(login_url='login')
 def api_buscar_dados_sinistro(request):
     placa = request.GET.get('placa', '').strip().upper()
     if not placa: return JsonResponse({'encontrado': False})
 
     try:
-        # 1. Caminho da pasta de dados
+        # 1. Path to data folder
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
         data_dir = os.path.join(base_dir, 'vamos', 'data')
         
-        # 2. Varredura para achar "Base De Clientes Total"
+        # 2. Scan to find "Base De Clientes Total"
         arquivo_alvo = None
         if os.path.exists(data_dir):
             for f in os.listdir(data_dir):
@@ -108,7 +108,7 @@ def api_buscar_dados_sinistro(request):
         if not arquivo_alvo:
             return JsonResponse({'encontrado': False, 'msg': 'Base de dados não encontrada.'})
 
-        # 3. Leitura Completa
+        # 3. Full Read
         try:
             if arquivo_alvo.endswith('.csv'):
                 try: df = pd.read_csv(arquivo_alvo, sep=';', encoding='latin1', on_bad_lines='skip')
@@ -116,10 +116,10 @@ def api_buscar_dados_sinistro(request):
             else:
                 df = pd.read_excel(arquivo_alvo)
 
-            # Normaliza colunas
+            # Normalize columns
             df.columns = df.columns.astype(str).str.strip().str.upper()
             
-            # Localiza a coluna PLACA
+            # Locate PLATE column
             col_placa = None
             if 'PLACA' in df.columns: col_placa = 'PLACA'
             elif 'PLACA / CHASSI' in df.columns: col_placa = 'PLACA / CHASSI'
@@ -130,7 +130,7 @@ def api_buscar_dados_sinistro(request):
             if not col_placa: 
                 return JsonResponse({'encontrado': False, 'msg': 'Coluna PLACA não encontrada na planilha.'})
 
-            # 4. Busca a Linha
+            # 4. Search Row
             row = df[df[col_placa].astype(str).str.strip().str.upper().str.contains(placa, na=False)]
 
             if not row.empty:
@@ -183,7 +183,7 @@ def api_buscar_dados_sinistro(request):
         return JsonResponse({'encontrado': False, 'msg': f"Erro interno: {str(e)}"})
 
 
-# --- NOVO SINISTRO ---
+# --- NEW SINISTRO ---
 @login_required(login_url='login')
 def novo_sinistro_view(request):
     if request.method == 'POST':
@@ -213,11 +213,11 @@ def novo_sinistro_view(request):
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
-# --- EDIÇÃO ATUALIZADA ---
+# --- UPDATED EDIT ---
 @login_required(login_url='login')
 def editar_sinistro_view(request, pk):
     sinistro = get_object_or_404(Sinistro, pk=pk)
-    # Tenta pegar histórico com segurança
+    # Try getting history safely
     historico_qs = sinistro.historico.order_by('-data_mudanca') if hasattr(sinistro, 'historico') else []
 
     if request.method == 'POST':
@@ -226,10 +226,10 @@ def editar_sinistro_view(request, pk):
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
-                # Já que os campos fazem parte do model, apenas salva
+                # Since fields are part of model, just save
                 sinistro.save()
 
-                # Cria histórico se houve mudança de setor
+                # Create history if sector changed
                 if setor_antigo != sinistro.setor_atual:
                     HistoricoSinistro.objects.create(
                         sinistro=sinistro,
@@ -242,8 +242,8 @@ def editar_sinistro_view(request, pk):
                 messages.success(request, "Atualizado!")
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
             except Exception as e:
-                # Log e mensagem de erro
-                logging.exception("Erro ao salvar sinistro %s: %s", pk, e)
+                # Log and error message
+                logger.exception("Erro ao salvar sinistro %s: %s", pk, e)
                 traceback.print_exc()
                 messages.error(request, f"Erro ao salvar: {str(e)}")
         else:
@@ -251,11 +251,12 @@ def editar_sinistro_view(request, pk):
     else:
         form = EditarSinistroForm(instance=sinistro)
 
-    # Flags de exibição (controle de visibilidade no template)
+    # Display flags (control visibility in template)
     setor_val = str(sinistro.setor_atual).upper() if sinistro.setor_atual is not None else ''
-    # Mostra aprovação se for MANUTENCAO
+    
+    # Shows approval block if MANUTENCAO
     show_aprovacao = ('MANUT' in setor_val)
-    # Mostra status se for MANUTENCAO (lógica anterior mantida)
+    # Shows status block if MANUTENCAO (logic maintained)
     show_status = (setor_val == 'MANUTENCAO' or 'MANUT' in setor_val)
 
     return render(request, "sinistros/editar_sinistro.html", {
@@ -266,23 +267,23 @@ def editar_sinistro_view(request, pk):
         "show_aprovacao": show_aprovacao,
     })
 
-# --- HISTÓRICO DETALHADO (VERSÃO ROBUSTA) ---
+# --- DETAILED HISTORY (ROBUST VERSION) ---
 @login_required(login_url='login')
 def sinistro_history_view(request, pk):
     """
-    Histórico detalhado do sinistro com tolerância a campos ausentes e nomes de relação variados.
-    Em caso de erro, registra o traceback e mostra uma mensagem amigável (não dispara 500).
+    Detailed history of the claim with tolerance for missing fields and varied relation names.
+    In case of error, logs traceback and shows a friendly message (does not trigger 500).
     """
     sinistro = get_object_or_404(Sinistro, pk=pk)
     now = timezone.now()
     try:
-        # Tentar obter queryset de histórico de formas diferentes
+        # Try getting history queryset in different ways
         if hasattr(sinistro, 'historico'):
             eventos_qs = sinistro.historico.all().order_by('data_mudanca')
         elif hasattr(sinistro, 'historicos'):
             eventos_qs = sinistro.historicos.all().order_by('data_mudanca')
         else:
-            # fallback: consulta direta ao modelo HistoricoSinistro assumindo campo sinistro FK
+            # fallback: direct query to HistoricoSinistro assuming FK sinistro field
             eventos_qs = HistoricoSinistro.objects.filter(sinistro=sinistro).order_by('data_mudanca')
 
         eventos = list(eventos_qs)
@@ -292,7 +293,7 @@ def sinistro_history_view(request, pk):
         total_duration = timedelta(0)
 
         if not eventos:
-            # Não há eventos: devolve view vazia (sem erro)
+            # No events: return empty view (no error)
             context = {
                 'sinistro': sinistro,
                 'timeline': [],
@@ -302,20 +303,20 @@ def sinistro_history_view(request, pk):
             }
             return render(request, 'sinistros/history_detail.html', context)
 
-        # Itera analisando cada evento
+        # Iterate analyzing each event
         for idx, ev in enumerate(eventos):
-            # defensiva: obtenção de data
+            # defensive: date retrieval
             start = getattr(ev, 'data_mudanca', None) or getattr(ev, 'created_at', None) or getattr(ev, 'criado_em', None)
             if not start:
                 start = now
 
-            # end é a data do próximo evento, ou agora se for o último
+            # end is the date of the next event, or now if it's the last one
             if idx + 1 < len(eventos):
                 end = getattr(eventos[idx + 1], 'data_mudanca', None) or now
             else:
                 end = now
 
-            # garantir que start/end são datetimes compatíveis
+            # guarantee that start/end are compatible datetimes
             try:
                 if (hasattr(end, 'tzinfo') and end.tzinfo) and (hasattr(start, 'tzinfo') and start.tzinfo):
                     duration = end - start
@@ -330,7 +331,7 @@ def sinistro_history_view(request, pk):
             per_sector.setdefault(setor, timedelta(0))
             per_sector[setor] += duration
 
-            # Recupera usuário de forma segura
+            # Retrieve user safely
             usuario = getattr(getattr(ev, 'alterado_por', None), 'username', None) or str(getattr(ev, 'alterado_por', '—'))
 
             timeline.append({
@@ -361,7 +362,7 @@ def sinistro_history_view(request, pk):
         return render(request, 'sinistros/history_detail.html', context)
 
     except Exception as exc:
-        # Log completo para depuração
+        # Full log for debugging
         logger.exception("Erro ao gerar histórico detalhado do sinistro %s: %s", pk, exc)
         error_msgs = [
             "Ocorreu um erro ao carregar o histórico completo deste processo.",
@@ -409,7 +410,7 @@ def dashboard_sinistros_view(request):
         "segmento_atual": segmento_filtro
     })
 
-# --- DELETE SELECIONADOS ---
+# --- DELETE SELECTED ---
 @login_required(login_url='login')
 def delete_selected_sinistros(request):
     if request.method != 'POST':
