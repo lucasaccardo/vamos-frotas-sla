@@ -3,11 +3,14 @@ import json
 import logging
 import traceback
 import pandas as pd
+import csv
+import io
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
@@ -33,6 +36,18 @@ def format_timedelta(td: timedelta):
         parts.append(f"{hours}h")
     if minutes or not parts:
         parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+# Helper: format timedelta in 'Xd Xh' for API usage
+def format_timedelta_days_hours(td: timedelta):
+    total_seconds = int(td.total_seconds())
+    days, rem = divmod(total_seconds, 86400)
+    hours, _ = divmod(rem, 3600)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours or not parts:
+        parts.append(f"{hours}h")
     return " ".join(parts)
 
 # --- HOME (WITH SECTOR AND SEGMENT FILTERS) ---
@@ -441,3 +456,222 @@ def delete_selected_sinistros(request):
     qs.delete()
     messages.success(request, f"{count} processo(s) excluído(s).")
     return redirect('sinistros_home')
+
+# --- DASHBOARD STATS API ---
+@login_required(login_url='login')
+def dashboard_stats_api(request):
+    """
+    Returns aggregated metrics for the dashboard.
+    Supports GET filters: segmento, period_start (YYYY-MM-DD), period_end (YYYY-MM-DD).
+    Result is cached for 30s to reduce load.
+    """
+    segmento = request.GET.get('segmento')
+    period_start = request.GET.get('period_start')
+    period_end = request.GET.get('period_end')
+    cache_key = f"dashboard_stats:{segmento}:{period_start}:{period_end}"
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached)
+
+    now = timezone.now()
+    base_qs = Sinistro.objects.all()
+    if segmento:
+        base_qs = base_qs.filter(segmento=segmento)
+
+    if period_start:
+        try:
+            from django.utils.dateparse import parse_date
+            ds = parse_date(period_start)
+            if ds:
+                base_qs = base_qs.filter(criado_em__date__gte=ds)
+        except Exception:
+            pass
+    if period_end:
+        try:
+            from django.utils.dateparse import parse_date
+            de = parse_date(period_end)
+            if de:
+                base_qs = base_qs.filter(criado_em__date__lte=de)
+        except Exception:
+            pass
+
+    totals = base_qs.aggregate(total_pago=Sum('total_pago'), total_a_pagar=Sum('total_a_pagar'))
+    total_pago = float(totals['total_pago'] or 0)
+    total_a_pagar_agg = totals.get('total_a_pagar') or 0.0
+    if total_a_pagar_agg and total_a_pagar_agg != 0:
+        total_a_pagar = float(total_a_pagar_agg)
+    else:
+        total_a_pagar = 0.0
+        for s in base_qs:
+            soma = 0
+            try:
+                soma += float(s.valor_fipe or 0)
+            except Exception:
+                soma += 0
+            try:
+                soma += float(s.valor_implemento or 0)
+            except Exception:
+                soma += 0
+            total_a_pagar += soma
+
+    total_pendente = max(0.0, total_a_pagar - total_pago)
+
+    counts_qs = base_qs.values('setor_atual').annotate(count=Count('id')).order_by('-count')
+    counts_by_sector = []
+    for item in counts_qs:
+        code = item['setor_atual'] or '—'
+        label = dict(Sinistro.SETORES).get(code, code) if hasattr(Sinistro, 'SETORES') else code
+        counts_by_sector.append({'setor_code': code, 'setor_label': label, 'count': item['count']})
+
+    finalizados_total = base_qs.filter(setor_atual='FINALIZADO').count()
+
+    finalizados_hist = HistoricoSinistro.objects.filter(setor_novo='FINALIZADO', sinistro__in=base_qs)
+    finalizados_by_sector_map = {}
+    for h in finalizados_hist:
+        setor = h.setor_anterior or '—'
+        finalizados_by_sector_map[setor] = finalizados_by_sector_map.get(setor, 0) + 1
+    finalizados_by_sector = [{'setor': k, 'count': v} for k, v in finalizados_by_sector_map.items()]
+
+    offenders_avg = []
+    setores_list = getattr(Sinistro, 'SETORES', [])
+    for code, label in setores_list:
+        procs = base_qs.filter(setor_atual=code).exclude(setor_atual='FINALIZADO')
+        if procs.exists():
+            total_days = 0.0
+            for p in procs:
+                diff = now - (p.ultima_interacao or p.criado_em or now)
+                total_days += diff.total_seconds() / 86400.0
+            avg = total_days / procs.count()
+            offenders_avg.append({'setor_code': code, 'setor_label': label, 'avg_days': round(avg, 2), 'count': procs.count()})
+    offenders_avg.sort(key=lambda x: x['avg_days'], reverse=True)
+
+    per_sector_seconds = {}
+    historicos = HistoricoSinistro.objects.filter(sinistro__in=base_qs).order_by('sinistro_id', 'data_mudanca')
+    current_sid = None
+    events = []
+    for h in historicos:
+        sid = h.sinistro_id
+        if current_sid is None:
+            current_sid = sid
+            events = [h]
+        elif sid == current_sid:
+            events.append(h)
+        else:
+            for idx, ev in enumerate(events):
+                start = ev.data_mudanca
+                end = events[idx+1].data_mudanca if idx+1 < len(events) else now
+                setor = ev.setor_novo or ev.setor_anterior or '—'
+                per_sector_seconds[setor] = per_sector_seconds.get(setor, 0) + max(0, (end - start).total_seconds())
+            current_sid = sid
+            events = [h]
+    for idx, ev in enumerate(events):
+        start = ev.data_mudanca
+        end = events[idx+1].data_mudanca if idx+1 < len(events) else now
+        setor = ev.setor_novo or ev.setor_anterior or '—'
+        per_sector_seconds[setor] = per_sector_seconds.get(setor, 0) + max(0, (end - start).total_seconds())
+
+    offenders_sum = []
+    for setor, secs in per_sector_seconds.items():
+        days = secs / 86400.0
+        offenders_sum.append({'setor': setor, 'sum_days': round(days, 2)})
+    offenders_sum.sort(key=lambda x: x['sum_days'], reverse=True)
+
+    non_final_qs = base_qs.exclude(setor_atual='FINALIZADO')
+    if non_final_qs.exists():
+        total_days = 0.0
+        for p in non_final_qs:
+            diff = now - (p.ultima_interacao or p.criado_em or now)
+            total_days += diff.total_seconds() / 86400.0
+        avg_sla_days = total_days / non_final_qs.count()
+    else:
+        avg_sla_days = 0.0
+
+    avg_seconds = int(avg_sla_days * 86400)
+    avg_days = avg_seconds // 86400
+    avg_hours = (avg_seconds % 86400) // 3600
+    avg_sla_display = f"{avg_days}d {avg_hours}h"
+
+    payload = {
+        'total_pago': round(total_pago, 2),
+        'total_a_pagar': round(total_a_pagar, 2),
+        'total_pendente': round(total_pendente, 2),
+        'counts_by_sector': counts_by_sector,
+        'finalizados_total': finalizados_total,
+        'finalizados_by_sector': finalizados_by_sector,
+        'offenders_avg': offenders_avg[:8],
+        'offenders_sum': offenders_sum[:8],
+        'avg_sla_days': round(avg_sla_days, 2),
+        'avg_sla_display': avg_sla_display,
+        'timestamp': now.isoformat(),
+    }
+
+    cache.set(cache_key, payload, 30)
+    return JsonResponse(payload)
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_staff)
+def dashboard_export_csv(request):
+    segmento = request.GET.get('segmento')
+    base_qs = Sinistro.objects.all()
+    if segmento:
+        base_qs = base_qs.filter(segmento=segmento)
+
+    now = timezone.now()
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    header = ['id', 'placa', 'cliente', 'setor_atual', 'responsavel_setor', 'retornar_ate', 'valor_fipe', 'valor_implemento', 'total_a_pagar', 'total_pago', 'ultima_interacao', 'timeline_durations_json']
+    writer.writerow(header)
+
+    for s in base_qs.order_by('id'):
+        events = list(s.historico.order_by('data_mudanca').all())
+        timeline = []
+        for idx, ev in enumerate(events):
+            start = ev.data_mudanca
+            end = events[idx+1].data_mudanca if idx+1 < len(events) else now
+            dur_secs = max(0, int((end - start).total_seconds()))
+            timeline.append({'setor': ev.setor_novo or ev.setor_anterior, 'start': start.isoformat(), 'end': end.isoformat(), 'seconds': dur_secs})
+        import json
+        timeline_json = json.dumps(timeline, ensure_ascii=False)
+        writer.writerow([
+            s.id,
+            s.placa,
+            s.cliente,
+            s.setor_atual,
+            s.responsavel_setor or '',
+            s.retornar_ate.isoformat() if s.retornar_ate else '',
+            str(s.valor_fipe or ''),
+            str(s.valor_implemento or ''),
+            str(s.total_a_pagar or ''),
+            str(s.total_pago or ''),
+            s.ultima_interacao.isoformat() if s.ultima_interacao else '',
+            timeline_json
+        ])
+
+    resp = HttpResponse(buffer.getvalue(), content_type='text/csv')
+    resp['Content-Disposition'] = 'attachment; filename="dashboard_export.csv"'
+    return resp
+
+
+@login_required(login_url='login')
+def sinistro_timeline_api(request, pk):
+    sinistro = get_object_or_404(Sinistro, pk=pk)
+    now = timezone.now()
+    eventos = list(sinistro.historico.order_by('data_mudanca').all())
+    timeline = []
+    for idx, ev in enumerate(eventos):
+        start = ev.data_mudanca
+        end = events[idx+1].data_mudanca if idx+1 < len(eventos) else now
+        dur = max(0, int((end - start).total_seconds()))
+        timeline.append({
+            'data_mudanca': start.isoformat(),
+            'setor_anterior': ev.setor_anterior,
+            'setor_novo': ev.setor_novo,
+            'usuario': getattr(ev.alterado_por, 'username', None) or '',
+            'comentario': ev.comentario or '',
+            'start': start.isoformat(),
+            'end': end.isoformat(),
+            'duration_seconds': dur,
+            'duration_human': format_timedelta_days_hours(timedelta(seconds=dur))
+        })
+    return JsonResponse({'sinistro_id': sinistro.id, 'timeline': timeline})
