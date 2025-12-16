@@ -1,136 +1,156 @@
 {% extends 'vamos/base.html' %}
-{% load static humanize %}
-
 {% block content %}
 <div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Dashboard - Gestão de Sinistros</h4>
+    <div>
+      <select id="filter_segmento" class="form-select form-select-sm">
+        <option value="">Todos Segmentos</option>
+        <option value="PESADOS">Pesados</option>
+        <option value="AGRO">Agro</option>
+        <option value="INTRA">Intra</option>
+      </select>
+    </div>
+  </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-dark mb-1">BI de Sinistros</h2>
-            <p class="text-muted">Indicadores de performance e financeiro.</p>
-        </div>
-        
-        <form method="get" class="d-flex gap-2">
-            <select name="segmento" class="form-select fw-bold text-primary" onchange="this.form.submit()" style="width: 200px;">
-                <option value="TODOS" {% if segmento_atual == 'TODOS' %}selected{% endif %}>Todos os Segmentos</option>
-                <option value="AGRO" {% if segmento_atual == 'AGRO' %}selected{% endif %}>Agro</option>
-                <option value="PESADOS" {% if segmento_atual == 'PESADOS' %}selected{% endif %}>Pesados</option>
-                <option value="INTRA" {% if segmento_atual == 'INTRA' %}selected{% endif %}>Intra</option>
-            </select>
-        </form>
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="small text-muted">Total Pago</div>
+        <div id="card_total_pago" class="fs-4 fw-bold">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="small text-muted">Total A Pagar</div>
+        <div id="card_total_a_pagar" class="fs-4 fw-bold">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="small text-muted">Total Pendente</div>
+        <div id="card_total_pendente" class="fs-4 fw-bold">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="small text-muted">Tempo Médio SLA</div>
+        <div id="card_avg_sla" class="fs-4 fw-bold">0d 0h</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold small text-muted">Sinistros em Andamento por Setor</h6>
+        <canvas id="chart_by_sector" height="120"></canvas>
+      </div>
+
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold small text-muted">Maiores Ofensores (Média de Dias)</h6>
+        <canvas id="chart_offenders_avg" height="120"></canvas>
+      </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted fw-bold small">Pipeline (A Receber)</h6>
-                    <h3 class="fw-bold text-dark mb-0">R$ {{ financeiro_pipeline|floatformat:2 }}</h3>
-                    <small class="text-muted">Soma de processos em aberto</small>
-                </div>
-            </div>
+    <div class="col-lg-4">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold small text-muted">Finalizados vs Abertos</h6>
+        <canvas id="chart_finalizados" height="200"></canvas>
+        <div class="mt-3">
+          <a id="export_csv" class="btn btn-sm btn-outline-secondary">Export CSV (staff)</a>
         </div>
-        
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted fw-bold small">Realizado (Em Caixa)</h6>
-                    <h3 class="fw-bold text-success mb-0">R$ {{ financeiro_caixa|floatformat:2 }}</h3>
-                    <small class="text-muted">Total de indenizações pagas</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-light">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Em Andamento</h6>
-                    <h2 class="fw-bold text-primary">{{ total_abertos }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-light">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Finalizados</h6>
-                    <h2 class="fw-bold text-secondary">{{ total_finalizados }}</h2>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-
-    <div class="row g-4">
-        
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-danger"><i class="bi bi-hourglass-split me-2"></i>Média de Dias Parado (Por Setor)</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartSLA" height="150"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2"></i>Volume por Motivo</h6>
-                </div>
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <div style="width: 100%; max-width: 300px;">
-                        <canvas id="chartMotivo"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        
-        // --- 1. SLA (BARRAS HORIZONTAIS) ---
-        const ctxSLA = document.getElementById('chartSLA').getContext('2d');
-        new Chart(ctxSLA, {
-            type: 'bar',
-            data: {
-                labels: {{ graf_sla_labels|safe }},
-                datasets: [{
-                    label: 'Dias Médios Parado',
-                    data: {{ graf_sla_data|safe }},
-                    backgroundColor: '#dc3545', // Vermelho
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                indexAxis: 'y', // Barras deitadas
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
-            }
-        });
 
-        // --- 2. MOTIVOS (DONUT) ---
-        const ctxMotivo = document.getElementById('chartMotivo').getContext('2d');
-        new Chart(ctxMotivo, {
-            type: 'doughnut',
-            data: {
-                labels: {{ graf_motivo_labels|safe }},
-                datasets: [{
-                    data: {{ graf_motivo_data|safe }},
-                    backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#6c757d'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                cutout: '60%',
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
+<script>
+const API_URL = "{% url 'dashboard_stats_api' %}";
+const EXPORT_URL = "{% url 'dashboard_export_csv' %}";
+
+function moneyBR(v){
+  return Number(v||0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+let sectorChart = null;
+let offendersAvgChart = null;
+let finalizadosChart = null;
+
+function updateCharts(data) {
+  document.getElementById('card_total_pago').innerText = moneyBR(data.total_pago);
+  document.getElementById('card_total_a_pagar').innerText = moneyBR(data.total_a_pagar);
+  document.getElementById('card_total_pendente').innerText = moneyBR(data.total_pendente);
+  document.getElementById('card_avg_sla').innerText = data.avg_sla_display;
+
+  const labels = data.counts_by_sector.map(s => s.setor_label);
+  const values = data.counts_by_sector.map(s => s.count);
+  if (!sectorChart) {
+    const ctx = document.getElementById('chart_by_sector').getContext('2d');
+    sectorChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Andamento', data: values, backgroundColor: '#0d6efd' }]},
+      options: { responsive: true, maintainAspectRatio: false }
     });
+  } else {
+    sectorChart.data.labels = labels;
+    sectorChart.data.datasets[0].data = values;
+    sectorChart.update();
+  }
+
+  const labels2 = data.offenders_avg.map(o => o.setor_label);
+  const vals2 = data.offenders_avg.map(o => o.avg_days);
+  if (!offendersAvgChart) {
+    const ctx2 = document.getElementById('chart_offenders_avg').getContext('2d');
+    offendersAvgChart = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: labels2, datasets: [{ label: 'Média dias', data: vals2, backgroundColor: '#dc3545' }]},
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  } else {
+    offendersAvgChart.data.labels = labels2;
+    offendersAvgChart.data.datasets[0].data = vals2;
+    offendersAvgChart.update();
+  }
+
+  const finalizados = data.finalizados_total || 0;
+  const openCount = data.counts_by_sector.reduce((sum, s) => sum + s.count, 0) - finalizados;
+  const ctx3 = document.getElementById('chart_finalizados').getContext('2d');
+  if (!finalizadosChart) {
+    finalizadosChart = new Chart(ctx3, {
+      type: 'doughnut',
+      data: { labels: ['Abertos', 'Finalizados'], datasets: [{ data: [openCount, finalizados], backgroundColor: ['#0d6efd', '#198754'] }]},
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  } else {
+    finalizadosChart.data.datasets[0].data = [openCount, finalizados];
+    finalizadosChart.update();
+  }
+}
+
+function fetchAndUpdate(){
+  const segmento = document.getElementById('filter_segmento').value;
+  const url = new URL(API_URL, window.location.origin);
+  if (segmento) url.searchParams.set('segmento', segmento);
+  fetch(url.toString())
+    .then(r => r.json())
+    .then(data => {
+      updateCharts(data);
+    })
+    .catch(err => console.error('Erro dashboard:', err));
+}
+
+document.getElementById('filter_segmento').addEventListener('change', fetchAndUpdate);
+document.getElementById('export_csv').addEventListener('click', function(e){
+  const segmento = document.getElementById('filter_segmento').value;
+  const url = new URL(EXPORT_URL, window.location.origin);
+  if (segmento) url.searchParams.set('segmento', segmento);
+  window.location = url.toString();
+});
+
+fetchAndUpdate();
+setInterval(fetchAndUpdate, 30000);
 </script>
 {% endblock %}
