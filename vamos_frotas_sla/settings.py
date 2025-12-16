@@ -1,6 +1,6 @@
 """
 Django settings for vamos_frotas_sla project.
-Versão Final - Segura para Produção
+Versão Final - Segura para Produção (+ Middleware de Timeout)
 """
 
 from pathlib import Path
@@ -42,6 +42,10 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    
+    # ⚠️ MIDDLEWARE DE TIMEOUT POR INATIVIDADE (Inserido aqui)
+    "sinistros.middleware.SessionIdleTimeout",
+    
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -137,13 +141,16 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
 # ==============================================================================
-# === CONFIGURAÇÕES DE SESSÃO E SEGURANÇA AVANÇADA (Implantação Solicitada) ===
+# === CONFIGURAÇÕES DE SESSÃO E SEGURANÇA AVANÇADA ===
 # ==============================================================================
 
 # 1. Configuração de Timeout/Inatividade
-SESSION_COOKIE_AGE = 1800           # 30 minutos em segundos
+SESSION_COOKIE_AGE = 1800           # 30 minutos em segundos (Sessão do Django)
 SESSION_SAVE_EVERY_REQUEST = True   # True = Renova o tempo a cada clique (Inatividade)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Fecha sessão ao fechar navegador
+
+# Configuração específica para o middleware customizado (Sinistros)
+IDLE_TIMEOUT_SECONDS = 1800  # 30 minutos de inatividade para logout forçado
 
 # 2. Configurações de Segurança HTTPS/Cookies
 # Aplicar regras estritas APENAS se não estiver em modo DEBUG (Produção)
