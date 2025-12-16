@@ -10,6 +10,8 @@ urlpatterns = [
     path('<int:pk>/history/', views.sinistro_history_view, name='sinistro_history'),
 
     # --- AÇÕES ---
+    # Mantive as duas rotas apontando para a mesma view conforme seu código original
+    # (Isso permite usar ambos os 'names' nos templates sem erro)
     path("delete-selected/", views.delete_selected_sinistros, name="excluir_sinistros_selecionados"),
     path("delete-selected/", views.delete_selected_sinistros, name="delete_selected_sinistros"),
 
