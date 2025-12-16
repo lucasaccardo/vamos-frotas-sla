@@ -2,24 +2,24 @@
 {% block content %}
 
 <style>
-    /* Define altura fixa para os cards de gráfico em telas grandes */
+    /* Define fixed height for chart cards on large screens */
     .card-chart {
         height: 420px;
         min-height: 260px;
         max-height: 720px;
         padding: 0.75rem;
         overflow: hidden; 
-        position: relative; /* Necessário para o Chart.js com maintainAspectRatio: false */
+        position: relative; /* Necessary for Chart.js with maintainAspectRatio: false */
     }
 
-    /* Garante que o canvas ocupe todo o espaço disponível no card */
+    /* Ensures canvas fills the available space in the card */
     .card-chart canvas {
         width: 100% !important;
         height: 100% !important;
         display: block;
     }
 
-    /* Ajuste para telas menores (Tablets/Mobile) */
+    /* Adjustment for smaller screens (Tablets/Mobile) */
     @media (max-width: 992px) {
         .card-chart {
             height: 300px;
@@ -73,19 +73,23 @@
       
       <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Sinistros em Andamento por Setor</h6>
-        <canvas id="chart_by_sector"></canvas>
+        <div style="position: relative; height: 100%; width: 100%;">
+            <canvas id="chart_by_sector"></canvas>
+        </div>
       </div>
 
       <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Maiores Ofensores (Média de Dias)</h6>
-        <canvas id="chart_offenders_avg"></canvas>
+        <div style="position: relative; height: 100%; width: 100%;">
+            <canvas id="chart_offenders_avg"></canvas>
+        </div>
       </div>
     </div>
 
     <div class="col-lg-4">
       <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Finalizados vs Abertos</h6>
-        <div style="flex-grow: 1; position: relative; min-height: 0;">
+        <div style="position: relative; height: 85%; width: 100%;">
             <canvas id="chart_finalizados"></canvas>
         </div>
         <div class="mt-auto text-center pt-2">
@@ -108,10 +112,10 @@ function moneyBR(v){
   return Number(v||0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Configurações comuns para gráficos de barra (Bar Charts)
+// Common options for bar charts
 const barOptions = {
   responsive: true,
-  maintainAspectRatio: false, // Importante: usa o CSS .card-chart para controlar altura
+  maintainAspectRatio: false, // Important: uses CSS .card-chart to control height
   plugins: {
     legend: { position: 'top' }
   },
@@ -120,14 +124,14 @@ const barOptions = {
       grid: { display: false },
       ticks: { 
           autoSkip: true, 
-          maxTicksLimit: 10, // Limita número de labels para não encavalar
+          maxTicksLimit: 10, // Limits label count to avoid overlap
           maxRotation: 0, 
           minRotation: 0 
       }
     },
     y: {
       beginAtZero: true,
-      ticks: { precision: 0 } // Exibir apenas números inteiros
+      ticks: { precision: 0 } // Show only integers
     }
   }
 };
@@ -137,13 +141,13 @@ let offendersAvgChart = null;
 let finalizadosChart = null;
 
 function updateCharts(data) {
-  // --- Atualiza KPIs (Cards do topo) ---
+  // --- Update KPIs (Top Cards) ---
   document.getElementById('card_total_pago').innerText = moneyBR(data.total_pago);
   document.getElementById('card_total_a_pagar').innerText = moneyBR(data.total_a_pagar);
   document.getElementById('card_total_pendente').innerText = moneyBR(data.total_pendente);
   document.getElementById('card_avg_sla').innerText = data.avg_sla_display;
 
-  // --- Gráfico 1: Setores (Bar) ---
+  // --- Chart 1: Sectors (Bar) ---
   const labels = data.counts_by_sector.map(s => s.setor_label);
   const values = data.counts_by_sector.map(s => s.count);
   
@@ -157,7 +161,7 @@ function updateCharts(data) {
               label: 'Andamento', 
               data: values, 
               backgroundColor: '#0d6efd',
-              maxBarThickness: 100, // Limita a largura máxima da barra
+              maxBarThickness: 100, // Limits max bar width
               barPercentage: 0.6,
               categoryPercentage: 0.7
           }]
@@ -170,7 +174,7 @@ function updateCharts(data) {
     sectorChart.update();
   }
 
-  // --- Gráfico 2: Ofensores (Bar) ---
+  // --- Chart 2: Offenders (Bar) ---
   const labels2 = data.offenders_avg.map(o => o.setor_label);
   const vals2 = data.offenders_avg.map(o => o.avg_days);
   
@@ -184,7 +188,7 @@ function updateCharts(data) {
               label: 'Média dias', 
               data: vals2, 
               backgroundColor: '#dc3545',
-              maxBarThickness: 80, // Barras um pouco mais finas aqui
+              maxBarThickness: 80, // Slightly thinner bars here
               barPercentage: 0.6,
               categoryPercentage: 0.7
           }]
@@ -197,10 +201,10 @@ function updateCharts(data) {
     offendersAvgChart.update();
   }
 
-  // --- Gráfico 3: Finalizados (Doughnut) ---
+  // --- Chart 3: Finalized (Doughnut) ---
   const finalizados = data.finalizados_total || 0;
   const openCount = data.counts_by_sector.reduce((sum, s) => sum + s.count, 0) - finalizados;
-  // Garante que não fique negativo (segurança)
+  // Ensure non-negative (safety)
   const safeOpenCount = Math.max(0, openCount);
   
   if (!finalizadosChart) {
@@ -216,7 +220,7 @@ function updateCharts(data) {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false, // Usa o tamanho do container pai
+        maintainAspectRatio: false, // Uses parent container size
         plugins: { legend: { position: 'top' } }
       }
     });
@@ -248,9 +252,9 @@ document.getElementById('export_csv').addEventListener('click', function(e){
   window.location = url.toString();
 });
 
-// Inicialização
+// Initialization
 fetchAndUpdate();
-// Refresh automático a cada 30s
+// Auto-refresh every 30s
 setInterval(fetchAndUpdate, 30000);
 </script>
 {% endblock %}
