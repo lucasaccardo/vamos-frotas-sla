@@ -1,5 +1,33 @@
 {% extends 'vamos/base.html' %}
 {% block content %}
+
+<style>
+    /* Define altura fixa para os cards de gráfico em telas grandes */
+    .card-chart {
+        height: 420px;
+        min-height: 260px;
+        max-height: 720px;
+        padding: 0.75rem;
+        overflow: hidden; 
+        position: relative; /* Necessário para o Chart.js com maintainAspectRatio: false */
+    }
+
+    /* Garante que o canvas ocupe todo o espaço disponível no card */
+    .card-chart canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+
+    /* Ajuste para telas menores (Tablets/Mobile) */
+    @media (max-width: 992px) {
+        .card-chart {
+            height: 300px;
+            min-height: 220px;
+        }
+    }
+</style>
+
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Dashboard - Gestão de Sinistros</h4>
@@ -42,23 +70,32 @@
 
   <div class="row g-3">
     <div class="col-lg-8">
-      <div class="card p-3 mb-3">
+      
+      <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Sinistros em Andamento por Setor</h6>
-        <canvas id="chart_by_sector" height="120"></canvas>
+        <div style="position: relative; height: 100%; width: 100%;">
+            <canvas id="chart_by_sector"></canvas>
+        </div>
       </div>
 
-      <div class="card p-3 mb-3">
+      <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Maiores Ofensores (Média de Dias)</h6>
-        <canvas id="chart_offenders_avg" height="120"></canvas>
+        <div style="position: relative; height: 100%; width: 100%;">
+            <canvas id="chart_offenders_avg"></canvas>
+        </div>
       </div>
     </div>
 
     <div class="col-lg-4">
-      <div class="card p-3 mb-3">
+      <div class="card p-3 mb-3 card-chart">
         <h6 class="fw-bold small text-muted">Finalizados vs Abertos</h6>
-        <canvas id="chart_finalizados" height="200"></canvas>
-        <div class="mt-3">
-          <a id="export_csv" class="btn btn-sm btn-outline-secondary">Export CSV (staff)</a>
+        <div style="position: relative; height: 85%; width: 100%;">
+            <canvas id="chart_finalizados"></canvas>
+        </div>
+        <div class="mt-auto text-center pt-2">
+          <a id="export_csv" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV (staff)
+          </a>
         </div>
       </div>
     </div>
@@ -75,24 +112,61 @@ function moneyBR(v){
   return Number(v||0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Configurações comuns para gráficos de barra (Bar Charts)
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false, // Importante: usa o CSS .card-chart para controlar altura
+  plugins: {
+    legend: { position: 'top' }
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: { 
+          autoSkip: true, 
+          maxTicksLimit: 10, // Limita número de labels para não encavalar
+          maxRotation: 0, 
+          minRotation: 0 
+      }
+    },
+    y: {
+      beginAtZero: true,
+      ticks: { precision: 0 } // Exibir apenas números inteiros
+    }
+  }
+};
+
 let sectorChart = null;
 let offendersAvgChart = null;
 let finalizadosChart = null;
 
 function updateCharts(data) {
+  // --- Atualiza KPIs (Cards do topo) ---
   document.getElementById('card_total_pago').innerText = moneyBR(data.total_pago);
   document.getElementById('card_total_a_pagar').innerText = moneyBR(data.total_a_pagar);
   document.getElementById('card_total_pendente').innerText = moneyBR(data.total_pendente);
   document.getElementById('card_avg_sla').innerText = data.avg_sla_display;
 
+  // --- Gráfico 1: Setores (Bar) ---
   const labels = data.counts_by_sector.map(s => s.setor_label);
   const values = data.counts_by_sector.map(s => s.count);
+  
   if (!sectorChart) {
     const ctx = document.getElementById('chart_by_sector').getContext('2d');
     sectorChart = new Chart(ctx, {
       type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Andamento', data: values, backgroundColor: '#0d6efd' }]},
-      options: { responsive: true, maintainAspectRatio: false }
+      data: { 
+          labels: labels, 
+          datasets: [{ 
+              label: 'Andamento', 
+              data: values, 
+              backgroundColor: '#0d6efd',
+              maxBarThickness: 100, // Limita a largura máxima da barra
+              barPercentage: 0.6,
+              categoryPercentage: 0.7
+          }]
+      },
+      options: barOptions
     });
   } else {
     sectorChart.data.labels = labels;
@@ -100,14 +174,26 @@ function updateCharts(data) {
     sectorChart.update();
   }
 
+  // --- Gráfico 2: Ofensores (Bar) ---
   const labels2 = data.offenders_avg.map(o => o.setor_label);
   const vals2 = data.offenders_avg.map(o => o.avg_days);
+  
   if (!offendersAvgChart) {
     const ctx2 = document.getElementById('chart_offenders_avg').getContext('2d');
     offendersAvgChart = new Chart(ctx2, {
       type: 'bar',
-      data: { labels: labels2, datasets: [{ label: 'Média dias', data: vals2, backgroundColor: '#dc3545' }]},
-      options: { responsive: true, maintainAspectRatio: false }
+      data: { 
+          labels: labels2, 
+          datasets: [{ 
+              label: 'Média dias', 
+              data: vals2, 
+              backgroundColor: '#dc3545',
+              maxBarThickness: 80, // Barras um pouco mais finas aqui
+              barPercentage: 0.6,
+              categoryPercentage: 0.7
+          }]
+      },
+      options: barOptions
     });
   } else {
     offendersAvgChart.data.labels = labels2;
@@ -115,17 +201,31 @@ function updateCharts(data) {
     offendersAvgChart.update();
   }
 
+  // --- Gráfico 3: Finalizados (Doughnut) ---
   const finalizados = data.finalizados_total || 0;
   const openCount = data.counts_by_sector.reduce((sum, s) => sum + s.count, 0) - finalizados;
-  const ctx3 = document.getElementById('chart_finalizados').getContext('2d');
+  // Garante que não fique negativo (segurança)
+  const safeOpenCount = Math.max(0, openCount);
+  
   if (!finalizadosChart) {
+    const ctx3 = document.getElementById('chart_finalizados').getContext('2d');
     finalizadosChart = new Chart(ctx3, {
       type: 'doughnut',
-      data: { labels: ['Abertos', 'Finalizados'], datasets: [{ data: [openCount, finalizados], backgroundColor: ['#0d6efd', '#198754'] }]},
-      options: { responsive: true, maintainAspectRatio: false }
+      data: { 
+          labels: ['Abertos', 'Finalizados'], 
+          datasets: [{ 
+              data: [safeOpenCount, finalizados], 
+              backgroundColor: ['#0d6efd', '#198754'] 
+          }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // Usa o tamanho do container pai
+        plugins: { legend: { position: 'top' } }
+      }
     });
   } else {
-    finalizadosChart.data.datasets[0].data = [openCount, finalizados];
+    finalizadosChart.data.datasets[0].data = [safeOpenCount, finalizados];
     finalizadosChart.update();
   }
 }
@@ -134,6 +234,7 @@ function fetchAndUpdate(){
   const segmento = document.getElementById('filter_segmento').value;
   const url = new URL(API_URL, window.location.origin);
   if (segmento) url.searchParams.set('segmento', segmento);
+  
   fetch(url.toString())
     .then(r => r.json())
     .then(data => {
@@ -142,6 +243,7 @@ function fetchAndUpdate(){
     .catch(err => console.error('Erro dashboard:', err));
 }
 
+// Event Listeners
 document.getElementById('filter_segmento').addEventListener('change', fetchAndUpdate);
 document.getElementById('export_csv').addEventListener('click', function(e){
   const segmento = document.getElementById('filter_segmento').value;
@@ -150,7 +252,9 @@ document.getElementById('export_csv').addEventListener('click', function(e){
   window.location = url.toString();
 });
 
+// Inicialização
 fetchAndUpdate();
+// Refresh automático a cada 30s
 setInterval(fetchAndUpdate, 30000);
 </script>
 {% endblock %}
