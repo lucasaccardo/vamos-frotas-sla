@@ -1,6 +1,6 @@
 """
 Django settings for vamos_frotas_sla project.
-Versão Final - Segura para Produção (+ Middleware de Timeout)
+Versão Final - Segura para Produção
 """
 
 from pathlib import Path
@@ -43,8 +43,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     
-    # ⚠️ MIDDLEWARE DE TIMEOUT POR INATIVIDADE (Inserido aqui)
-    "sinistros.middleware.SessionIdleTimeout",
+    # OBS: Middleware de timeout removido temporariamente para evitar erro de importação
+    # "sinistros.middleware.SessionIdleTimeout",
     
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -149,7 +149,7 @@ SESSION_COOKIE_AGE = 1800           # 30 minutos em segundos (Sessão do Django)
 SESSION_SAVE_EVERY_REQUEST = True   # True = Renova o tempo a cada clique (Inatividade)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Fecha sessão ao fechar navegador
 
-# Configuração específica para o middleware customizado (Sinistros)
+# Configuração específica para o middleware customizado (Sinistros) - Mantido para uso futuro
 IDLE_TIMEOUT_SECONDS = 1800  # 30 minutos de inatividade para logout forçado
 
 # 2. Configurações de Segurança HTTPS/Cookies
