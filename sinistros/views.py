@@ -10,6 +10,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
@@ -675,3 +676,14 @@ def sinistro_timeline_api(request, pk):
             'duration_human': format_timedelta_days_hours(timedelta(seconds=dur))
         })
     return JsonResponse({'sinistro_id': sinistro.id, 'timeline': timeline})
+
+# --- PING SESSION (FOR KEEP ALIVE) ---
+@login_required
+@require_POST
+def ping_session(request):
+    """
+    Minimal view to update user session activity timestamp.
+    Used by frontend idle timeout script.
+    """
+    request.session['last_activity'] = timezone.now().isoformat()
+    return JsonResponse({'ok': True})
