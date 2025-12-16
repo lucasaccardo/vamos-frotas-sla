@@ -43,7 +43,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     
-    # OBS: Middleware de timeout removido temporariamente para evitar erro de importação
+    # OBS: Middleware de timeout removido para evitar erro de importação
     # "sinistros.middleware.SessionIdleTimeout",
     
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -65,7 +65,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "vamos.context_processors.notificacoes_globais",
+                # Context processor de notificações removido conforme solicitado
             ],
         },
     },
