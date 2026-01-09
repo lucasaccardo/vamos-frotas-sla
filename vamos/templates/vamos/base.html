@@ -232,6 +232,12 @@
                         <i class="bi bi-box-seam text-warning"></i> Intra
                     </a>
 
+                    {% if user.is_staff %}
+                    <a href="{% url 'exportar_relatorios' %}" class="nav-link {% if request.resolver_match.url_name == 'exportar_relatorios' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-spreadsheet text-info"></i> Relatórios
+                    </a>
+                    {% endif %}
+
                     <div class="sidebar-heading text-uppercase fw-bold mt-4 mb-2 ms-3" style="font-size: 0.75rem; color: #64748b; letter-spacing: 1px;">
                         Ações
                     </div>
