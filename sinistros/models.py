@@ -91,21 +91,58 @@ class Sinistro(models.Model):
             return True
         return False
 
+    def data_ultima_mudanca_setor(self):
+        """
+        Retorna a data (date object) da última mudança para o setor atual.
+        Busca no histórico o último registro onde setor_novo == setor_atual.
+        Fallback: usa updated_at ou created_at do sinistro, ou date.today()
+        """
+        from datetime import date
+        
+        # Buscar último histórico onde setor_novo é o setor_atual
+        ultimo_historico = self.historico.filter(
+            setor_novo=self.setor_atual
+        ).order_by('-data_mudanca').first()
+        
+        if ultimo_historico and ultimo_historico.data_mudanca:
+            # Converter datetime para date
+            return ultimo_historico.data_mudanca.date()
+        
+        # Fallback para ultima_interacao ou criado_em
+        if self.ultima_interacao:
+            return self.ultima_interacao.date()
+        elif self.criado_em:
+            return self.criado_em.date()
+        
+        # Último fallback
+        return date.today()
+
     def sla_por_setor(self):
         """
         Retorna a SLA máxima (em dias corridos) e o label descritivo para o setor atual.
         Returns: tuple (dias: Optional[int], label: str)
         
         Regras:
-        - CLIENTE -> 5 dias corridos
-        - PRECIFICACAO -> 5 dias corridos  
-        - FINANCEIRO -> 4 dias corridos
-        - DESMOBILIZACAO_MEDICAO -> sem prazo
-        - DEPTO_SINISTRO -> 60 dias corridos
-        - MANUTENCAO -> 15 dias corridos (ou 2 dias se aguarda_aprovacao_os == True)
-        - FINALIZADO -> sem prazo
+        - Se retornar_ate (Prazo Limite) estiver preenchido:
+          Calcula dias = max(0, (retornar_ate - data_ultima_mudanca_setor).days)
+          Label = "X dias corridos"
+        - Caso contrário, usa regras padrão por setor:
+          - CLIENTE -> 5 dias corridos
+          - PRECIFICACAO -> 5 dias corridos  
+          - FINANCEIRO -> 4 dias corridos
+          - DESMOBILIZACAO_MEDICAO -> sem prazo
+          - DEPTO_SINISTRO -> 60 dias corridos
+          - MANUTENCAO -> 15 dias corridos (ou 2 dias se aguarda_aprovacao_os == True)
+          - FINALIZADO -> sem prazo
         """
-        # Mapeamento de SLA por setor
+        # Se há prazo limite definido, calcular SLA com base nele
+        if self.retornar_ate:
+            data_mudanca = self.data_ultima_mudanca_setor()
+            dias = max(0, (self.retornar_ate - data_mudanca).days)
+            label = f"{dias} dias corridos"
+            return (dias, label)
+        
+        # Mapeamento de SLA por setor (regras padrão)
         SLA_CONFIG = {
             'CLIENTE': (5, '5 dias corridos'),
             'PRECIFICACAO': (5, '5 dias corridos'),

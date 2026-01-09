@@ -240,17 +240,35 @@ def editar_sinistro_view(request, pk):
     if request.method == 'POST':
         setor_antigo = sinistro.setor_atual
         aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
+        retornar_ate_antigo = sinistro.retornar_ate
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
                 
-                # Auto-calcular retornar_ate se o setor mudou ou aguarda_aprovacao_os mudou
+                # Verificar se houve mudanças
                 setor_mudou = (setor_antigo != sinistro.setor_atual)
                 aguarda_mudou = (aguarda_aprovacao_antigo != sinistro.aguarda_aprovacao_os)
+                retornar_ate_mudou = (retornar_ate_antigo != sinistro.retornar_ate)
                 
-                # Se o setor mudou ou aguarda_aprovacao mudou, recalcular retornar_ate
-                if setor_mudou or aguarda_mudou or not sinistro.retornar_ate:
+                # Se retornar_ate foi preenchido manualmente no form, manter valor
+                # Se o setor mudou ou aguarda_aprovacao mudou e retornar_ate não foi alterado manualmente,
+                # recalcular retornar_ate automaticamente
+                if not retornar_ate_mudou and (setor_mudou or aguarda_mudou or not sinistro.retornar_ate):
+                    # Criar histórico primeiro se setor mudou (para data_ultima_mudanca_setor funcionar)
+                    if setor_mudou:
+                        HistoricoSinistro.objects.create(
+                            sinistro=sinistro,
+                            setor_anterior=setor_antigo or '-',
+                            setor_novo=sinistro.setor_atual,
+                            alterado_por=request.user,
+                            comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
+                        )
+                    
+                    # Auto-calcular retornar_ate com regras padrão
+                    # Temporariamente limpar retornar_ate para usar regras padrão
+                    temp_retornar_ate = sinistro.retornar_ate
+                    sinistro.retornar_ate = None
                     dias, label = sinistro.sla_por_setor()
                     if dias is not None:
                         sinistro.retornar_ate = date.today() + timedelta(days=dias)
@@ -259,8 +277,11 @@ def editar_sinistro_view(request, pk):
                 
                 sinistro.save()
 
-                # Create history if sector changed
-                if setor_antigo != sinistro.setor_atual:
+                # Create history if sector changed and not already created
+                if setor_mudou and not retornar_ate_mudou:
+                    # Já criado acima
+                    pass
+                elif setor_mudou:
                     HistoricoSinistro.objects.create(
                         sinistro=sinistro,
                         setor_anterior=setor_antigo or '-',
