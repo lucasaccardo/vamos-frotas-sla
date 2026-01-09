@@ -41,6 +41,19 @@
         </div>
     {% endif %}
     
+    <!-- Hidden data attributes for SLA configuration -->
+    <div id="sla_config" style="display:none;"
+         data-cliente="5 dias corridos"
+         data-precificacao="5 dias corridos"
+         data-financeiro="4 dias corridos"
+         data-desmobilizacao_medicao="SEM PRAZO"
+         data-depto_sinistro="60 dias corridos"
+         data-manutencao="15 dias corridos"
+         data-manutencao_aguardando="2 dias corridos"
+         data-finalizado="SEM PRAZO"
+         data-abertura="SEM PRAZO">
+    </div>
+    
     <div class="row">
         
         <div class="col-lg-8">
@@ -241,17 +254,18 @@
         }
     });
 
-    // --- MAPA DE SLA POR SETOR ---
+    // --- MAPA DE SLA POR SETOR (lido de data attributes) ---
+    const slaConfig = document.getElementById('sla_config');
     const SLA_MAP = {
-        'CLIENTE': '5 dias corridos',
-        'PRECIFICACAO': '5 dias corridos',
-        'FINANCEIRO': '4 dias corridos',
-        'DESMOBILIZACAO_MEDICAO': 'SEM PRAZO',
-        'DEPTO_SINISTRO': '60 dias corridos',
-        'MANUTENCAO': '15 dias corridos',  // será ajustado se aguarda_aprovacao_os
-        'MANUTENCAO_AGUARDANDO': '2 dias corridos',  // quando aguarda_aprovacao_os = true
-        'FINALIZADO': 'SEM PRAZO',
-        'ABERTURA': 'SEM PRAZO'
+        'CLIENTE': slaConfig.dataset.cliente,
+        'PRECIFICACAO': slaConfig.dataset.precificacao,
+        'FINANCEIRO': slaConfig.dataset.financeiro,
+        'DESMOBILIZACAO_MEDICAO': slaConfig.dataset.desmobilizacao_medicao,
+        'DEPTO_SINISTRO': slaConfig.dataset.depto_sinistro,
+        'MANUTENCAO': slaConfig.dataset.manutencao,
+        'MANUTENCAO_AGUARDANDO': slaConfig.dataset.manutencao_aguardando,
+        'FINALIZADO': slaConfig.dataset.finalizado,
+        'ABERTURA': slaConfig.dataset.abertura
     };
 
     // --- FUNÇÃO PARA ATUALIZAR O DISPLAY DA SLA ---

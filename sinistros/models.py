@@ -105,28 +105,28 @@ class Sinistro(models.Model):
         - MANUTENCAO -> 15 dias corridos (ou 2 dias se aguarda_aprovacao_os == True)
         - FINALIZADO -> sem prazo
         """
+        # Mapeamento de SLA por setor
+        SLA_CONFIG = {
+            'CLIENTE': (5, '5 dias corridos'),
+            'PRECIFICACAO': (5, '5 dias corridos'),
+            'FINANCEIRO': (4, '4 dias corridos'),
+            'DESMOBILIZACAO_MEDICAO': (None, 'SEM PRAZO'),
+            'DEPTO_SINISTRO': (60, '60 dias corridos'),
+            'FINALIZADO': (None, 'SEM PRAZO'),
+            'ABERTURA': (None, 'SEM PRAZO'),
+        }
+        
         setor = self.setor_atual or ''
         
-        if setor == 'CLIENTE':
-            return (5, '5 dias corridos')
-        elif setor == 'PRECIFICACAO':
-            return (5, '5 dias corridos')
-        elif setor == 'FINANCEIRO':
-            return (4, '4 dias corridos')
-        elif setor == 'DESMOBILIZACAO_MEDICAO':
-            return (None, 'SEM PRAZO')
-        elif setor == 'DEPTO_SINISTRO':
-            return (60, '60 dias corridos')
-        elif setor == 'MANUTENCAO':
+        # Caso especial: MANUTENCAO depende de aguarda_aprovacao_os
+        if setor == 'MANUTENCAO':
             if self.aguarda_aprovacao_os:
                 return (2, '2 dias corridos')
             else:
                 return (15, '15 dias corridos')
-        elif setor == 'FINALIZADO':
-            return (None, 'SEM PRAZO')
-        else:
-            # Para setores não mapeados (ex: ABERTURA)
-            return (None, 'SEM PRAZO')
+        
+        # Retorna do mapeamento ou default
+        return SLA_CONFIG.get(setor, (None, 'SEM PRAZO'))
 
 class HistoricoSinistro(models.Model):
     sinistro = models.ForeignKey(Sinistro, on_delete=models.CASCADE, related_name='historico')
