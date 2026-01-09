@@ -6,10 +6,12 @@ class Sinistro(models.Model):
     # Opções de Status/Setores
     SETORES = [
         ('ABERTURA', 'Abertura'),
-        ('MANUTENCAO', 'Manutenção (Orçamento)'),
         ('CLIENTE', 'Aprovação Cliente'),
-        ('JURIDICO', 'Jurídico/Sinistro'),
+        ('PRECIFICACAO', 'Precificação'),
         ('FINANCEIRO', 'Financeiro (Pagamento)'),
+        ('DESMOBILIZACAO_MEDICAO', 'Desmobilização / Medição'),
+        ('DEPTO_SINISTRO', 'Depto. Sinistro'),
+        ('MANUTENCAO', 'Manutenção'),
         ('FINALIZADO', 'Finalizado'),
     ]
     
@@ -54,7 +56,7 @@ class Sinistro(models.Model):
     total_pago = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
     # --- CONTROLE E SLA ---
-    setor_atual = models.CharField(max_length=20, choices=SETORES, default='ABERTURA')
+    setor_atual = models.CharField(max_length=30, choices=SETORES, default='ABERTURA')
     responsavel_setor = models.CharField(max_length=100, blank=True, null=True)
     
     # --- CONTROLE DE APROVAÇÃO (NOVOS CAMPOS) ---
@@ -88,6 +90,43 @@ class Sinistro(models.Model):
         if self.retornar_ate and self.retornar_ate < timezone.now().date():
             return True
         return False
+
+    def sla_por_setor(self):
+        """
+        Retorna a SLA máxima (em dias corridos) e o label descritivo para o setor atual.
+        Returns: tuple (dias: Optional[int], label: str)
+        
+        Regras:
+        - CLIENTE -> 5 dias corridos
+        - PRECIFICACAO -> 5 dias corridos  
+        - FINANCEIRO -> 4 dias corridos
+        - DESMOBILIZACAO_MEDICAO -> sem prazo
+        - DEPTO_SINISTRO -> 60 dias corridos
+        - MANUTENCAO -> 15 dias corridos (ou 2 dias se aguarda_aprovacao_os == True)
+        - FINALIZADO -> sem prazo
+        """
+        setor = self.setor_atual or ''
+        
+        if setor == 'CLIENTE':
+            return (5, '5 dias corridos')
+        elif setor == 'PRECIFICACAO':
+            return (5, '5 dias corridos')
+        elif setor == 'FINANCEIRO':
+            return (4, '4 dias corridos')
+        elif setor == 'DESMOBILIZACAO_MEDICAO':
+            return (None, 'SEM PRAZO')
+        elif setor == 'DEPTO_SINISTRO':
+            return (60, '60 dias corridos')
+        elif setor == 'MANUTENCAO':
+            if self.aguarda_aprovacao_os:
+                return (2, '2 dias corridos')
+            else:
+                return (15, '15 dias corridos')
+        elif setor == 'FINALIZADO':
+            return (None, 'SEM PRAZO')
+        else:
+            # Para setores não mapeados (ex: ABERTURA)
+            return (None, 'SEM PRAZO')
 
 class HistoricoSinistro(models.Model):
     sinistro = models.ForeignKey(Sinistro, on_delete=models.CASCADE, related_name='historico')
