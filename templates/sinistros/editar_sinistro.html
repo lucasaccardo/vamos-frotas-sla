@@ -51,7 +51,9 @@
          data-manutencao="15 dias corridos"
          data-manutencao_aguardando="2 dias corridos"
          data-finalizado="SEM PRAZO"
-         data-abertura="SEM PRAZO">
+         data-abertura="SEM PRAZO"
+         data-ultima-mudanca-setor="{{ sinistro.data_ultima_mudanca_setor|date:'Y-m-d' }}"
+         data-retornar-ate="{% if sinistro.retornar_ate %}{{ sinistro.retornar_ate|date:'Y-m-d' }}{% endif %}">
     </div>
     
     <div class="row">
@@ -272,6 +274,7 @@
     function updateSlaDisplay() {
         const setorSelect = document.querySelector('select[name="setor_atual"]');
         const aguardCheck = document.querySelector('input[name="aguarda_aprovacao_os"]');
+        const prazoLimiteInput = document.querySelector('input[name="retornar_ate"]');
         const slaText = document.getElementById('sla_text');
         
         if (!setorSelect || !slaText) return;
@@ -279,15 +282,37 @@
         const setorVal = setorSelect.value;
         let slaLabel = 'SEM PRAZO';
         
-        // Se for MANUTENCAO, verificar o checkbox aguarda_aprovacao_os
-        if (setorVal === 'MANUTENCAO') {
-            if (aguardCheck && aguardCheck.checked) {
-                slaLabel = SLA_MAP['MANUTENCAO_AGUARDANDO'];
-            } else {
-                slaLabel = SLA_MAP['MANUTENCAO'];
+        // Se houver Prazo Limite definido, calcular SLA com base nele
+        if (prazoLimiteInput && prazoLimiteInput.value) {
+            try {
+                const prazoDate = new Date(prazoLimiteInput.value + 'T00:00:00');
+                const ultimaMudancaStr = slaConfig.dataset.ultimaMudancaSetor;
+                
+                if (ultimaMudancaStr) {
+                    const ultimaMudancaDate = new Date(ultimaMudancaStr + 'T00:00:00');
+                    const diffTime = prazoDate - ultimaMudancaDate;
+                    // Usar Math.floor para consistência com o backend Python que usa .days (trunca)
+                    const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+                    slaLabel = diffDays + ' dias corridos';
+                } else {
+                    slaLabel = 'Prazo Limite definido';
+                }
+            } catch (e) {
+                console.error('Erro ao calcular SLA com Prazo Limite:', e);
+                slaLabel = 'Prazo Limite definido';
             }
         } else {
-            slaLabel = SLA_MAP[setorVal] || 'SEM PRAZO';
+            // Usar regras padrão por setor
+            // Se for MANUTENCAO, verificar o checkbox aguarda_aprovacao_os
+            if (setorVal === 'MANUTENCAO') {
+                if (aguardCheck && aguardCheck.checked) {
+                    slaLabel = SLA_MAP['MANUTENCAO_AGUARDANDO'];
+                } else {
+                    slaLabel = SLA_MAP['MANUTENCAO'];
+                }
+            } else {
+                slaLabel = SLA_MAP[setorVal] || 'SEM PRAZO';
+            }
         }
         
         slaText.textContent = 'SLA máximo: ' + slaLabel;
@@ -300,6 +325,7 @@
         const aprovacaoBlock = document.getElementById('aprovacao_block');
         const aguardCheck = document.querySelector('input[name="aguarda_aprovacao_os"]');
         const aprovadorField = document.getElementById('aprovador_field');
+        const prazoLimiteInput = document.querySelector('input[name="retornar_ate"]');
 
         function isManutencao(val) {
             if (!val) return false;
@@ -347,6 +373,12 @@
             setorSelect.addEventListener('change', updateFieldsVisibility);
             // Roda ao carregar a página
             updateFieldsVisibility();
+        }
+        
+        // Listener no Prazo Limite
+        if (prazoLimiteInput) {
+            prazoLimiteInput.addEventListener('change', updateSlaDisplay);
+            prazoLimiteInput.addEventListener('input', updateSlaDisplay);
         }
     });
 </script>

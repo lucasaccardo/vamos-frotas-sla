@@ -240,27 +240,21 @@ def editar_sinistro_view(request, pk):
     if request.method == 'POST':
         setor_antigo = sinistro.setor_atual
         aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
+        retornar_ate_antigo = sinistro.retornar_ate
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
                 
-                # Auto-calcular retornar_ate se o setor mudou ou aguarda_aprovacao_os mudou
+                # Verificar se houve mudanças
                 setor_mudou = (setor_antigo != sinistro.setor_atual)
                 aguarda_mudou = (aguarda_aprovacao_antigo != sinistro.aguarda_aprovacao_os)
+                retornar_ate_mudou = (retornar_ate_antigo != sinistro.retornar_ate)
                 
-                # Se o setor mudou ou aguarda_aprovacao mudou, recalcular retornar_ate
-                if setor_mudou or aguarda_mudou or not sinistro.retornar_ate:
-                    dias, label = sinistro.sla_por_setor()
-                    if dias is not None:
-                        sinistro.retornar_ate = date.today() + timedelta(days=dias)
-                    else:
-                        sinistro.retornar_ate = None
-                
-                sinistro.save()
-
-                # Create history if sector changed
-                if setor_antigo != sinistro.setor_atual:
+                # Criar histórico ANTES de recalcular SLA, se o setor mudou
+                # (necessário para que data_ultima_mudanca_setor funcione corretamente)
+                historico_criado = False
+                if setor_mudou:
                     HistoricoSinistro.objects.create(
                         sinistro=sinistro,
                         setor_anterior=setor_antigo or '-',
@@ -268,6 +262,22 @@ def editar_sinistro_view(request, pk):
                         alterado_por=request.user,
                         comentario=request.POST.get('observacoes', '') or 'Alteração via edição'
                     )
+                    historico_criado = True
+                
+                # Se retornar_ate foi preenchido manualmente no form, manter valor
+                # Se o setor mudou ou aguarda_aprovacao mudou e retornar_ate não foi alterado manualmente,
+                # recalcular retornar_ate automaticamente
+                if not retornar_ate_mudou and (setor_mudou or aguarda_mudou or not sinistro.retornar_ate):
+                    # Auto-calcular retornar_ate com regras padrão
+                    # Temporariamente limpar retornar_ate para usar regras padrão
+                    sinistro.retornar_ate = None
+                    dias, label = sinistro.sla_por_setor()
+                    if dias is not None:
+                        sinistro.retornar_ate = date.today() + timedelta(days=dias)
+                    else:
+                        sinistro.retornar_ate = None
+                
+                sinistro.save()
 
                 messages.success(request, "Atualizado!")
                 return redirect(f"{reverse('sinistros_home')}?segmento={sinistro.segmento}")
