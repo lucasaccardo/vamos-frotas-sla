@@ -5,7 +5,7 @@ import traceback
 import pandas as pd
 import csv
 import io
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
@@ -253,7 +253,6 @@ def editar_sinistro_view(request, pk):
                     dias, label = sinistro.sla_por_setor()
                     if dias is not None:
                         # Calculate return date as today + dias corridos
-                        from datetime import date, timedelta
                         sinistro.retornar_ate = date.today() + timedelta(days=dias)
                     else:
                         # No SLA deadline

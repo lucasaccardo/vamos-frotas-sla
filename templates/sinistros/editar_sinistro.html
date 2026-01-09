@@ -266,7 +266,7 @@
 
         function isManutencao(val) {
             if (!val) return false;
-            return val.toString().toUpperCase().includes('MANUT'); // cobre MANUTENCAO, MANUTENÇÃO, ETC
+            return val === 'MANUTENCAO';
         }
 
         function updateSlaLabel() {
