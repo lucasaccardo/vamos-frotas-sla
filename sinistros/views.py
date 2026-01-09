@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.db.models import Sum, Count, Q
 from django.urls import reverse
 
@@ -763,7 +764,6 @@ def exportar_xlsx(request):
     # Date range filter
     if data_inicio:
         try:
-            from django.utils.dateparse import parse_date
             data_inicio_parsed = parse_date(data_inicio)
             if data_inicio_parsed:
                 if campo_data == 'data_ocorrencia':
@@ -775,7 +775,6 @@ def exportar_xlsx(request):
     
     if data_fim:
         try:
-            from django.utils.dateparse import parse_date
             data_fim_parsed = parse_date(data_fim)
             if data_fim_parsed:
                 if campo_data == 'data_ocorrencia':
@@ -912,7 +911,6 @@ def exportar_csv(request):
     # Date range filter
     if data_inicio:
         try:
-            from django.utils.dateparse import parse_date
             data_inicio_parsed = parse_date(data_inicio)
             if data_inicio_parsed:
                 if campo_data == 'data_ocorrencia':
@@ -924,7 +922,6 @@ def exportar_csv(request):
     
     if data_fim:
         try:
-            from django.utils.dateparse import parse_date
             data_fim_parsed = parse_date(data_fim)
             if data_fim_parsed:
                 if campo_data == 'data_ocorrencia':
