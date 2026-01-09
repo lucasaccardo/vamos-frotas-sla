@@ -240,3 +240,88 @@ class AprovadorSLATestCase(TestCase):
         expected_date = date.today() + timedelta(days=dias)
         
         self.assertEqual(dias, 2)
+
+
+class SLACalculationLogicTestCase(TestCase):
+    """
+    Tests for the SLA calculation logic (simulating what the view does)
+    """
+    
+    def setUp(self):
+        """Create a test user"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+    
+    def test_calculate_retornar_ate_cliente(self):
+        """Test retornar_ate calculation logic for CLIENTE sector"""
+        sinistro = Sinistro.objects.create(
+            placa='TEST001',
+            cliente='Test Client',
+            modelo_ativo='Test Model',
+            n_chamado='TEST001',
+            data_ocorrencia=date.today(),
+            motivo='COLISAO',
+            setor_atual='CLIENTE',
+            criado_por=self.user
+        )
+        
+        # Simulate what the view does
+        dias, label = sinistro.sla_por_setor()
+        if dias is not None:
+            sinistro.retornar_ate = date.today() + timedelta(days=dias)
+            sinistro.save()
+        
+        # Verify
+        expected_date = date.today() + timedelta(days=5)
+        self.assertEqual(sinistro.retornar_ate, expected_date)
+    
+    def test_calculate_retornar_ate_manutencao_with_approval(self):
+        """Test retornar_ate calculation for MANUTENCAO with approval"""
+        sinistro = Sinistro.objects.create(
+            placa='TEST002',
+            cliente='Test Client',
+            modelo_ativo='Test Model',
+            n_chamado='TEST002',
+            data_ocorrencia=date.today(),
+            motivo='COLISAO',
+            setor_atual='MANUTENCAO',
+            aguarda_aprovacao_os=True,
+            aprovador_os='Test Approver',
+            criado_por=self.user
+        )
+        
+        # Simulate what the view does
+        dias, label = sinistro.sla_por_setor()
+        if dias is not None:
+            sinistro.retornar_ate = date.today() + timedelta(days=dias)
+            sinistro.save()
+        
+        # Verify
+        expected_date = date.today() + timedelta(days=2)
+        self.assertEqual(sinistro.retornar_ate, expected_date)
+    
+    def test_calculate_retornar_ate_no_deadline(self):
+        """Test that sectors without deadline set retornar_ate to None"""
+        sinistro = Sinistro.objects.create(
+            placa='TEST003',
+            cliente='Test Client',
+            modelo_ativo='Test Model',
+            n_chamado='TEST003',
+            data_ocorrencia=date.today(),
+            motivo='COLISAO',
+            setor_atual='FINALIZADO',
+            criado_por=self.user
+        )
+        
+        # Simulate what the view does
+        dias, label = sinistro.sla_por_setor()
+        if dias is not None:
+            sinistro.retornar_ate = date.today() + timedelta(days=dias)
+        else:
+            sinistro.retornar_ate = None
+        sinistro.save()
+        
+        # Verify
+        self.assertIsNone(sinistro.retornar_ate)
