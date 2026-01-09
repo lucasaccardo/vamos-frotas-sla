@@ -22,4 +22,9 @@ urlpatterns = [
     path('api/dashboard-stats/', views.dashboard_stats_api, name='dashboard_stats_api'),
     path('api/dashboard-export/', views.dashboard_export_csv, name='dashboard_export_csv'),
     path('<int:pk>/timeline/', views.sinistro_timeline_api, name='sinistro_timeline_api'),
+    
+    # --- EXPORT / RELATÓRIOS ---
+    path('relatorios/', views.exportar_relatorios_view, name='exportar_relatorios'),
+    path('export/xlsx/', views.exportar_xlsx, name='exportar_xlsx'),
+    path('export/csv/', views.exportar_csv, name='exportar_csv'),
 ]

@@ -1,0 +1,211 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Exportar Relatórios
+                    </h2>
+                    <p class="text-muted">Gere relatórios em Excel (.xlsx) ou CSV com filtros personalizados</p>
+                </div>
+                <a href="{% url 'sinistros_home' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 fw-bold text-primary">
+                        <i class="bi bi-funnel me-2"></i>Filtros de Exportação
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form id="formExport" method="get" action="" target="_blank">
+                        
+                        <div class="row g-3">
+                            
+                            <!-- Setor -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-diagram-3 me-1"></i>Setor
+                                </label>
+                                <select name="setor" class="form-select">
+                                    <option value="TODOS">Todos os Setores</option>
+                                    {% for code, label in setores %}
+                                        <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Segmento -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-truck me-1"></i>Segmento
+                                </label>
+                                <select name="segmento" class="form-select">
+                                    <option value="TODOS">Todos os Segmentos</option>
+                                    {% for code, label in segmentos %}
+                                        <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person me-1"></i>Cliente (Busca Parcial)
+                                </label>
+                                <input type="text" name="cliente" class="form-control" placeholder="Digite o nome do cliente...">
+                                <small class="text-muted">Busca por nome do cliente (deixe em branco para todos)</small>
+                            </div>
+
+                            <div class="col-12"><hr></div>
+
+                            <!-- Campo de Data a Filtrar -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-calendar me-1"></i>Campo de Data para Filtrar
+                                </label>
+                                <select name="campo_data" class="form-select">
+                                    <option value="data_ocorrencia">Data de Ocorrência</option>
+                                    <option value="data_inicio_tratativa">Data de Início de Tratativa (Criado em)</option>
+                                </select>
+                            </div>
+
+                            <!-- Data Início -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-calendar-event me-1"></i>Data Início
+                                </label>
+                                <input type="date" name="data_inicio" class="form-control">
+                            </div>
+
+                            <!-- Data Fim -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-calendar-event me-1"></i>Data Fim
+                                </label>
+                                <input type="date" name="data_fim" class="form-control">
+                            </div>
+
+                            <div class="col-12"><hr></div>
+
+                            <!-- Apenas Pagos -->
+                            <div class="col-md-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="apenas_pagos" id="apenas_pagos">
+                                    <label class="form-check-label fw-bold" for="apenas_pagos">
+                                        <i class="bi bi-cash-coin me-1"></i>Apenas Processos com Pagamento (Total Pago > 0)
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Dica:</strong> Use Excel (.xlsx) para melhor formatação e análise. Use CSV para volumes muito grandes ou compatibilidade com outras ferramentas.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12 d-flex gap-2 justify-content-end">
+                                <button type="button" class="btn btn-success btn-lg px-4" onclick="exportXLSX()">
+                                    <i class="bi bi-file-earmark-excel me-2"></i> Exportar Excel (.xlsx)
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-lg px-4" onclick="exportCSV()">
+                                    <i class="bi bi-filetype-csv me-2"></i> Exportar CSV
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Cards -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="fw-bold text-primary mb-2">
+                                <i class="bi bi-file-earmark-excel me-2"></i>Excel (.xlsx)
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                Formato ideal para análise de dados. Inclui formatação de colunas, datas formatadas (dd/mm/YYYY) e valores com 2 decimais. Colunas auto-ajustadas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="fw-bold text-primary mb-2">
+                                <i class="bi bi-filetype-csv me-2"></i>CSV
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                Formato universal compatível com qualquer ferramenta. Recomendado para volumes muito grandes ou importação em outros sistemas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-journal-text me-2"></i>Observações Importantes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li>Os relatórios incluem todas as colunas principais: dados do ativo, financeiro, status, SLA e observações.</li>
+                        <li>Os filtros são aplicados no servidor antes da geração do arquivo.</li>
+                        <li>Para volumes muito grandes (>10.000 registros), considere usar CSV para melhor performance.</li>
+                        <li>Arquivos gerados incluem timestamp no nome para facilitar organização.</li>
+                        <li>Campo "SLA" mostra o prazo máximo configurado para o setor atual.</li>
+                        <li>Aprovador O.S. é exibido quando o processo está aguardando aprovação.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportXLSX() {
+        const form = document.getElementById('formExport');
+        form.action = '{% url "exportar_xlsx" %}';
+        form.submit();
+    }
+
+    function exportCSV() {
+        const form = document.getElementById('formExport');
+        form.action = '{% url "exportar_csv" %}';
+        form.submit();
+    }
+</script>
+
+{% endblock %}

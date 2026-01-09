@@ -700,3 +700,297 @@ def ping_session(request):
     """
     request.session['last_activity'] = timezone.now().isoformat()
     return JsonResponse({'ok': True})
+
+
+# --- EXPORT / RELATÓRIOS ---
+@login_required(login_url='login')
+def exportar_relatorios_view(request):
+    """
+    Página de exportação de relatórios com filtros
+    """
+    if not request.user.is_staff:
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect('sinistros_home')
+    
+    # Prepare data for dropdowns
+    setores = Sinistro.SETORES
+    segmentos = Sinistro.SEGMENTOS
+    
+    context = {
+        'setores': setores,
+        'segmentos': segmentos,
+    }
+    return render(request, 'sinistros/exportar.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_staff)
+def exportar_xlsx(request):
+    """
+    Gera arquivo Excel (.xlsx) com filtros aplicados
+    Filtros disponíveis:
+    - setor (dropdown)
+    - apenas_pagos (checkbox)
+    - data_inicio / data_fim com campo de data selecionável
+    - cliente (texto)
+    - segmento (dropdown)
+    """
+    # Get filters from GET parameters
+    setor = request.GET.get('setor', '')
+    apenas_pagos = request.GET.get('apenas_pagos', '') == 'on'
+    campo_data = request.GET.get('campo_data', 'data_ocorrencia')  # data_ocorrencia or data_inicio_tratativa
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    cliente = request.GET.get('cliente', '')
+    segmento = request.GET.get('segmento', '')
+    
+    # Base queryset
+    qs = Sinistro.objects.all()
+    
+    # Apply filters
+    if setor and setor != 'TODOS':
+        qs = qs.filter(setor_atual=setor)
+    
+    if apenas_pagos:
+        qs = qs.filter(total_pago__gt=0)
+    
+    if cliente:
+        qs = qs.filter(cliente__icontains=cliente)
+    
+    if segmento and segmento != 'TODOS':
+        qs = qs.filter(segmento=segmento)
+    
+    # Date range filter
+    if data_inicio:
+        try:
+            from django.utils.dateparse import parse_date
+            data_inicio_parsed = parse_date(data_inicio)
+            if data_inicio_parsed:
+                if campo_data == 'data_ocorrencia':
+                    qs = qs.filter(data_ocorrencia__gte=data_inicio_parsed)
+                else:  # data_inicio_tratativa would be criado_em
+                    qs = qs.filter(criado_em__date__gte=data_inicio_parsed)
+        except Exception as e:
+            logger.warning(f"Error parsing data_inicio: {e}")
+    
+    if data_fim:
+        try:
+            from django.utils.dateparse import parse_date
+            data_fim_parsed = parse_date(data_fim)
+            if data_fim_parsed:
+                if campo_data == 'data_ocorrencia':
+                    qs = qs.filter(data_ocorrencia__lte=data_fim_parsed)
+                else:  # data_inicio_tratativa
+                    qs = qs.filter(criado_em__date__lte=data_fim_parsed)
+        except Exception as e:
+            logger.warning(f"Error parsing data_fim: {e}")
+    
+    # Order by ID
+    qs = qs.order_by('id')
+    
+    # Prepare data for Excel
+    data = []
+    for s in qs:
+        # Get SLA info
+        dias_sla, label_sla = s.sla_por_setor()
+        
+        data.append({
+            'ID': s.id,
+            'Nº Chamado': s.n_chamado,
+            'Nº Contrato': s.n_contrato or '',
+            'Placa': s.placa,
+            'Chassi': s.chassi or '',
+            'Cliente': s.cliente,
+            'Segmento': s.get_segmento_display(),
+            'Modelo': s.modelo_ativo,
+            'Setor Atual': s.get_setor_atual_display(),
+            'Responsável Setor': s.responsavel_setor or '',
+            'SLA': label_sla,
+            'Prazo (Retornar Até)': s.retornar_ate.strftime('%d/%m/%Y') if s.retornar_ate else '',
+            'Data Ocorrência': s.data_ocorrencia.strftime('%d/%m/%Y'),
+            'Data Início Tratativa': s.criado_em.strftime('%d/%m/%Y %H:%M') if s.criado_em else '',
+            'Última Interação': s.ultima_interacao.strftime('%d/%m/%Y %H:%M') if s.ultima_interacao else '',
+            'Motivo': s.get_motivo_display(),
+            'Observações': s.observacoes or '',
+            'Aguardando Aprovação': 'Sim' if s.aguarda_aprovacao_os else 'Não',
+            'Aprovador O.S.': s.aprovador_os or '',
+            'Valor FIPE': float(s.valor_fipe) if s.valor_fipe else 0.0,
+            'Valor Implemento': float(s.valor_implemento) if s.valor_implemento else 0.0,
+            'Valor Franquia': float(s.valor_franquia) if s.valor_franquia else 0.0,
+            'Valor Seguradora': float(s.valor_seguradora) if s.valor_seguradora else 0.0,
+            'Valor Cliente': float(s.valor_cliente) if s.valor_cliente else 0.0,
+            'Total a Pagar': float(s.total_a_pagar) if s.total_a_pagar else 0.0,
+            'Total Pago': float(s.total_pago) if s.total_pago else 0.0,
+            'Criado Por': s.criado_por.username if s.criado_por else '',
+            'Data Criado': s.criado_em.strftime('%d/%m/%Y %H:%M') if s.criado_em else '',
+            'Data Atualizado': s.ultima_interacao.strftime('%d/%m/%Y %H:%M') if s.ultima_interacao else '',
+        })
+    
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    
+    # Create Excel file
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sinistros')
+        
+        # Get workbook and worksheet
+        workbook = writer.book
+        worksheet = writer.sheets['Sinistros']
+        
+        # Format columns
+        from openpyxl.styles import numbers
+        
+        # Format currency columns (R$)
+        currency_cols = ['Valor FIPE', 'Valor Implemento', 'Valor Franquia', 
+                        'Valor Seguradora', 'Valor Cliente', 'Total a Pagar', 'Total Pago']
+        for col_name in currency_cols:
+            if col_name in df.columns:
+                col_idx = df.columns.get_loc(col_name) + 1  # openpyxl is 1-indexed
+                for row in range(2, len(df) + 2):  # Skip header
+                    cell = worksheet.cell(row=row, column=col_idx)
+                    cell.number_format = '#,##0.00'
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column = [cell for cell in column]
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)  # Cap at 50
+            worksheet.column_dimensions[column[0].column_letter].width = adjusted_width
+    
+    output.seek(0)
+    
+    # Create response
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f'relatorio_sinistros_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_staff)
+def exportar_csv(request):
+    """
+    Gera arquivo CSV como fallback para volumes grandes
+    Usa os mesmos filtros que o Excel
+    """
+    # Get filters from GET parameters
+    setor = request.GET.get('setor', '')
+    apenas_pagos = request.GET.get('apenas_pagos', '') == 'on'
+    campo_data = request.GET.get('campo_data', 'data_ocorrencia')
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    cliente = request.GET.get('cliente', '')
+    segmento = request.GET.get('segmento', '')
+    
+    # Base queryset
+    qs = Sinistro.objects.all()
+    
+    # Apply filters (same as XLSX)
+    if setor and setor != 'TODOS':
+        qs = qs.filter(setor_atual=setor)
+    
+    if apenas_pagos:
+        qs = qs.filter(total_pago__gt=0)
+    
+    if cliente:
+        qs = qs.filter(cliente__icontains=cliente)
+    
+    if segmento and segmento != 'TODOS':
+        qs = qs.filter(segmento=segmento)
+    
+    # Date range filter
+    if data_inicio:
+        try:
+            from django.utils.dateparse import parse_date
+            data_inicio_parsed = parse_date(data_inicio)
+            if data_inicio_parsed:
+                if campo_data == 'data_ocorrencia':
+                    qs = qs.filter(data_ocorrencia__gte=data_inicio_parsed)
+                else:
+                    qs = qs.filter(criado_em__date__gte=data_inicio_parsed)
+        except Exception:
+            pass
+    
+    if data_fim:
+        try:
+            from django.utils.dateparse import parse_date
+            data_fim_parsed = parse_date(data_fim)
+            if data_fim_parsed:
+                if campo_data == 'data_ocorrencia':
+                    qs = qs.filter(data_ocorrencia__lte=data_fim_parsed)
+                else:
+                    qs = qs.filter(criado_em__date__lte=data_fim_parsed)
+        except Exception:
+            pass
+    
+    qs = qs.order_by('id')
+    
+    # Create CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    header = [
+        'ID', 'Nº Chamado', 'Nº Contrato', 'Placa', 'Chassi', 'Cliente', 'Segmento',
+        'Modelo', 'Setor Atual', 'Responsável Setor', 'SLA', 'Prazo (Retornar Até)',
+        'Data Ocorrência', 'Data Início Tratativa', 'Última Interação', 'Motivo',
+        'Observações', 'Aguardando Aprovação', 'Aprovador O.S.', 'Valor FIPE',
+        'Valor Implemento', 'Valor Franquia', 'Valor Seguradora', 'Valor Cliente',
+        'Total a Pagar', 'Total Pago', 'Criado Por', 'Data Criado', 'Data Atualizado'
+    ]
+    writer.writerow(header)
+    
+    # Data rows
+    for s in qs:
+        dias_sla, label_sla = s.sla_por_setor()
+        
+        row = [
+            s.id,
+            s.n_chamado,
+            s.n_contrato or '',
+            s.placa,
+            s.chassi or '',
+            s.cliente,
+            s.get_segmento_display(),
+            s.modelo_ativo,
+            s.get_setor_atual_display(),
+            s.responsavel_setor or '',
+            label_sla,
+            s.retornar_ate.strftime('%d/%m/%Y') if s.retornar_ate else '',
+            s.data_ocorrencia.strftime('%d/%m/%Y'),
+            s.criado_em.strftime('%d/%m/%Y %H:%M') if s.criado_em else '',
+            s.ultima_interacao.strftime('%d/%m/%Y %H:%M') if s.ultima_interacao else '',
+            s.get_motivo_display(),
+            s.observacoes or '',
+            'Sim' if s.aguarda_aprovacao_os else 'Não',
+            s.aprovador_os or '',
+            f'{float(s.valor_fipe):.2f}' if s.valor_fipe else '0.00',
+            f'{float(s.valor_implemento):.2f}' if s.valor_implemento else '0.00',
+            f'{float(s.valor_franquia):.2f}' if s.valor_franquia else '0.00',
+            f'{float(s.valor_seguradora):.2f}' if s.valor_seguradora else '0.00',
+            f'{float(s.valor_cliente):.2f}' if s.valor_cliente else '0.00',
+            f'{float(s.total_a_pagar):.2f}' if s.total_a_pagar else '0.00',
+            f'{float(s.total_pago):.2f}' if s.total_pago else '0.00',
+            s.criado_por.username if s.criado_por else '',
+            s.criado_em.strftime('%d/%m/%Y %H:%M') if s.criado_em else '',
+            s.ultima_interacao.strftime('%d/%m/%Y %H:%M') if s.ultima_interacao else '',
+        ]
+        writer.writerow(row)
+    
+    # Create response
+    response = HttpResponse(output.getvalue(), content_type='text/csv; charset=utf-8')
+    filename = f'relatorio_sinistros_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
