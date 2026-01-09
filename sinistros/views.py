@@ -5,7 +5,7 @@ import traceback
 import pandas as pd
 import csv
 import io
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.core.cache import cache
 from django.shortcuts import render, redirect, get_object_or_404
@@ -238,11 +238,24 @@ def editar_sinistro_view(request, pk):
 
     if request.method == 'POST':
         setor_antigo = sinistro.setor_atual
+        aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
-                # Since fields are part of model, just save
+                
+                # Auto-calcular retornar_ate se o setor mudou ou aguarda_aprovacao_os mudou
+                setor_mudou = (setor_antigo != sinistro.setor_atual)
+                aguarda_mudou = (aguarda_aprovacao_antigo != sinistro.aguarda_aprovacao_os)
+                
+                # Se o setor mudou ou aguarda_aprovacao mudou, recalcular retornar_ate
+                if setor_mudou or aguarda_mudou or not sinistro.retornar_ate:
+                    dias, label = sinistro.sla_por_setor()
+                    if dias is not None:
+                        sinistro.retornar_ate = date.today() + timedelta(days=dias)
+                    else:
+                        sinistro.retornar_ate = None
+                
                 sinistro.save()
 
                 # Create history if sector changed

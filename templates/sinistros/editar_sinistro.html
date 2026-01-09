@@ -41,6 +41,19 @@
         </div>
     {% endif %}
     
+    <!-- Hidden data attributes for SLA configuration -->
+    <div id="sla_config" style="display:none;"
+         data-cliente="5 dias corridos"
+         data-precificacao="5 dias corridos"
+         data-financeiro="4 dias corridos"
+         data-desmobilizacao_medicao="SEM PRAZO"
+         data-depto_sinistro="60 dias corridos"
+         data-manutencao="15 dias corridos"
+         data-manutencao_aguardando="2 dias corridos"
+         data-finalizado="SEM PRAZO"
+         data-abertura="SEM PRAZO">
+    </div>
+    
     <div class="row">
         
         <div class="col-lg-8">
@@ -76,6 +89,10 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-primary">Mudar Setor Atual</label>
                                         {{ form.setor_atual }}
+                                        <div id="sla_display" class="mt-2 text-muted small">
+                                            <i class="bi bi-clock-fill me-1"></i>
+                                            <span id="sla_text">Carregando SLA...</span>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Responsável</label>
@@ -237,6 +254,45 @@
         }
     });
 
+    // --- MAPA DE SLA POR SETOR (lido de data attributes) ---
+    const slaConfig = document.getElementById('sla_config');
+    const SLA_MAP = {
+        'CLIENTE': slaConfig.dataset.cliente,
+        'PRECIFICACAO': slaConfig.dataset.precificacao,
+        'FINANCEIRO': slaConfig.dataset.financeiro,
+        'DESMOBILIZACAO_MEDICAO': slaConfig.dataset.desmobilizacao_medicao,
+        'DEPTO_SINISTRO': slaConfig.dataset.depto_sinistro,
+        'MANUTENCAO': slaConfig.dataset.manutencao,
+        'MANUTENCAO_AGUARDANDO': slaConfig.dataset.manutencao_aguardando,
+        'FINALIZADO': slaConfig.dataset.finalizado,
+        'ABERTURA': slaConfig.dataset.abertura
+    };
+
+    // --- FUNÇÃO PARA ATUALIZAR O DISPLAY DA SLA ---
+    function updateSlaDisplay() {
+        const setorSelect = document.querySelector('select[name="setor_atual"]');
+        const aguardCheck = document.querySelector('input[name="aguarda_aprovacao_os"]');
+        const slaText = document.getElementById('sla_text');
+        
+        if (!setorSelect || !slaText) return;
+        
+        const setorVal = setorSelect.value;
+        let slaLabel = 'SEM PRAZO';
+        
+        // Se for MANUTENCAO, verificar o checkbox aguarda_aprovacao_os
+        if (setorVal === 'MANUTENCAO') {
+            if (aguardCheck && aguardCheck.checked) {
+                slaLabel = SLA_MAP['MANUTENCAO_AGUARDANDO'];
+            } else {
+                slaLabel = SLA_MAP['MANUTENCAO'];
+            }
+        } else {
+            slaLabel = SLA_MAP[setorVal] || 'SEM PRAZO';
+        }
+        
+        slaText.textContent = 'SLA máximo: ' + slaLabel;
+    }
+
     // --- SCRIPT PARA CONTROLE DE VISIBILIDADE (STATUS OS + APROVAÇÃO) ---
     document.addEventListener('DOMContentLoaded', function () {
         const setorSelect = document.querySelector('select[name="setor_atual"]');
@@ -270,6 +326,9 @@
                     if (aprovadorField) aprovadorField.style.display = 'none';
                 }
             }
+            
+            // 3. Atualizar display da SLA
+            updateSlaDisplay();
         }
 
         // Lógica interna do checkbox de aprovação
@@ -278,6 +337,8 @@
                 if (aprovadorField) {
                     aprovadorField.style.display = this.checked ? 'block' : 'none';
                 }
+                // Atualizar SLA quando o checkbox mudar
+                updateSlaDisplay();
             });
         }
 

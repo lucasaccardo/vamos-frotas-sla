@@ -77,6 +77,7 @@
                                 <th class="ps-3">Placa / Chamado</th>
                                 <th>Cliente</th>
                                 <th>Status / Setor</th>
+                                <th>SLA (dias)</th>
                                 <th>SLA (Dias Parado)</th>
                                 <th>Prazo (Retorno)</th>
                                 <th class="text-end pe-4">Ações</th>
@@ -109,6 +110,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% with sla_info=s.sla_por_setor %}
+                                        <span class="badge bg-light text-dark border">{{ sla_info.1 }}</span>
+                                    {% endwith %}
+                                </td>
+                                <td>
                                     {% if s.dias_no_setor > 5 %}
                                         <span class="fw-bold text-danger"><i class="bi bi-alarm-fill me-1"></i>{{ s.dias_no_setor }} dias</span>
                                     {% elif s.dias_no_setor > 2 %}
@@ -139,7 +145,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                     Nenhum processo encontrado neste filtro.
                                 </td>
