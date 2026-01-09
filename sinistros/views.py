@@ -238,15 +238,31 @@ def editar_sinistro_view(request, pk):
 
     if request.method == 'POST':
         setor_antigo = sinistro.setor_atual
+        aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
         form = EditarSinistroForm(request.POST, instance=sinistro)
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
-                # Since fields are part of model, just save
+                
+                # Auto-calculate retornar_ate based on SLA if sector changed or aguarda_aprovacao_os changed
+                setor_mudou = setor_antigo != sinistro.setor_atual
+                aguarda_mudou = aguarda_aprovacao_antigo != sinistro.aguarda_aprovacao_os
+                retornar_ate_vazio = not sinistro.retornar_ate
+                
+                if setor_mudou or aguarda_mudou or retornar_ate_vazio:
+                    dias, label = sinistro.sla_por_setor()
+                    if dias is not None:
+                        # Calculate return date as today + dias corridos
+                        from datetime import date, timedelta
+                        sinistro.retornar_ate = date.today() + timedelta(days=dias)
+                    else:
+                        # No SLA deadline
+                        sinistro.retornar_ate = None
+                
                 sinistro.save()
 
                 # Create history if sector changed
-                if setor_antigo != sinistro.setor_atual:
+                if setor_mudou:
                     HistoricoSinistro.objects.create(
                         sinistro=sinistro,
                         setor_anterior=setor_antigo or '-',
@@ -274,6 +290,9 @@ def editar_sinistro_view(request, pk):
     show_aprovacao = ('MANUT' in setor_val)
     # Shows status block if MANUTENCAO (logic maintained)
     show_status = (setor_val == 'MANUTENCAO' or 'MANUT' in setor_val)
+    
+    # Get current SLA info for display
+    dias_sla, label_sla = sinistro.sla_por_setor()
 
     return render(request, "sinistros/editar_sinistro.html", {
         "form": form,
@@ -281,6 +300,8 @@ def editar_sinistro_view(request, pk):
         "historico": historico_qs,
         "show_status": show_status,
         "show_aprovacao": show_aprovacao,
+        "sla_label": label_sla,
+        "sla_dias": dias_sla,
     })
 
 # --- DETAILED HISTORY (ROBUST VERSION) ---

@@ -76,6 +76,12 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-primary">Mudar Setor Atual</label>
                                         {{ form.setor_atual }}
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock me-1"></i>
+                                                <span id="sla_label_display">SLA máximo: {{ sla_label }}</span>
+                                            </small>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Responsável</label>
@@ -244,10 +250,43 @@
         const aprovacaoBlock = document.getElementById('aprovacao_block');
         const aguardCheck = document.querySelector('input[name="aguarda_aprovacao_os"]');
         const aprovadorField = document.getElementById('aprovador_field');
+        const slaLabelDisplay = document.getElementById('sla_label_display');
+
+        // SLA mapping por setor
+        const slaMap = {
+            'CLIENTE': { dias: 5, label: '5 dias corridos' },
+            'PRECIFICACAO': { dias: 5, label: '5 dias corridos' },
+            'FINANCEIRO': { dias: 4, label: '4 dias corridos' },
+            'DESMOBILIZACAO': { dias: null, label: 'SEM PRAZO' },
+            'DEPTO_SINISTRO': { dias: 60, label: '60 dias corridos' },
+            'MANUTENCAO': { dias: 15, label: '15 dias corridos' }, // Will be dynamic based on aguarda_aprovacao_os
+            'FINALIZADO': { dias: null, label: 'SEM PRAZO' },
+            'ABERTURA': { dias: null, label: 'SEM PRAZO' }
+        };
 
         function isManutencao(val) {
             if (!val) return false;
             return val.toString().toUpperCase().includes('MANUT'); // cobre MANUTENCAO, MANUTENÇÃO, ETC
+        }
+
+        function updateSlaLabel() {
+            if (!setorSelect || !slaLabelDisplay) return;
+            
+            const setorVal = setorSelect.value;
+            const ehManutencao = isManutencao(setorVal);
+            
+            let slaInfo = slaMap[setorVal] || { dias: null, label: 'SEM PRAZO' };
+            
+            // Special handling for MANUTENCAO
+            if (ehManutencao && aguardCheck) {
+                if (aguardCheck.checked) {
+                    slaInfo = { dias: 2, label: '2 dias corridos' };
+                } else {
+                    slaInfo = { dias: 15, label: '15 dias corridos' };
+                }
+            }
+            
+            slaLabelDisplay.textContent = 'SLA máximo: ' + slaInfo.label;
         }
 
         function updateFieldsVisibility() {
@@ -270,6 +309,9 @@
                     if (aprovadorField) aprovadorField.style.display = 'none';
                 }
             }
+            
+            // 3. Update SLA label
+            updateSlaLabel();
         }
 
         // Lógica interna do checkbox de aprovação
@@ -278,6 +320,8 @@
                 if (aprovadorField) {
                     aprovadorField.style.display = this.checked ? 'block' : 'none';
                 }
+                // Update SLA when checkbox changes
+                updateSlaLabel();
             });
         }
 

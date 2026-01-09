@@ -8,8 +8,10 @@ class Sinistro(models.Model):
         ('ABERTURA', 'Abertura'),
         ('MANUTENCAO', 'Manutenção (Orçamento)'),
         ('CLIENTE', 'Aprovação Cliente'),
-        ('JURIDICO', 'Jurídico/Sinistro'),
+        ('PRECIFICACAO', 'Precificação'),
         ('FINANCEIRO', 'Financeiro (Pagamento)'),
+        ('DESMOBILIZACAO', 'Desmobilização / Medição'),
+        ('DEPTO_SINISTRO', 'Depto. Sinistro'),
         ('FINALIZADO', 'Finalizado'),
     ]
     
@@ -88,6 +90,43 @@ class Sinistro(models.Model):
         if self.retornar_ate and self.retornar_ate < timezone.now().date():
             return True
         return False
+
+    def sla_por_setor(self):
+        """
+        Retorna o SLA (dias corridos, label) para o setor atual.
+        Retorna: (dias: Optional[int], label: str)
+        
+        Regras:
+        - CLIENTE -> 5 dias corridos
+        - PRECIFICACAO -> 5 dias corridos
+        - FINANCEIRO -> 4 dias corridos
+        - DESMOBILIZACAO -> sem prazo (None)
+        - DEPTO_SINISTRO -> 60 dias corridos
+        - MANUTENCAO -> 15 dias corridos (ou 2 se aguarda_aprovacao_os == True)
+        - FINALIZADO -> sem prazo (None)
+        - ABERTURA -> sem prazo (None)
+        """
+        setor = self.setor_atual
+        
+        if setor == 'CLIENTE':
+            return (5, "5 dias corridos")
+        elif setor == 'PRECIFICACAO':
+            return (5, "5 dias corridos")
+        elif setor == 'FINANCEIRO':
+            return (4, "4 dias corridos")
+        elif setor == 'DESMOBILIZACAO':
+            return (None, "SEM PRAZO")
+        elif setor == 'DEPTO_SINISTRO':
+            return (60, "60 dias corridos")
+        elif setor == 'MANUTENCAO':
+            if self.aguarda_aprovacao_os:
+                return (2, "2 dias corridos")
+            else:
+                return (15, "15 dias corridos")
+        elif setor == 'FINALIZADO':
+            return (None, "SEM PRAZO")
+        else:  # ABERTURA or any other
+            return (None, "SEM PRAZO")
 
 class HistoricoSinistro(models.Model):
     sinistro = models.ForeignKey(Sinistro, on_delete=models.CASCADE, related_name='historico')
