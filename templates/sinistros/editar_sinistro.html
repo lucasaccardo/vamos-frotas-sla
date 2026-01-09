@@ -291,7 +291,8 @@
                 if (ultimaMudancaStr) {
                     const ultimaMudancaDate = new Date(ultimaMudancaStr + 'T00:00:00');
                     const diffTime = prazoDate - ultimaMudancaDate;
-                    const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                    // Usar Math.floor para consistência com o backend Python que usa .days (trunca)
+                    const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
                     slaLabel = diffDays + ' dias corridos';
                 } else {
                     slaLabel = 'Prazo Limite definido';
