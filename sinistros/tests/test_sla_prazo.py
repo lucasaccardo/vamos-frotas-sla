@@ -41,7 +41,9 @@ class SLAPrazoLimiteTestCase(TestCase):
         SLA deve ser calculado como: (retornar_ate - data_ultima_mudanca_setor).days
         """
         # Criar histórico de mudança para CLIENTE há 3 dias
-        data_mudanca = date.today() - timedelta(days=3)
+        from django.utils import timezone
+        from django.db import connection
+        
         historico = HistoricoSinistro.objects.create(
             sinistro=self.sinistro,
             setor_anterior='ABERTURA',
@@ -49,10 +51,17 @@ class SLAPrazoLimiteTestCase(TestCase):
             alterado_por=self.user,
             comentario='Mudança para Cliente'
         )
-        # Ajustar data_mudanca manualmente (django auto_now_add não permite isso diretamente)
-        from django.utils import timezone
-        historico.data_mudanca = timezone.now() - timedelta(days=3)
-        historico.save()
+        
+        # Atualizar data_mudanca diretamente no banco
+        data_passada = timezone.now() - timedelta(days=3)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE sinistros_historicosinistro SET data_mudanca = %s WHERE id = %s",
+                [data_passada, historico.id]
+            )
+        
+        # Recarregar histórico
+        historico.refresh_from_db()
         
         # Definir prazo limite para daqui a 2 dias (total: 5 dias desde mudança)
         self.sinistro.retornar_ate = date.today() + timedelta(days=2)
@@ -136,19 +145,30 @@ class SLAPrazoLimiteTestCase(TestCase):
         """
         Testa que quando prazo está vencido, retorna 0 dias (não negativo).
         """
-        # Criar histórico há 10 dias
-        data_mudanca = date.today() - timedelta(days=10)
+        # Criar histórico há 3 dias usando update direto no DB
+        from django.utils import timezone
+        from django.db import connection
+        
         historico = HistoricoSinistro.objects.create(
             sinistro=self.sinistro,
             setor_anterior='ABERTURA',
             setor_novo='CLIENTE',
             alterado_por=self.user
         )
-        from django.utils import timezone
-        historico.data_mudanca = timezone.now() - timedelta(days=10)
-        historico.save()
         
-        # Definir prazo limite para 5 dias atrás (vencido)
+        # Atualizar data_mudanca diretamente no banco para 3 dias atrás
+        data_passada = timezone.now() - timedelta(days=3)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE sinistros_historicosinistro SET data_mudanca = %s WHERE id = %s",
+                [data_passada, historico.id]
+            )
+        
+        # Recarregar histórico
+        historico.refresh_from_db()
+        
+        # Definir prazo limite para 5 dias atrás (vencido E anterior à mudança de setor)
+        # Isso resulta em um valor negativo que deve ser convertido a 0
         self.sinistro.retornar_ate = date.today() - timedelta(days=5)
         self.sinistro.save()
         
@@ -156,6 +176,7 @@ class SLAPrazoLimiteTestCase(TestCase):
         dias, label = self.sinistro.sla_por_setor()
         
         # Deve retornar 0 (max(0, valor_negativo))
+        # Prazo é 5 dias atrás, mudança foi 3 dias atrás, então prazo < mudança = negativo
         self.assertEqual(dias, 0)
         self.assertEqual(label, '0 dias corridos')
 
@@ -165,6 +186,7 @@ class SLAPrazoLimiteTestCase(TestCase):
         """
         # Criar múltiplos históricos
         from django.utils import timezone
+        from django.db import connection
         
         # Histórico antigo
         h1 = HistoricoSinistro.objects.create(
@@ -173,8 +195,6 @@ class SLAPrazoLimiteTestCase(TestCase):
             setor_novo='PRECIFICACAO',
             alterado_por=self.user
         )
-        h1.data_mudanca = timezone.now() - timedelta(days=10)
-        h1.save()
         
         # Histórico mais recente (mudança para CLIENTE)
         h2 = HistoricoSinistro.objects.create(
@@ -183,14 +203,30 @@ class SLAPrazoLimiteTestCase(TestCase):
             setor_novo='CLIENTE',
             alterado_por=self.user
         )
-        h2.data_mudanca = timezone.now() - timedelta(days=3)
-        h2.save()
+        
+        # Atualizar datas diretamente no banco
+        data_antiga = timezone.now() - timedelta(days=10)
+        data_recente = timezone.now() - timedelta(days=3)
+        
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE sinistros_historicosinistro SET data_mudanca = %s WHERE id = %s",
+                [data_antiga, h1.id]
+            )
+            cursor.execute(
+                "UPDATE sinistros_historicosinistro SET data_mudanca = %s WHERE id = %s",
+                [data_recente, h2.id]
+            )
+        
+        # Recarregar históricos
+        h1.refresh_from_db()
+        h2.refresh_from_db()
         
         # Obter data da última mudança para CLIENTE
         data_mudanca = self.sinistro.data_ultima_mudanca_setor()
         
         # Deve ser a data do histórico mais recente
-        expected_date = (timezone.now() - timedelta(days=3)).date()
+        expected_date = data_recente.date()
         self.assertEqual(data_mudanca, expected_date)
 
     def test_data_ultima_mudanca_setor_sem_historico(self):

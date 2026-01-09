@@ -132,16 +132,23 @@ class AprovadorSLATestCase(TestCase):
         self.sinistro.setor_atual = 'MANUTENCAO'
         self.sinistro.aguarda_aprovacao_os = False
         
+        # Calcular e definir retornar_ate (sem prazo limite manual)
+        self.sinistro.retornar_ate = None  # Limpar primeiro
         dias, label = self.sinistro.sla_por_setor()
         if dias is not None:
             self.sinistro.retornar_ate = date.today() + timedelta(days=dias)
         
         self.sinistro.save()
         
+        # Verificar que foi definido para 15 dias
+        expected_date_inicial = date.today() + timedelta(days=15)
+        self.assertEqual(self.sinistro.retornar_ate, expected_date_inicial)
+        
         # Agora marcar aguarda_aprovacao_os como True
         self.sinistro.aguarda_aprovacao_os = True
         
-        # Recalcular retornar_ate
+        # Recalcular retornar_ate - precisa limpar primeiro para usar regras padrão
+        self.sinistro.retornar_ate = None
         dias, label = self.sinistro.sla_por_setor()
         if dias is not None:
             self.sinistro.retornar_ate = date.today() + timedelta(days=dias)
