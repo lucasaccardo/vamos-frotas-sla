@@ -30,9 +30,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "storages", 
+    "rest_framework",
     "vamos",
     "accounts",
     "sinistros",
+    "procedures",
 ]
 
 # === MIDDLEWARE ===

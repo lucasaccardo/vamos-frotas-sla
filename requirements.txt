@@ -9,6 +9,7 @@ colorama
 dj-database-url
 Django
 django-storages
+djangorestframework
 et_xmlfile
 google-ai-generativelanguage
 google-api-core
