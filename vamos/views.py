@@ -91,7 +91,7 @@ def login_view(request):
             return redirect("portal")
         else:
             messages.error(request, "Usuário ou senha inválidos.")
-    return render(request, "vamos/login.html")
+    return render(request, "account/login.html")
 
 def signup_view(request):
     if request.method == "POST":
