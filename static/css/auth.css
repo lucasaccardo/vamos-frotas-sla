@@ -72,15 +72,17 @@ html, body {
 
 /* Painel de autenticação à direita */
 .auth-panel {
-    width: 380px;
+    width: 340px;
+    max-width: 30vw;
     min-height: 400px;
     background-color: #1e293b;
     border-radius: 12px;
-    padding: 2.5rem;
-    margin-right: 6%; /* Afasta do canto direito */
+    padding: 32px;
+    margin-right: 4%; /* Afasta do canto direito */
     align-self: center; /* Garante centralização vertical */
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     border: 1px solid #334155;
+    transition: .18s;
 }
 
 /* Logo */
@@ -217,9 +219,9 @@ html, body {
 /* Telas médias (≤1200px) - Reduz espaçamento */
 @media (max-width: 1200px) {
     .auth-panel {
-        width: 360px;
-        margin-right: 4%;
-        padding: 2rem;
+        max-width: 400px;
+        margin-right: 3.5%;
+        padding: 26px;
     }
     
     .hero-content h1 {
