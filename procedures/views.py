@@ -52,7 +52,7 @@ class StartProcedureView(APIView):
         
         # Determine first node from template structure
         structure = template.structure
-        if isinstance(structure, dict) and 'nodes' in structure and structure['nodes']:
+        if isinstance(structure, dict) and 'nodes' in structure and len(structure['nodes']) > 0:
             first_node = structure['nodes'][0]
             instance.current_node_id = first_node.get('id', '1')
             instance.save()
@@ -178,6 +178,28 @@ class AnswerNodeView(APIView):
         
         # Check if there's a next node or if procedure is complete
         if next_node_id:
+            # Validate that next_node_id exists in template structure
+            next_node_exists = False
+            if isinstance(structure, dict) and 'nodes' in structure:
+                for node in structure['nodes']:
+                    if node.get('id') == next_node_id:
+                        next_node_exists = True
+                        break
+            
+            if not next_node_exists:
+                # Next node doesn't exist - treat as completion
+                instance.current_node_id = None
+                instance.status = 'COMPLETED'
+                instance.completed_at = timezone.now()
+                instance.save()
+                
+                return Response({
+                    'success': True,
+                    'next_node_id': None,
+                    'completed': True,
+                    'warning': f'Next node {next_node_id} not found in template'
+                }, status=status.HTTP_200_OK)
+            
             instance.current_node_id = next_node_id
             instance.save()
             

@@ -823,12 +823,40 @@ Atenciosamente,
         // Copy email to clipboard
         function copyEmail() {
             const emailText = document.getElementById('emailPreview').textContent;
-            navigator.clipboard.writeText(emailText).then(() => {
+            
+            // Try modern Clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(emailText).then(() => {
+                    showToast('Email copiado para área de transferência!');
+                    closeModal();
+                }).catch(() => {
+                    // Fallback to execCommand
+                    fallbackCopyEmail(emailText);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyEmail(emailText);
+            }
+        }
+        
+        // Fallback copy method for older browsers
+        function fallbackCopyEmail(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
                 showToast('Email copiado para área de transferência!');
                 closeModal();
-            }).catch(() => {
-                showToast('Erro ao copiar email', 'error');
-            });
+            } catch (err) {
+                showToast('Por favor, copie o texto manualmente', 'error');
+            } finally {
+                document.body.removeChild(textArea);
+            }
         }
 
         // Export to JSON
