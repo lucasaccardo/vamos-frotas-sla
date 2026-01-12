@@ -1,0 +1,916 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluxo Interativo - Sinistro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-title {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .step-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .radio-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .radio-option.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .summary {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .summary-value {
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: none;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .email-preview {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            .radio-group {
+                flex-direction: column;
+            }
+
+            .radio-option {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚛 Fluxo de Sinistro</h1>
+            <p>Preencha as informações passo a passo</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: Placa -->
+            <div class="step active" data-step="1">
+                <h2 class="step-title">Informações do Veículo</h2>
+                <p class="step-description">Insira a placa do veículo sinistrado</p>
+                
+                <div class="form-group">
+                    <label for="placa">Placa do Veículo *</label>
+                    <input type="text" id="placa" placeholder="Ex: ABC-1234" required>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-primary" onclick="nextStep()">Próximo</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Tipo de Sinistro -->
+            <div class="step" data-step="2">
+                <h2 class="step-title">Tipo de Sinistro</h2>
+                <p class="step-description">Selecione o tipo de ocorrência</p>
+                
+                <div class="form-group">
+                    <div class="radio-group">
+                        <div class="radio-option" onclick="selectRadio('tipo', 'colisao')">
+                            <input type="radio" name="tipo" id="tipo-colisao" value="colisao">
+                            <label for="tipo-colisao">🚗 Colisão</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadio('tipo', 'furto')">
+                            <input type="radio" name="tipo" id="tipo-furto" value="furto">
+                            <label for="tipo-furto">🔒 Furto/Roubo</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadio('tipo', 'incendio')">
+                            <input type="radio" name="tipo" id="tipo-incendio" value="incendio">
+                            <label for="tipo-incendio">🔥 Incêndio</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadio('tipo', 'natureza')">
+                            <input type="radio" name="tipo" id="tipo-natureza" value="natureza">
+                            <label for="tipo-natureza">🌪️ Natureza</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Próximo</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Data e Local -->
+            <div class="step" data-step="3">
+                <h2 class="step-title">Data e Local</h2>
+                <p class="step-description">Informe quando e onde ocorreu</p>
+                
+                <div class="form-group">
+                    <label for="data">Data da Ocorrência *</label>
+                    <input type="date" id="data" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="local">Local da Ocorrência *</label>
+                    <input type="text" id="local" placeholder="Endereço completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cidade">Cidade/Estado *</label>
+                    <input type="text" id="cidade" placeholder="Ex: São Paulo/SP" required>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Próximo</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Descrição -->
+            <div class="step" data-step="4">
+                <h2 class="step-title">Descrição do Sinistro</h2>
+                <p class="step-description">Descreva detalhadamente o que aconteceu</p>
+                
+                <div class="form-group">
+                    <label for="descricao">Descrição Detalhada *</label>
+                    <textarea id="descricao" placeholder="Descreva os fatos com o máximo de detalhes possível..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="danos">Danos Aparentes *</label>
+                    <textarea id="danos" placeholder="Descreva os danos visíveis no veículo..." required></textarea>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Próximo</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Documentação -->
+            <div class="step" data-step="5">
+                <h2 class="step-title">Documentação</h2>
+                <p class="step-description">Confirme os documentos necessários</p>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="doc-bo"> Boletim de Ocorrência (B.O.)
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="doc-fotos"> Fotos do local/veículo
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="doc-cnh"> CNH do condutor
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="doc-ficha"> Ficha de Ocorrência preenchida
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="obs">Observações Adicionais</label>
+                    <textarea id="obs" placeholder="Informações complementares..."></textarea>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Revisar</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Resumo -->
+            <div class="step" data-step="6">
+                <h2 class="step-title">✅ Resumo do Sinistro</h2>
+                <p class="step-description">Revise as informações antes de finalizar</p>
+                
+                <div class="summary" id="summary">
+                    <!-- Summary will be populated by JavaScript -->
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-action" onclick="showEmailModal()">📧 Copiar Email</button>
+                    <button class="btn-action" onclick="exportJSON()">💾 Exportar JSON</button>
+                    <button class="btn-action" onclick="clearData()">🗑️ Limpar Dados</button>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="finishFlow()">Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Email Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Copiar Email</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="email-preview" id="emailPreview"></div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="copyEmail()">Copiar para Área de Transferência</button>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 6;
+        const formData = {};
+
+        // Load saved data from localStorage
+        function loadSavedData() {
+            const saved = localStorage.getItem('sinistroData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                Object.assign(formData, data);
+                populateFields();
+            }
+        }
+
+        // Populate fields with saved data
+        function populateFields() {
+            if (formData.placa) document.getElementById('placa').value = formData.placa;
+            if (formData.tipo) {
+                document.getElementById(`tipo-${formData.tipo}`).checked = true;
+                document.querySelector(`#tipo-${formData.tipo}`).parentElement.classList.add('selected');
+            }
+            if (formData.data) document.getElementById('data').value = formData.data;
+            if (formData.local) document.getElementById('local').value = formData.local;
+            if (formData.cidade) document.getElementById('cidade').value = formData.cidade;
+            if (formData.descricao) document.getElementById('descricao').value = formData.descricao;
+            if (formData.danos) document.getElementById('danos').value = formData.danos;
+            if (formData.obs) document.getElementById('obs').value = formData.obs;
+            
+            // Checkboxes
+            if (formData.docBO) document.getElementById('doc-bo').checked = true;
+            if (formData.docFotos) document.getElementById('doc-fotos').checked = true;
+            if (formData.docCNH) document.getElementById('doc-cnh').checked = true;
+            if (formData.docFicha) document.getElementById('doc-ficha').checked = true;
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            formData.placa = document.getElementById('placa').value;
+            formData.tipo = document.querySelector('input[name="tipo"]:checked')?.value || '';
+            formData.data = document.getElementById('data').value;
+            formData.local = document.getElementById('local').value;
+            formData.cidade = document.getElementById('cidade').value;
+            formData.descricao = document.getElementById('descricao').value;
+            formData.danos = document.getElementById('danos').value;
+            formData.obs = document.getElementById('obs').value;
+            formData.docBO = document.getElementById('doc-bo').checked;
+            formData.docFotos = document.getElementById('doc-fotos').checked;
+            formData.docCNH = document.getElementById('doc-cnh').checked;
+            formData.docFicha = document.getElementById('doc-ficha').checked;
+            
+            localStorage.setItem('sinistroData', JSON.stringify(formData));
+        }
+
+        // Radio selection handler
+        function selectRadio(name, value) {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+                radio.parentElement.classList.remove('selected');
+            });
+            document.getElementById(`${name}-${value}`).checked = true;
+            document.getElementById(`${name}-${value}`).parentElement.classList.add('selected');
+        }
+
+        // Validate current step
+        function validateStep(step) {
+            switch(step) {
+                case 1:
+                    const placa = document.getElementById('placa').value.trim();
+                    if (!placa) {
+                        showToast('Por favor, insira a placa do veículo', 'error');
+                        return false;
+                    }
+                    break;
+                case 2:
+                    const tipo = document.querySelector('input[name="tipo"]:checked');
+                    if (!tipo) {
+                        showToast('Por favor, selecione o tipo de sinistro', 'error');
+                        return false;
+                    }
+                    break;
+                case 3:
+                    const data = document.getElementById('data').value;
+                    const local = document.getElementById('local').value.trim();
+                    const cidade = document.getElementById('cidade').value.trim();
+                    if (!data || !local || !cidade) {
+                        showToast('Por favor, preencha todos os campos obrigatórios', 'error');
+                        return false;
+                    }
+                    break;
+                case 4:
+                    const descricao = document.getElementById('descricao').value.trim();
+                    const danos = document.getElementById('danos').value.trim();
+                    if (!descricao || !danos) {
+                        showToast('Por favor, preencha a descrição e os danos', 'error');
+                        return false;
+                    }
+                    break;
+            }
+            return true;
+        }
+
+        // Next step
+        function nextStep() {
+            if (!validateStep(currentStep)) return;
+            
+            saveData();
+            
+            if (currentStep === 5) {
+                updateSummary();
+            }
+            
+            if (currentStep < totalSteps) {
+                document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+                currentStep++;
+                document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+                updateProgress();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        // Previous step
+        function prevStep() {
+            if (currentStep > 1) {
+                document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+                currentStep--;
+                document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+                updateProgress();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Update summary
+        function updateSummary() {
+            saveData();
+            
+            const tipoLabels = {
+                'colisao': 'Colisão',
+                'furto': 'Furto/Roubo',
+                'incendio': 'Incêndio',
+                'natureza': 'Fenômenos da Natureza'
+            };
+            
+            const summary = document.getElementById('summary');
+            summary.innerHTML = `
+                <div class="summary-item">
+                    <span class="summary-label">Placa:</span>
+                    <span class="summary-value">${formData.placa || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Tipo:</span>
+                    <span class="summary-value">${tipoLabels[formData.tipo] || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Data:</span>
+                    <span class="summary-value">${formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Local:</span>
+                    <span class="summary-value">${formData.local || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Cidade/Estado:</span>
+                    <span class="summary-value">${formData.cidade || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Descrição:</span>
+                    <span class="summary-value">${formData.descricao || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Danos:</span>
+                    <span class="summary-value">${formData.danos || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Documentos:</span>
+                    <span class="summary-value">
+                        ${formData.docBO ? '✓ B.O. ' : ''}
+                        ${formData.docFotos ? '✓ Fotos ' : ''}
+                        ${formData.docCNH ? '✓ CNH ' : ''}
+                        ${formData.docFicha ? '✓ Ficha ' : ''}
+                        ${!formData.docBO && !formData.docFotos && !formData.docCNH && !formData.docFicha ? '<span class="placeholder">Nenhum selecionado</span>' : ''}
+                    </span>
+                </div>
+            `;
+        }
+
+        // Show email modal
+        function showEmailModal() {
+            saveData();
+            
+            const tipoLabels = {
+                'colisao': 'Colisão',
+                'furto': 'Furto/Roubo',
+                'incendio': 'Incêndio',
+                'natureza': 'Fenômenos da Natureza'
+            };
+            
+            const email = `
+Assunto: Abertura de Sinistro - Placa ${formData.placa || '[PLACA]'}
+
+Prezados,
+
+Segue abertura de sinistro:
+
+DADOS DO VEÍCULO:
+- Placa: ${formData.placa || '[PLACA]'}
+
+DADOS DA OCORRÊNCIA:
+- Tipo: ${tipoLabels[formData.tipo] || '[TIPO]'}
+- Data: ${formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '[DATA]'}
+- Local: ${formData.local || '[LOCAL]'}
+- Cidade/Estado: ${formData.cidade || '[CIDADE/ESTADO]'}
+
+DESCRIÇÃO:
+${formData.descricao || '[DESCRIÇÃO]'}
+
+DANOS APARENTES:
+${formData.danos || '[DANOS]'}
+
+DOCUMENTAÇÃO:
+${formData.docBO ? '- Boletim de Ocorrência (B.O.)' : ''}
+${formData.docFotos ? '- Fotos do local/veículo' : ''}
+${formData.docCNH ? '- CNH do condutor' : ''}
+${formData.docFicha ? '- Ficha de Ocorrência' : ''}
+
+${formData.obs ? 'OBSERVAÇÕES:\n' + formData.obs : ''}
+
+Atenciosamente,
+[SEU NOME]
+            `.trim();
+            
+            document.getElementById('emailPreview').textContent = email;
+            document.getElementById('emailModal').classList.add('show');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('emailModal').classList.remove('show');
+        }
+
+        // Copy email to clipboard
+        function copyEmail() {
+            const emailText = document.getElementById('emailPreview').textContent;
+            
+            // Try modern Clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(emailText).then(() => {
+                    showToast('Email copiado para área de transferência!');
+                    closeModal();
+                }).catch(() => {
+                    // Fallback to execCommand
+                    fallbackCopyEmail(emailText);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyEmail(emailText);
+            }
+        }
+        
+        // Fallback copy method for older browsers
+        function fallbackCopyEmail(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Email copiado para área de transferência!');
+                closeModal();
+            } catch (err) {
+                showToast('Por favor, copie o texto manualmente', 'error');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // Export to JSON
+        function exportJSON() {
+            saveData();
+            const dataStr = JSON.stringify(formData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `sinistro_${formData.placa || 'dados'}_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            showToast('JSON exportado com sucesso!');
+        }
+
+        // Clear data
+        function clearData() {
+            if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
+                localStorage.removeItem('sinistroData');
+                Object.keys(formData).forEach(key => delete formData[key]);
+                location.reload();
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Finish flow
+        function finishFlow() {
+            saveData();
+            showToast('Sinistro registrado com sucesso! Os dados foram salvos localmente.');
+            
+            // Optional: Here you could send data to backend
+            // fetch('/api/sinistros/', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(formData)
+            // });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            updateProgress();
+        });
+    </script>
+</body>
+</html>

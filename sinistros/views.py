@@ -713,6 +713,15 @@ def ping_session(request):
     return JsonResponse({'ok': True})
 
 
+# --- INTERACTIVE SINISTRO FLOW ---
+@login_required(login_url='login')
+def sinistro_interativo_view(request):
+    """
+    View para renderizar o template interativo de sinistro.
+    """
+    return render(request, 'sinistro.html')
+
+
 # --- EXPORT / RELATÓRIOS ---
 @login_required(login_url='login')
 def exportar_relatorios_view(request):

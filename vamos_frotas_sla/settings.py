@@ -30,9 +30,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "storages", 
+    "rest_framework",
     "vamos",
     "accounts",
     "sinistros",
+    "procedures",
 ]
 
 # === MIDDLEWARE ===
@@ -131,6 +133,18 @@ LOGIN_REDIRECT_URL = "portal"
 LOGOUT_REDIRECT_URL = "login"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# === REST FRAMEWORK ===
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
+}
 
 # === I.A. E EMAIL ===
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyA821yX6bOVatN5bf2BNikhAhngRSlo6p4") 
