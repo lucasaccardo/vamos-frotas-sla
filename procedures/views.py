@@ -261,3 +261,4 @@ class SinistroManualView(LoginRequiredMixin, TemplateView):
     """
     template_name = 'sinistro.html'
     login_url = '/login/'
+    redirect_field_name = 'next'
