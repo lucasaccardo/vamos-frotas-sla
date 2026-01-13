@@ -27,8 +27,8 @@ html, body {
 .hero-section {
     flex: 1;
     height: 100vh;
-    /* Usando background.png existente em static/img/ */
-    background-image: url('../img/background.png');
+    /* Background image removido para evitar MissingFileError em collectstatic */
+    background-image: none;
     background-size: cover;
     background-position: center;
     position: relative;
