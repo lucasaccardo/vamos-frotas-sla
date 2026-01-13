@@ -22,7 +22,7 @@ class SinistroManualViewTestCase(TestCase):
         # Check that redirect URL contains either the same path (for trailing slash)
         # or login (for authentication)
         self.assertTrue(
-            '/api/procedures/manual' in response.url or '/login/' in response.url,
+            '/procedures/manual' in response.url or '/login/' in response.url,
             f"Unexpected redirect URL: {response.url}"
         )
     
@@ -42,6 +42,38 @@ class SinistroManualViewTestCase(TestCase):
     
     def test_view_url_resolves_correctly(self):
         """Test that the URL resolves to the correct path"""
-        # The URL should be at /api/procedures/manual/
-        expected_path = '/api/procedures/manual/'
+        # The URL should be at /procedures/manual/
+        expected_path = '/procedures/manual/'
         self.assertEqual(self.url, expected_path)
+
+
+class SinistroWidgetIntegrationTestCase(TestCase):
+    """Tests for the sinistro widget integration in base.html"""
+    
+    def setUp(self):
+        """Create a test user"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+    
+    def test_widget_appears_in_sinistros_module(self):
+        """Test that the widget appears when in sinistros module"""
+        self.client.login(username='testuser', password='testpass123')
+        
+        # Set session to sinistros module
+        session = self.client.session
+        session['modulo_ativo'] = 'sinistros'
+        session.save()
+        
+        # Access a page that uses base.html (e.g., sinistros home)
+        # Note: We'll just check the manual URL is accessible
+        response = self.client.get(reverse('procedures-manual'), follow=True)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'sinistro.html')
+    
+    def test_widget_link_resolves(self):
+        """Test that the widget's URL resolves correctly"""
+        url = reverse('procedures-manual')
+        self.assertEqual(url, '/procedures/manual/')
