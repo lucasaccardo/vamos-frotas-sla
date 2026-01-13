@@ -23,6 +23,7 @@ wheels/
 # Virtual environments
 venv/
 venv_stable/
+venv_test/
 ENV/
 env/
 

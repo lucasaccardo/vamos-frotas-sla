@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import TemplateView
 
 from .models import ProcedureTemplate, ProcedureInstance, NodeInstance
 from .serializers import (
@@ -250,3 +252,12 @@ class HistoryView(APIView):
         instance = get_object_or_404(ProcedureInstance, id=instance_id)
         serializer = ProcedureInstanceDetailSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SinistroManualView(LoginRequiredMixin, TemplateView):
+    """
+    Web view for manual sinistro (claim) procedure.
+    Serves the interactive sinistro.html template.
+    """
+    template_name = 'sinistro.html'
+    login_url = '/login/'
