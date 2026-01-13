@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('vamos.urls')),        # Manda para o app principal
     path('sinistros/', include('sinistros.urls')), # Manda para o NOVO app
+    path('procedures/', include('procedures.urls')), # Web UI para procedures
     path('api/procedures/', include('procedures.urls')), # API para procedures
 ]
 
