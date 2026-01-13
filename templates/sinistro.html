@@ -537,8 +537,71 @@
                 </div>
             </div>
 
-            <!-- Step 6: Resumo -->
+            <!-- Step 6: Validação (step-valida-cli) -->
             <div class="step" data-step="6">
+                <h2 class="step-title">✅ Validação do Processo</h2>
+                <p class="step-description">Informações adicionais para validação</p>
+                
+                <div class="form-group">
+                    <label for="cliente">Nome do Cliente *</label>
+                    <input type="text" id="cliente" placeholder="Nome completo do cliente" onchange="updateStateField('cliente', this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label for="seguradora">Seguradora *</label>
+                    <input type="text" id="seguradora" placeholder="Nome da seguradora" onchange="updateStateField('seguradora', this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Limitação *</label>
+                    <div class="radio-group">
+                        <div class="radio-option" onclick="selectRadioState('limitacao', 'parcial')">
+                            <input type="radio" name="limitacao" id="limitacao-parcial" value="parcial">
+                            <label for="limitacao-parcial">📝 Limitação Parcial (5 dias)</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadioState('limitacao', 'total')">
+                            <input type="radio" name="limitacao" id="limitacao-total" value="total">
+                            <label for="limitacao-total">🚫 Limitação Total (10 ou 60 dias)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="valorIndenizacao">Valor de Indenização (R$)</label>
+                    <input type="text" id="valorIndenizacao" placeholder="Ex: 50.000,00" onchange="updateStateField('valorIndenizacao', this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label>Destino da Posse</label>
+                    <div class="radio-group">
+                        <div class="radio-option" onclick="selectRadioState('destinoPosse', 'cliente')">
+                            <input type="radio" name="destinoPosse" id="destino-cliente" value="cliente">
+                            <label for="destino-cliente">👤 Cliente</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadioState('destinoPosse', 'seguradora')">
+                            <input type="radio" name="destinoPosse" id="destino-seguradora" value="seguradora">
+                            <label for="destino-seguradora">🏢 Seguradora</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <p style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <strong>ℹ️ Prazos Automáticos:</strong><br>
+                        • Limitação Parcial: <strong>5 dias</strong><br>
+                        • Limitação Total (Seguradora Azul): <strong>10 dias</strong><br>
+                        • Limitação Total (Outras): <strong>60 dias</strong>
+                    </p>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">Voltar</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Revisar</button>
+                </div>
+            </div>
+
+            <!-- Step 7: Resumo -->
+            <div class="step" data-step="7">
                 <h2 class="step-title">✅ Resumo do Sinistro</h2>
                 <p class="step-description">Revise as informações antes de finalizar</p>
                 
@@ -576,12 +639,274 @@
     </div>
 
     <script>
+        // State Machine Implementation
+        const state = {
+            current: 1,
+            limitacao: '',        // 'parcial' or 'total'
+            docsReceived: false,
+            seguradora: '',       // name of insurance company
+            cliente: '',          // client name
+            placa: '',
+            prazoDias: 0,         // deadline in days (5, 10, or 60)
+            valorIndenizacao: '',
+            destinoPosse: ''      // 'cliente' or 'seguradora'
+        };
+
         let currentStep = 1;
-        const totalSteps = 6;
+        const totalSteps = 7;
         const formData = {};
 
-        // Load saved data from localStorage
+        // State Machine Functions
+        function saveState() {
+            const stateData = {
+                ...state,
+                formData: formData,
+                currentStep: currentStep
+            };
+            localStorage.setItem('sinistroState', JSON.stringify(stateData));
+            localStorage.setItem('sinistroData', JSON.stringify(formData));
+        }
+
+        function restoreState() {
+            const saved = localStorage.getItem('sinistroState');
+            if (saved) {
+                try {
+                    const stateData = JSON.parse(saved);
+                    Object.assign(state, {
+                        current: stateData.current || 1,
+                        limitacao: stateData.limitacao || '',
+                        docsReceived: stateData.docsReceived || false,
+                        seguradora: stateData.seguradora || '',
+                        cliente: stateData.cliente || '',
+                        placa: stateData.placa || '',
+                        prazoDias: stateData.prazoDias || 0,
+                        valorIndenizacao: stateData.valorIndenizacao || '',
+                        destinoPosse: stateData.destinoPosse || ''
+                    });
+                    if (stateData.formData) {
+                        Object.assign(formData, stateData.formData);
+                    }
+                    if (stateData.currentStep) {
+                        currentStep = stateData.currentStep;
+                    }
+                } catch (e) {
+                    console.error('Error restoring state:', e);
+                }
+            }
+        }
+
+        function goTo(stepId) {
+            const targetStep = typeof stepId === 'number' ? stepId : parseInt(stepId);
+            
+            if (targetStep < 1 || targetStep > totalSteps) {
+                showToast('Passo inválido', 'error');
+                return false;
+            }
+
+            if (!canProceed(targetStep)) {
+                return false;
+            }
+
+            document.querySelector(`.step[data-step="${currentStep}"]`)?.classList.remove('active');
+            currentStep = targetStep;
+            state.current = targetStep;
+            document.querySelector(`.step[data-step="${currentStep}"]`)?.classList.add('active');
+            updateProgress();
+            saveState();
+            window.scrollTo(0, 0);
+            return true;
+        }
+
+        function canProceed(toStep) {
+            // Validation: cannot proceed to maintenance step if docs not received
+            // Assuming step 5 is the documentation step (step-maint equivalent)
+            if (toStep === 5 && state.docsReceived === false) {
+                showToast('Não é possível avançar sem confirmar o recebimento dos documentos', 'error');
+                return false;
+            }
+            
+            // Additional validations can be added here
+            return true;
+        }
+
+        // Email Template System
+        const emailTemplates = {
+            abertura: `Assunto: Abertura de Sinistro - Placa {{placa}}
+
+Prezados,
+
+Segue abertura de sinistro:
+
+DADOS DO VEÍCULO:
+- Placa: {{placa}}
+- Cliente: {{cliente}}
+
+DADOS DA OCORRÊNCIA:
+- Tipo: {{tipo}}
+- Data: {{data}}
+- Local: {{local}}
+- Cidade/Estado: {{cidade}}
+
+DESCRIÇÃO:
+{{descricao}}
+
+DANOS APARENTES:
+{{danos}}
+
+DOCUMENTAÇÃO:
+{{documentacao}}
+
+Atenciosamente.`,
+
+            validacao: `Assunto: Validação de Sinistro - Placa {{placa}}
+
+Prezados,
+
+Informamos os dados de validação do sinistro:
+
+- Placa: {{placa}}
+- Seguradora: {{seguradora}}
+- Tipo de Limitação: {{limitacao}}
+- Prazo: {{prazoDias}} dias
+- Valor de Indenização: {{valorIndenizacao}}
+- Destino da Posse: {{destinoPosse}}
+
+Atenciosamente.`,
+
+            conclusao: `Assunto: Conclusão de Sinistro - Placa {{placa}}
+
+Prezados,
+
+O processo de sinistro foi finalizado:
+
+- Placa: {{placa}}
+- Cliente: {{cliente}}
+- Status: Concluído
+- Data de Conclusão: {{dataConclusao}}
+
+Atenciosamente.`
+        };
+
+        function fillTemplate(templateKey) {
+            let template = emailTemplates[templateKey];
+            if (!template) {
+                console.error('Template não encontrado:', templateKey);
+                return '';
+            }
+
+            // Automatic deadline generation based on limitacao and seguradora
+            if (templateKey === 'validacao') {
+                if (state.limitacao === 'parcial') {
+                    state.prazoDias = 5;
+                } else if (state.limitacao === 'total') {
+                    // Check if seguradora is set for special handling
+                    if (state.seguradora && state.seguradora.toLowerCase().includes('azul')) {
+                        state.prazoDias = 10;
+                    } else {
+                        state.prazoDias = 60;
+                    }
+                } else {
+                    state.prazoDias = 10; // default
+                }
+            }
+
+            const tipoLabels = {
+                'colisao': 'Colisão',
+                'furto': 'Furto/Roubo',
+                'incendio': 'Incêndio',
+                'natureza': 'Fenômenos da Natureza'
+            };
+
+            const replacements = {
+                '{{placa}}': state.placa || formData.placa || '[PLACA]',
+                '{{cliente}}': state.cliente || '[CLIENTE]',
+                '{{tipo}}': tipoLabels[formData.tipo] || '[TIPO]',
+                '{{data}}': formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '[DATA]',
+                '{{local}}': formData.local || '[LOCAL]',
+                '{{cidade}}': formData.cidade || '[CIDADE/ESTADO]',
+                '{{descricao}}': formData.descricao || '[DESCRIÇÃO]',
+                '{{danos}}': formData.danos || '[DANOS]',
+                '{{documentacao}}': getDocumentacao(),
+                '{{seguradora}}': state.seguradora || '[SEGURADORA]',
+                '{{limitacao}}': state.limitacao === 'parcial' ? 'Limitação Parcial' : 
+                                state.limitacao === 'total' ? 'Limitação Total' : '[LIMITAÇÃO]',
+                '{{prazoDias}}': state.prazoDias || '[PRAZO]',
+                '{{valorIndenizacao}}': state.valorIndenizacao || '[VALOR]',
+                '{{destinoPosse}}': state.destinoPosse || '[DESTINO]',
+                '{{dataConclusao}}': new Date().toLocaleDateString('pt-BR')
+            };
+
+            for (const [key, value] of Object.entries(replacements)) {
+                template = template.replace(new RegExp(key, 'g'), value);
+            }
+
+            return template;
+        }
+
+        function getDocumentacao() {
+            const docs = [];
+            if (formData.docBO) docs.push('✓ B.O.');
+            if (formData.docFotos) docs.push('✓ Fotos');
+            if (formData.docCNH) docs.push('✓ CNH');
+            if (formData.docFicha) docs.push('✓ Ficha');
+            return docs.length > 0 ? docs.join('\n') : 'Nenhum documento selecionado';
+        }
+
+        function copiarEmail(templateKey) {
+            const emailText = fillTemplate(templateKey);
+            const textArea = document.createElement('textarea');
+            textArea.value = emailText;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast(`Email "${templateKey}" copiado para área de transferência!`);
+            } catch (err) {
+                showToast('Erro ao copiar email', 'error');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function finalizarFluxo() {
+            saveData();
+            saveState();
+            showToast('Sinistro registrado com sucesso! Os dados foram salvos localmente.');
+            
+            // Optional: Here you could send data to backend
+            // fetch('/api/sinistros/', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ state, formData })
+            // });
+        }
+
+        // Helper function to update state fields
+        function updateStateField(fieldName, value) {
+            state[fieldName] = value;
+            saveState();
+        }
+
+        // Radio selection handler for state fields
+        function selectRadioState(name, value) {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+                radio.parentElement.classList.remove('selected');
+            });
+            const radioElement = document.getElementById(`${name}-${value}`);
+            if (radioElement) {
+                radioElement.checked = true;
+                radioElement.parentElement.classList.add('selected');
+                state[name] = value;
+                saveState();
+            }
+        }
+
+        // Load saved data from localStorage (legacy support)
         function loadSavedData() {
+            restoreState();
             const saved = localStorage.getItem('sinistroData');
             if (saved) {
                 const data = JSON.parse(saved);
@@ -594,8 +919,11 @@
         function populateFields() {
             if (formData.placa) document.getElementById('placa').value = formData.placa;
             if (formData.tipo) {
-                document.getElementById(`tipo-${formData.tipo}`).checked = true;
-                document.querySelector(`#tipo-${formData.tipo}`).parentElement.classList.add('selected');
+                const tipoElement = document.getElementById(`tipo-${formData.tipo}`);
+                if (tipoElement) {
+                    tipoElement.checked = true;
+                    tipoElement.parentElement.classList.add('selected');
+                }
             }
             if (formData.data) document.getElementById('data').value = formData.data;
             if (formData.local) document.getElementById('local').value = formData.local;
@@ -609,24 +937,56 @@
             if (formData.docFotos) document.getElementById('doc-fotos').checked = true;
             if (formData.docCNH) document.getElementById('doc-cnh').checked = true;
             if (formData.docFicha) document.getElementById('doc-ficha').checked = true;
+            
+            // State fields
+            if (state.cliente) {
+                const clienteElement = document.getElementById('cliente');
+                if (clienteElement) clienteElement.value = state.cliente;
+            }
+            if (state.seguradora) {
+                const seguradoraElement = document.getElementById('seguradora');
+                if (seguradoraElement) seguradoraElement.value = state.seguradora;
+            }
+            if (state.limitacao) {
+                const limitacaoElement = document.getElementById(`limitacao-${state.limitacao}`);
+                if (limitacaoElement) {
+                    limitacaoElement.checked = true;
+                    limitacaoElement.parentElement.classList.add('selected');
+                }
+            }
+            if (state.valorIndenizacao) {
+                const valorElement = document.getElementById('valorIndenizacao');
+                if (valorElement) valorElement.value = state.valorIndenizacao;
+            }
+            if (state.destinoPosse) {
+                const destinoElement = document.getElementById(`destino-${state.destinoPosse}`);
+                if (destinoElement) {
+                    destinoElement.checked = true;
+                    destinoElement.parentElement.classList.add('selected');
+                }
+            }
         }
 
         // Save data to localStorage
         function saveData() {
-            formData.placa = document.getElementById('placa').value;
+            formData.placa = document.getElementById('placa')?.value || '';
             formData.tipo = document.querySelector('input[name="tipo"]:checked')?.value || '';
-            formData.data = document.getElementById('data').value;
-            formData.local = document.getElementById('local').value;
-            formData.cidade = document.getElementById('cidade').value;
-            formData.descricao = document.getElementById('descricao').value;
-            formData.danos = document.getElementById('danos').value;
-            formData.obs = document.getElementById('obs').value;
-            formData.docBO = document.getElementById('doc-bo').checked;
-            formData.docFotos = document.getElementById('doc-fotos').checked;
-            formData.docCNH = document.getElementById('doc-cnh').checked;
-            formData.docFicha = document.getElementById('doc-ficha').checked;
+            formData.data = document.getElementById('data')?.value || '';
+            formData.local = document.getElementById('local')?.value || '';
+            formData.cidade = document.getElementById('cidade')?.value || '';
+            formData.descricao = document.getElementById('descricao')?.value || '';
+            formData.danos = document.getElementById('danos')?.value || '';
+            formData.obs = document.getElementById('obs')?.value || '';
+            formData.docBO = document.getElementById('doc-bo')?.checked || false;
+            formData.docFotos = document.getElementById('doc-fotos')?.checked || false;
+            formData.docCNH = document.getElementById('doc-cnh')?.checked || false;
+            formData.docFicha = document.getElementById('doc-ficha')?.checked || false;
             
-            localStorage.setItem('sinistroData', JSON.stringify(formData));
+            // Update state
+            state.placa = formData.placa;
+            state.docsReceived = formData.docBO || formData.docFotos || formData.docCNH || formData.docFicha;
+            
+            saveState();
         }
 
         // Radio selection handler
@@ -682,27 +1042,20 @@
             
             saveData();
             
-            if (currentStep === 5) {
+            if (currentStep === 6) {
                 updateSummary();
             }
             
             if (currentStep < totalSteps) {
-                document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
-                currentStep++;
-                document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
-                updateProgress();
-                window.scrollTo(0, 0);
+                goTo(currentStep + 1);
             }
         }
 
         // Previous step
         function prevStep() {
             if (currentStep > 1) {
-                document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
-                currentStep--;
-                document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
-                updateProgress();
-                window.scrollTo(0, 0);
+                saveData();
+                goTo(currentStep - 1);
             }
         }
 
@@ -722,12 +1075,21 @@
                 'incendio': 'Incêndio',
                 'natureza': 'Fenômenos da Natureza'
             };
+
+            const limitacaoLabels = {
+                'parcial': 'Limitação Parcial',
+                'total': 'Limitação Total'
+            };
             
             const summary = document.getElementById('summary');
             summary.innerHTML = `
                 <div class="summary-item">
                     <span class="summary-label">Placa:</span>
                     <span class="summary-value">${formData.placa || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Cliente:</span>
+                    <span class="summary-value">${state.cliente || '<span class="placeholder">Não informado</span>'}</span>
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">Tipo:</span>
@@ -763,56 +1125,53 @@
                         ${!formData.docBO && !formData.docFotos && !formData.docCNH && !formData.docFicha ? '<span class="placeholder">Nenhum selecionado</span>' : ''}
                     </span>
                 </div>
+                <div class="summary-item">
+                    <span class="summary-label">Seguradora:</span>
+                    <span class="summary-value">${state.seguradora || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Tipo de Limitação:</span>
+                    <span class="summary-value">${limitacaoLabels[state.limitacao] || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Prazo (dias):</span>
+                    <span class="summary-value">${state.prazoDias || '<span class="placeholder">Calculado automaticamente</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Valor de Indenização:</span>
+                    <span class="summary-value">${state.valorIndenizacao || '<span class="placeholder">Não informado</span>'}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Destino da Posse:</span>
+                    <span class="summary-value">${state.destinoPosse === 'cliente' ? 'Cliente' : state.destinoPosse === 'seguradora' ? 'Seguradora' : '<span class="placeholder">Não informado</span>'}</span>
+                </div>
             `;
         }
 
-        // Show email modal
+        // Show email modal with template options
         function showEmailModal() {
             saveData();
             
-            const tipoLabels = {
-                'colisao': 'Colisão',
-                'furto': 'Furto/Roubo',
-                'incendio': 'Incêndio',
-                'natureza': 'Fenômenos da Natureza'
-            };
+            const emailOptions = `
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showEmailTemplate('abertura')" style="margin: 5px;">📧 Email de Abertura</button>
+                    <button class="btn btn-primary" onclick="showEmailTemplate('validacao')" style="margin: 5px;">✅ Email de Validação</button>
+                    <button class="btn btn-primary" onclick="showEmailTemplate('conclusao')" style="margin: 5px;">🏁 Email de Conclusão</button>
+                </div>
+                <div id="emailContent"></div>
+            `;
             
-            const email = `
-Assunto: Abertura de Sinistro - Placa ${formData.placa || '[PLACA]'}
-
-Prezados,
-
-Segue abertura de sinistro:
-
-DADOS DO VEÍCULO:
-- Placa: ${formData.placa || '[PLACA]'}
-
-DADOS DA OCORRÊNCIA:
-- Tipo: ${tipoLabels[formData.tipo] || '[TIPO]'}
-- Data: ${formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '[DATA]'}
-- Local: ${formData.local || '[LOCAL]'}
-- Cidade/Estado: ${formData.cidade || '[CIDADE/ESTADO]'}
-
-DESCRIÇÃO:
-${formData.descricao || '[DESCRIÇÃO]'}
-
-DANOS APARENTES:
-${formData.danos || '[DANOS]'}
-
-DOCUMENTAÇÃO:
-${formData.docBO ? '- Boletim de Ocorrência (B.O.)' : ''}
-${formData.docFotos ? '- Fotos do local/veículo' : ''}
-${formData.docCNH ? '- CNH do condutor' : ''}
-${formData.docFicha ? '- Ficha de Ocorrência' : ''}
-
-${formData.obs ? 'OBSERVAÇÕES:\n' + formData.obs : ''}
-
-Atenciosamente,
-[SEU NOME]
-            `.trim();
-            
-            document.getElementById('emailPreview').textContent = email;
+            document.getElementById('emailPreview').innerHTML = emailOptions;
             document.getElementById('emailModal').classList.add('show');
+        }
+
+        // Show specific email template
+        function showEmailTemplate(templateKey) {
+            const emailText = fillTemplate(templateKey);
+            document.getElementById('emailContent').innerHTML = `
+                <pre style="white-space: pre-wrap; font-family: monospace; background: #f5f5f5; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto;">${emailText}</pre>
+                <button class="btn btn-primary" onclick="copiarEmail('${templateKey}')" style="width: 100%; margin-top: 10px;">📋 Copiar para Área de Transferência</button>
+            `;
         }
 
         // Close modal
@@ -877,7 +1236,14 @@ Atenciosamente,
         function clearData() {
             if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
                 localStorage.removeItem('sinistroData');
+                localStorage.removeItem('sinistroState');
                 Object.keys(formData).forEach(key => delete formData[key]);
+                Object.keys(state).forEach(key => {
+                    if (key === 'current') state[key] = 1;
+                    else if (key === 'docsReceived') state[key] = false;
+                    else if (key === 'prazoDias') state[key] = 0;
+                    else state[key] = '';
+                });
                 location.reload();
             }
         }
@@ -893,17 +1259,9 @@ Atenciosamente,
             }, 3000);
         }
 
-        // Finish flow
+        // Finish flow (wrapper for finalizarFluxo)
         function finishFlow() {
-            saveData();
-            showToast('Sinistro registrado com sucesso! Os dados foram salvos localmente.');
-            
-            // Optional: Here you could send data to backend
-            // fetch('/api/sinistros/', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(formData)
-            // });
+            finalizarFluxo();
         }
 
         // Initialize
