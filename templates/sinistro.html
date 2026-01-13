@@ -634,7 +634,6 @@
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="email-preview" id="emailPreview"></div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="copyEmail()">Copiar para Área de Transferência</button>
         </div>
     </div>
 
@@ -718,11 +717,18 @@
         }
 
         function canProceed(toStep) {
-            // Validation: cannot proceed to maintenance step if docs not received
-            // Assuming step 5 is the documentation step (step-maint equivalent)
-            if (toStep === 5 && state.docsReceived === false) {
-                showToast('Não é possível avançar sem confirmar o recebimento dos documentos', 'error');
-                return false;
+            // Validation: cannot proceed from documentation step if no docs are checked
+            // Step 5 is the documentation step - check if moving to step 6
+            if (toStep === 6 && currentStep === 5) {
+                const docBO = document.getElementById('doc-bo')?.checked || false;
+                const docFotos = document.getElementById('doc-fotos')?.checked || false;
+                const docCNH = document.getElementById('doc-cnh')?.checked || false;
+                const docFicha = document.getElementById('doc-ficha')?.checked || false;
+                
+                if (!docBO && !docFotos && !docCNH && !docFicha) {
+                    showToast('Por favor, selecione pelo menos um documento antes de prosseguir', 'error');
+                    return false;
+                }
             }
             
             // Additional validations can be added here
@@ -1043,6 +1049,7 @@ Atenciosamente.`
             saveData();
             
             if (currentStep === 6) {
+                // Trigger summary update when moving from validation step (6) to summary step (7)
                 updateSummary();
             }
             
