@@ -27,7 +27,7 @@ html, body {
 .hero-section {
     flex: 1;
     height: 100vh;
-    /* Background image removido para evitar MissingFileError em collectstatic */
+    /* Background image removida para evitar MissingFileError em collectstatic */
     background-image: none;
     position: relative;
     display: flex;
