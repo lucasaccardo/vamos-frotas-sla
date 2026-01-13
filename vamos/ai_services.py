@@ -1,4 +1,11 @@
-import google.generativeai as genai
+# Protected import to prevent site crashes if google-generativeai is not installed
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GENAI_AVAILABLE = False
+
 from django.conf import settings
 from .models import Analise, Ticket, User
 import pandas as pd
@@ -9,6 +16,10 @@ GENAI_API_KEY = getattr(settings, "GOOGLE_API_KEY", "")
 
 def get_gemini_model():
     """Configura e retorna o modelo Gemini 2.0 Flash."""
+    if not GENAI_AVAILABLE:
+        print("ERRO IA: google-generativeai não está instalado.")
+        return None
+    
     if not GENAI_API_KEY:
         print("ERRO IA: API Key não encontrada.")
         return None
