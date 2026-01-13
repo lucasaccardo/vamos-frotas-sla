@@ -10,6 +10,7 @@ urlpatterns = [
     path('', include('vamos.urls')),        # Manda para o app principal
     path('sinistros/', include('sinistros.urls')), # Manda para o NOVO app
     path('api/procedures/', include('procedures.urls')), # API para procedures
+    path('procedures/', include('procedures.web_urls')), # Web UI para procedures
 ]
 
 # --- ADICIONE ESTE BLOCO NO FINAL ---

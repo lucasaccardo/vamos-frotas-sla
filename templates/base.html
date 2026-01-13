@@ -44,6 +44,7 @@
           <li class="nav-item">
             <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
           </li>
+          {% include "procedures/includes/sinistro_widget.html" %}
         </ul>
       </nav>
     </div>
