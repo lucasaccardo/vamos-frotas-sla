@@ -27,6 +27,7 @@ html, body {
 .hero-section {
     flex: 1;
     height: 100vh;
+    /* Usando background.png existente em static/img/ */
     background-image: url('../img/background.png');
     background-size: cover;
     background-position: center;
