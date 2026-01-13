@@ -27,8 +27,7 @@ html, body {
 .hero-section {
     flex: 1;
     height: 100vh;
-    /* Fallback para imagem existente caso hero-truck.jpg não esteja disponível */
-    background-image: url('../img/background.png'), url('../images/hero-truck.jpg');
+    background-image: url('../img/background.png');
     background-size: cover;
     background-position: center;
     position: relative;
