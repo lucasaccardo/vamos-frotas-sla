@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema interativo para registro e gestão de processos de sinistro">
+    <meta name="description" content="Guia interativo de processos de sinistro - navegação por botões">
     <title>Manual de Processos de Sinistro - Vamos Frotas</title>
     <style>
         * {
@@ -89,86 +89,103 @@
         }
 
         .step-title {
-            font-size: 22px;
+            font-size: 24px;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-weight: 600;
         }
 
         .step-description {
             color: #666;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             line-height: 1.6;
+            font-size: 15px;
         }
 
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .radio-group {
-            display: flex;
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            flex-wrap: wrap;
+            margin-bottom: 30px;
         }
 
-        .radio-option {
-            flex: 1;
-            min-width: 150px;
-            padding: 15px;
+        .option-button {
+            background: white;
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border-radius: 12px;
+            padding: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
 
-        .radio-option:hover {
+        .option-button:hover {
             border-color: #667eea;
             background: #f8f9ff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
         }
 
-        .radio-option input[type="radio"] {
-            display: none;
+        .option-button .icon {
+            font-size: 40px;
         }
 
-        .radio-option input[type="radio"]:checked + label {
-            color: #667eea;
+        .option-button .label {
             font-weight: 600;
         }
 
-        .radio-option.selected {
-            border-color: #667eea;
+        .option-button .description {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .info-box {
             background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 8px 0;
+            color: #555;
+        }
+
+        .info-box li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .warning-box strong {
+            color: #856404;
         }
 
         .buttons {
@@ -207,10 +224,15 @@
             background: #e0e0e0;
         }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
         }
 
         .summary {
@@ -237,165 +259,8 @@
         }
 
         .summary-value {
-            color: #666;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-action {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #667eea;
-            background: white;
             color: #667eea;
-            border-radius: 8px;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-action:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4caf50;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            display: none;
-            animation: slideIn 0.3s ease;
-            z-index: 1000;
-        }
-
-        .toast.show {
-            display: block;
-        }
-
-        .toast.error {
-            background: #f44336;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: #999;
-        }
-
-        .modal-close:hover {
-            color: #333;
-        }
-
-        .email-preview {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-family: monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .placeholder {
-            color: #999;
-            font-style: italic;
-        }
-
-        /* Screen reader only class */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        /* Form hints */
-        .form-hint {
-            display: block;
-            margin-top: 5px;
-            color: #666;
-            font-size: 13px;
-        }
-
-        /* Focus styles for accessibility */
-        *:focus {
-            outline: 2px solid #667eea;
-            outline-offset: 2px;
-        }
-
-        .radio-option:focus {
-            outline: 2px solid #667eea;
-            outline-offset: 2px;
         }
 
         @media (max-width: 600px) {
@@ -415,12 +280,8 @@
                 flex-direction: column;
             }
 
-            .radio-group {
-                flex-direction: column;
-            }
-
-            .radio-option {
-                min-width: 100%;
+            .options-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -429,739 +290,568 @@
     <div class="container" role="main">
         <header class="header">
             <h1 id="pageTitle">🚛 Manual de Processos de Sinistro</h1>
-            <p id="pageDescription">Preencha as informações passo a passo</p>
-            <div class="progress-bar" role="progressbar" aria-label="Progresso do formulário" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <p id="pageDescription">Guia interativo - navegue usando os botões</p>
+            <div class="progress-bar" role="progressbar" aria-label="Progresso" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
         </header>
 
         <div class="content">
-            <!-- Step 1: Placa -->
-            <section class="step active" data-step="1" id="step1" role="region" aria-labelledby="step1-title">
-                <h2 class="step-title" id="step1-title">Informações do Veículo</h2>
-                <p class="step-description">Insira a placa do veículo sinistrado</p>
-                
-                <div class="form-group">
-                    <label for="placa">Placa do Veículo *</label>
-                    <input 
-                        type="text" 
-                        id="placa" 
-                        name="placa"
-                        placeholder="Ex: ABC-1234" 
-                        required
-                        aria-required="true"
-                        aria-describedby="placa-hint"
-                        autocomplete="off">
-                    <small id="placa-hint" class="form-hint">Digite a placa no formato ABC-1234 ou ABC1D23</small>
-                </div>
+            <!-- Step 1: Início -->
+            <section class="step active" data-step="1" id="step1">
+                <h2 class="step-title">Bem-vindo ao Manual de Sinistros</h2>
+                <p class="step-description">
+                    Este guia interativo irá orientá-lo através do processo de gestão de sinistros.
+                    Selecione o tipo de orientação que você precisa:
+                </p>
 
-                <div class="buttons">
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Avançar para o próximo passo">
-                        Próximo <span aria-hidden="true">→</span>
+                <div class="options-grid">
+                    <button class="option-button" onclick="goToStep(2)">
+                        <span class="icon">📋</span>
+                        <span class="label">Como Registrar</span>
+                        <span class="description">Processo de abertura</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(6)">
+                        <span class="icon">📄</span>
+                        <span class="label">Documentação</span>
+                        <span class="description">Documentos necessários</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(9)">
+                        <span class="icon">⏱️</span>
+                        <span class="label">Prazos e SLA</span>
+                        <span class="description">Entenda os prazos</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(11)">
+                        <span class="icon">💰</span>
+                        <span class="label">Valores e Franquias</span>
+                        <span class="description">Informações financeiras</span>
                     </button>
                 </div>
             </section>
 
             <!-- Step 2: Tipo de Sinistro -->
-            <section class="step" data-step="2" id="step2" role="region" aria-labelledby="step2-title">
-                <h2 class="step-title" id="step2-title">Tipo de Sinistro</h2>
-                <p class="step-description">Selecione o tipo de ocorrência</p>
-                
-                <fieldset class="form-group">
-                    <legend class="sr-only">Escolha o tipo de sinistro</legend>
-                    <div class="radio-group" role="radiogroup" aria-labelledby="step2-title">
-                        <div class="radio-option" onclick="selectRadio('tipo', 'colisao')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="tipo" id="tipo-colisao" value="colisao" aria-label="Colisão">
-                            <label for="tipo-colisao">🚗 Colisão</label>
-                        </div>
-                        <div class="radio-option" onclick="selectRadio('tipo', 'furto')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="tipo" id="tipo-furto" value="furto" aria-label="Furto ou Roubo">
-                            <label for="tipo-furto">🔒 Furto/Roubo</label>
-                        </div>
-                        <div class="radio-option" onclick="selectRadio('tipo', 'incendio')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="tipo" id="tipo-incendio" value="incendio" aria-label="Incêndio">
-                            <label for="tipo-incendio">🔥 Incêndio</label>
-                        </div>
-                        <div class="radio-option" onclick="selectRadio('tipo', 'natureza')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="tipo" id="tipo-natureza" value="natureza" aria-label="Fenômenos da Natureza">
-                            <label for="tipo-natureza">🌪️ Natureza</label>
-                        </div>
-                    </div>
-                </fieldset>
+            <section class="step" data-step="2" id="step2">
+                <h2 class="step-title">Tipo de Sinistro</h2>
+                <p class="step-description">Selecione o tipo de ocorrência para ver o fluxo específico:</p>
 
-                <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
+                <div class="options-grid">
+                    <button class="option-button" onclick="goToStep(3)">
+                        <span class="icon">🚗</span>
+                        <span class="label">Colisão</span>
+                        <span class="description">Acidente com impacto</span>
                     </button>
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Avançar para o próximo passo">
-                        Próximo <span aria-hidden="true">→</span>
+
+                    <button class="option-button" onclick="goToStep(4)">
+                        <span class="icon">🔒</span>
+                        <span class="label">Furto/Roubo</span>
+                        <span class="description">Perda do veículo</span>
                     </button>
-                </div>
-            </section>
 
-            <!-- Step 3: Data e Local -->
-            <section class="step" data-step="3" id="step3" role="region" aria-labelledby="step3-title">
-                <h2 class="step-title" id="step3-title">Data e Local</h2>
-                <p class="step-description">Informe quando e onde ocorreu</p>
-                
-                <div class="form-group">
-                    <label for="data">Data da Ocorrência *</label>
-                    <input 
-                        type="date" 
-                        id="data" 
-                        name="data"
-                        required
-                        aria-required="true"
-                        aria-describedby="data-hint">
-                    <small id="data-hint" class="form-hint">Selecione a data em que ocorreu o sinistro</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="local">Local da Ocorrência *</label>
-                    <input 
-                        type="text" 
-                        id="local" 
-                        name="local"
-                        placeholder="Endereço completo" 
-                        required
-                        aria-required="true"
-                        aria-describedby="local-hint">
-                    <small id="local-hint" class="form-hint">Informe o endereço completo onde ocorreu o sinistro</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="cidade">Cidade/Estado *</label>
-                    <input 
-                        type="text" 
-                        id="cidade" 
-                        name="cidade"
-                        placeholder="Ex: São Paulo/SP" 
-                        required
-                        aria-required="true"
-                        aria-describedby="cidade-hint">
-                    <small id="cidade-hint" class="form-hint">Digite a cidade e estado no formato: Cidade/UF</small>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
+                    <button class="option-button" onclick="goToStep(5)">
+                        <span class="icon">🔥</span>
+                        <span class="label">Incêndio</span>
+                        <span class="description">Danos por fogo</span>
                     </button>
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Avançar para o próximo passo">
-                        Próximo <span aria-hidden="true">→</span>
-                    </button>
-                </div>
-            </section>
 
-            <!-- Step 4: Descrição -->
-            <section class="step" data-step="4" id="step4" role="region" aria-labelledby="step4-title">
-                <h2 class="step-title" id="step4-title">Descrição do Sinistro</h2>
-                <p class="step-description">Descreva detalhadamente o que aconteceu</p>
-                
-                <div class="form-group">
-                    <label for="descricao">Descrição Detalhada *</label>
-                    <textarea 
-                        id="descricao" 
-                        name="descricao"
-                        placeholder="Descreva os fatos com o máximo de detalhes possível..." 
-                        required
-                        aria-required="true"
-                        aria-describedby="descricao-hint"></textarea>
-                    <small id="descricao-hint" class="form-hint">Inclua detalhes como horário, condições climáticas, e o que levou ao sinistro</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="danos">Danos Aparentes *</label>
-                    <textarea 
-                        id="danos" 
-                        name="danos"
-                        placeholder="Descreva os danos visíveis no veículo..." 
-                        required
-                        aria-required="true"
-                        aria-describedby="danos-hint"></textarea>
-                    <small id="danos-hint" class="form-hint">Liste todas as partes do veículo que foram danificadas</small>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
-                    </button>
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Avançar para o próximo passo">
-                        Próximo <span aria-hidden="true">→</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Step 5: Documentação -->
-            <section class="step" data-step="5" id="step5" role="region" aria-labelledby="step5-title">
-                <h2 class="step-title" id="step5-title">Documentação</h2>
-                <p class="step-description">Confirme os documentos necessários</p>
-                
-                <fieldset class="form-group">
-                    <legend class="sr-only">Selecione os documentos disponíveis</legend>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="doc-bo" name="doc-bo" aria-label="Boletim de Ocorrência"> 
-                            Boletim de Ocorrência (B.O.)
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="doc-fotos" name="doc-fotos" aria-label="Fotos do local e veículo"> 
-                            Fotos do local/veículo
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="doc-cnh" name="doc-cnh" aria-label="CNH do condutor"> 
-                            CNH do condutor
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="doc-ficha" name="doc-ficha" aria-label="Ficha de Ocorrência preenchida"> 
-                            Ficha de Ocorrência preenchida
-                        </label>
-                    </div>
-                </fieldset>
-
-                <div class="form-group">
-                    <label for="obs">Observações Adicionais</label>
-                    <textarea 
-                        id="obs" 
-                        name="obs"
-                        placeholder="Informações complementares..."
-                        aria-describedby="obs-hint"></textarea>
-                    <small id="obs-hint" class="form-hint">Adicione qualquer informação relevante que não foi coberta anteriormente</small>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
-                    </button>
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Avançar para validação">
-                        Próximo <span aria-hidden="true">→</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Step 6: Validação (step-valida-cli) -->
-            <section class="step" data-step="6" id="step6" role="region" aria-labelledby="step6-title">
-                <h2 class="step-title" id="step6-title">✅ Validação do Processo</h2>
-                <p class="step-description">Informações adicionais para validação</p>
-                
-                <div class="form-group">
-                    <label for="cliente">Nome do Cliente *</label>
-                    <input 
-                        type="text" 
-                        id="cliente" 
-                        name="cliente"
-                        placeholder="Nome completo do cliente" 
-                        onchange="updateStateField('cliente', this.value)"
-                        required
-                        aria-required="true"
-                        aria-describedby="cliente-hint">
-                    <small id="cliente-hint" class="form-hint">Digite o nome completo conforme consta nos documentos</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="seguradora">Seguradora *</label>
-                    <input 
-                        type="text" 
-                        id="seguradora" 
-                        name="seguradora"
-                        placeholder="Nome da seguradora" 
-                        onchange="updateStateField('seguradora', this.value)"
-                        required
-                        aria-required="true"
-                        aria-describedby="seguradora-hint">
-                    <small id="seguradora-hint" class="form-hint">Nome da empresa seguradora responsável</small>
-                </div>
-
-                <fieldset class="form-group">
-                    <legend>Tipo de Limitação *</legend>
-                    <div class="radio-group" role="radiogroup" aria-label="Tipo de limitação">
-                        <div class="radio-option" onclick="selectRadioState('limitacao', 'parcial')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="limitacao" id="limitacao-parcial" value="parcial" aria-label="Limitação Parcial - 5 dias">
-                            <label for="limitacao-parcial">📝 Limitação Parcial (5 dias)</label>
-                        </div>
-                        <div class="radio-option" onclick="selectRadioState('limitacao', 'total')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="limitacao" id="limitacao-total" value="total" aria-label="Limitação Total - 10 ou 60 dias">
-                            <label for="limitacao-total">🚫 Limitação Total (10 ou 60 dias)</label>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <div class="form-group">
-                    <label for="valorIndenizacao">Valor de Indenização (R$)</label>
-                    <input 
-                        type="text" 
-                        id="valorIndenizacao" 
-                        name="valorIndenizacao"
-                        placeholder="Ex: 50.000,00" 
-                        onchange="updateStateField('valorIndenizacao', this.value)"
-                        aria-describedby="valor-hint">
-                    <small id="valor-hint" class="form-hint">Digite o valor estimado da indenização</small>
-                </div>
-
-                <fieldset class="form-group">
-                    <legend>Destino da Posse</legend>
-                    <div class="radio-group" role="radiogroup" aria-label="Destino da posse do veículo">
-                        <div class="radio-option" onclick="selectRadioState('destinoPosse', 'cliente')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="destinoPosse" id="destino-cliente" value="cliente" aria-label="Posse fica com o cliente">
-                            <label for="destino-cliente">👤 Cliente</label>
-                        </div>
-                        <div class="radio-option" onclick="selectRadioState('destinoPosse', 'seguradora')" tabindex="0" role="radio" aria-checked="false">
-                            <input type="radio" name="destinoPosse" id="destino-seguradora" value="seguradora" aria-label="Posse fica com a seguradora">
-                            <label for="destino-seguradora">🏢 Seguradora</label>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <div class="form-group">
-                    <div role="note" aria-label="Informações sobre prazos automáticos" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <strong>ℹ️ Prazos Automáticos:</strong><br>
-                        • Limitação Parcial: <strong>5 dias</strong><br>
-                        • Limitação Total (Seguradora Azul): <strong>10 dias</strong><br>
-                        • Limitação Total (Outras): <strong>60 dias</strong>
-                    </div>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
-                    </button>
-                    <button class="btn btn-primary" onclick="nextStep()" aria-label="Revisar informações">
-                        Revisar <span aria-hidden="true">→</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Step 7: Resumo -->
-            <section class="step" data-step="7" id="step7" role="region" aria-labelledby="step7-title">
-                <h2 class="step-title" id="step7-title">✅ Resumo do Sinistro</h2>
-                <p class="step-description">Revise as informações antes de finalizar</p>
-                
-                <div class="summary" id="summary" role="region" aria-label="Resumo das informações do sinistro">
-                    <!-- Summary will be populated by JavaScript -->
-                </div>
-
-                <div class="action-buttons" role="group" aria-label="Ações disponíveis">
-                    <button class="btn-action" onclick="showEmailModal()" aria-label="Copiar template de email">
-                        📧 Copiar Email
-                    </button>
-                    <button class="btn-action" onclick="exportJSON()" aria-label="Exportar dados em formato JSON">
-                        💾 Exportar JSON
-                    </button>
-                    <button class="btn-action" onclick="clearData()" aria-label="Limpar todos os dados do formulário">
-                        🗑️ Limpar Dados
+                    <button class="option-button" onclick="goToStep(5)">
+                        <span class="icon">🌪️</span>
+                        <span class="label">Natureza</span>
+                        <span class="description">Fenômenos naturais</span>
                     </button>
                 </div>
 
                 <div class="buttons">
-                    <button class="btn btn-secondary" onclick="prevStep()" aria-label="Voltar para o passo anterior">
-                        <span aria-hidden="true">←</span> Voltar
-                    </button>
-                    <button class="btn btn-primary" onclick="finishFlow()" aria-label="Finalizar e salvar o processo">
-                        Finalizar <span aria-hidden="true">✓</span>
+                    <button class="btn btn-secondary" onclick="goToStep(1)">
+                        ← Voltar
                     </button>
                 </div>
             </section>
-        </div>
-    </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
+            <!-- Step 3: Fluxo Colisão -->
+            <section class="step" data-step="3" id="step3">
+                <h2 class="step-title">Processo: Colisão</h2>
+                <p class="step-description">Siga estas etapas para processar uma colisão:</p>
 
-    <!-- Email Modal -->
-    <div class="modal" id="emailModal" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">Copiar Email</h3>
-                <button class="modal-close" onclick="closeModal()" aria-label="Fechar modal">&times;</button>
-            </div>
-            <div class="email-preview" id="emailPreview"></div>
+                <div class="info-box">
+                    <h3>Passos Imediatos</h3>
+                    <ul>
+                        <li>Registrar Boletim de Ocorrência (B.O.)</li>
+                        <li>Fotografar o local e os danos</li>
+                        <li>Coletar dados de testemunhas</li>
+                        <li>Anotar dados do outro veículo envolvido</li>
+                        <li>Contatar a seguradora imediatamente</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Atenção:</strong> Não movimentar o veículo do local sem autorização das autoridades, exceto se houver risco de segurança.
+                </div>
+
+                <div class="info-box">
+                    <h3>Documentação Necessária</h3>
+                    <ul>
+                        <li>B.O. completo</li>
+                        <li>Fotos dos danos (mínimo 4 ângulos)</li>
+                        <li>CNH do condutor</li>
+                        <li>Dados do terceiro (se houver)</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(6)">
+                        Ver Documentação Completa →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 4: Fluxo Furto/Roubo -->
+            <section class="step" data-step="4" id="step4">
+                <h2 class="step-title">Processo: Furto/Roubo</h2>
+                <p class="step-description">Procedimentos específicos para furto ou roubo:</p>
+
+                <div class="info-box">
+                    <h3>Ações Urgentes (primeiras 24h)</h3>
+                    <ul>
+                        <li>Registrar B.O. imediatamente</li>
+                        <li>Comunicar a seguradora</li>
+                        <li>Informar ao DETRAN</li>
+                        <li>Bloquear documentos do veículo</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Importante:</strong> O prazo para comunicação à seguradora é crítico. Comunique em até 24 horas.
+                </div>
+
+                <div class="info-box">
+                    <h3>Prazo de Limitação</h3>
+                    <ul>
+                        <li>Limitação Total: 60 dias (ou 10 dias para Seguradora Azul)</li>
+                        <li>Após esse período, inicia-se processo de indenização</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(9)">
+                        Ver Prazos Detalhados →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 5: Fluxo Incêndio/Natureza -->
+            <section class="step" data-step="5" id="step5">
+                <h2 class="step-title">Processo: Incêndio / Fenômenos Naturais</h2>
+                <p class="step-description">Procedimentos para danos por incêndio ou natureza:</p>
+
+                <div class="info-box">
+                    <h3>Primeiros Passos</h3>
+                    <ul>
+                        <li>Registrar B.O. descrevendo a ocorrência</li>
+                        <li>Fotografar extensivamente os danos</li>
+                        <li>Se possível, coletar laudos técnicos (bombeiros, defesa civil)</li>
+                        <li>Comunicar seguradora</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Documentação Especial</h3>
+                    <ul>
+                        <li>Laudo do Corpo de Bombeiros (se aplicável)</li>
+                        <li>Relatório de defesa civil (fenômenos naturais)</li>
+                        <li>Fotos detalhadas de todos os ângulos</li>
+                        <li>Testemunhas e relatos</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(6)">
+                        Ver Documentação →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 6: Documentação -->
+            <section class="step" data-step="6" id="step6">
+                <h2 class="step-title">Documentação Necessária</h2>
+                <p class="step-description">Lista completa de documentos para processar um sinistro:</p>
+
+                <div class="info-box">
+                    <h3>Documentos Obrigatórios</h3>
+                    <ul>
+                        <li>Boletim de Ocorrência (B.O.) - via original ou cópia autenticada</li>
+                        <li>CNH do condutor no momento do sinistro</li>
+                        <li>CRLV do veículo</li>
+                        <li>Ficha de Ocorrência preenchida e assinada</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Documentos Complementares</h3>
+                    <ul>
+                        <li>Fotos do local (mínimo 4 ângulos)</li>
+                        <li>Fotos dos danos no veículo</li>
+                        <li>Dados do terceiro envolvido (se houver)</li>
+                        <li>Orçamentos de reparo (se solicitado)</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Prazo:</strong> Toda documentação deve ser entregue em até 5 dias úteis após a ocorrência.
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(1)">
+                        ← Início
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(7)">
+                        Como Enviar Documentos →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 7: Envio de Documentos -->
+            <section class="step" data-step="7" id="step7">
+                <h2 class="step-title">Como Enviar Documentos</h2>
+                <p class="step-description">Escolha o método de envio da documentação:</p>
+
+                <div class="options-grid">
+                    <button class="option-button" onclick="goToStep(8)">
+                        <span class="icon">📧</span>
+                        <span class="label">Por Email</span>
+                        <span class="description">Digitalizar e enviar</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(8)">
+                        <span class="icon">☁️</span>
+                        <span class="label">Upload Sistema</span>
+                        <span class="description">Portal online</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(8)">
+                        <span class="icon">📞</span>
+                        <span class="label">Presencial</span>
+                        <span class="description">Na sede da empresa</span>
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <h3>Dicas para Digitalização</h3>
+                    <ul>
+                        <li>Use scanner ou câmera de alta qualidade</li>
+                        <li>Garanta que o texto está legível</li>
+                        <li>Salve em formato PDF ou JPG</li>
+                        <li>Nomeie os arquivos claramente (ex: BO_PLACA_DATA.pdf)</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(6)">
+                        ← Voltar
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 8: Confirmação de Documentos -->
+            <section class="step" data-step="8" id="step8">
+                <h2 class="step-title">Após o Envio</h2>
+                <p class="step-description">O que acontece depois do envio dos documentos:</p>
+
+                <div class="info-box">
+                    <h3>Próximos Passos</h3>
+                    <ul>
+                        <li>Aguarde confirmação de recebimento (em até 24h úteis)</li>
+                        <li>Acompanhe o status pelo sistema</li>
+                        <li>Análise da documentação (2-3 dias úteis)</li>
+                        <li>Receba notificação sobre aprovação ou documentação adicional</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>📱 Acompanhamento:</strong> Você pode consultar o status do seu processo a qualquer momento pelo sistema.
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(7)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(9)">
+                        Ver Prazos de Análise →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 9: Prazos e SLA -->
+            <section class="step" data-step="9" id="step9">
+                <h2 class="step-title">Prazos e SLA</h2>
+                <p class="step-description">Entenda os prazos de cada etapa do processo:</p>
+
+                <div class="info-box">
+                    <h3>Limitação Parcial</h3>
+                    <ul>
+                        <li><strong>Prazo:</strong> 5 dias úteis</li>
+                        <li><strong>Aplicável:</strong> Danos reparáveis menores</li>
+                        <li><strong>Processo:</strong> Avaliação rápida e liberação</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Limitação Total</h3>
+                    <ul>
+                        <li><strong>Prazo Geral:</strong> 60 dias corridos</li>
+                        <li><strong>Seguradora Azul:</strong> 10 dias corridos</li>
+                        <li><strong>Aplicável:</strong> Perda total ou danos graves</li>
+                        <li><strong>Processo:</strong> Análise completa e perícia</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Importante:</strong> Os prazos começam a contar a partir do recebimento completo da documentação.
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(1)">
+                        ← Início
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(10)">
+                        Fluxo de Setores →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 10: Fluxo de Setores -->
+            <section class="step" data-step="10" id="step10">
+                <h2 class="step-title">Fluxo entre Setores</h2>
+                <p class="step-description">Entenda como o processo tramita pelos setores:</p>
+
+                <div class="info-box">
+                    <h3>1. ABERTURA</h3>
+                    <ul>
+                        <li>Registro inicial do sinistro</li>
+                        <li>Validação de dados básicos</li>
+                        <li>SLA: 1 dia útil</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>2. MANUTENÇÃO</h3>
+                    <ul>
+                        <li>Análise técnica dos danos</li>
+                        <li>Aprovação de orçamentos</li>
+                        <li>SLA: 3 dias úteis</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>3. CLIENTE</h3>
+                    <ul>
+                        <li>Aguardando ação ou documentação do cliente</li>
+                        <li>SLA: Conforme acordado</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>4. JURÍDICO</h3>
+                    <ul>
+                        <li>Análise de responsabilidades</li>
+                        <li>Processos com terceiros</li>
+                        <li>SLA: 5 dias úteis</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>5. FINANCEIRO</h3>
+                    <ul>
+                        <li>Processamento de pagamentos</li>
+                        <li>Acertos de valores</li>
+                        <li>SLA: 2 dias úteis</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>6. FINALIZADO</h3>
+                    <ul>
+                        <li>Processo concluído</li>
+                        <li>Todas as partes foram resolvidas</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(9)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(11)">
+                        Valores e Franquias →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 11: Valores e Franquias -->
+            <section class="step" data-step="11" id="step11">
+                <h2 class="step-title">Valores e Franquias</h2>
+                <p class="step-description">Informações sobre valores, franquias e indenizações:</p>
+
+                <div class="info-box">
+                    <h3>Composição do Valor</h3>
+                    <ul>
+                        <li><strong>Valor FIPE:</strong> Valor de mercado do veículo</li>
+                        <li><strong>Valor do Implemento:</strong> Equipamentos adicionais</li>
+                        <li><strong>Valor da Franquia:</strong> Participação obrigatória</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Distribuição de Custos</h3>
+                    <ul>
+                        <li><strong>Seguradora:</strong> Cobre até o limite da apólice</li>
+                        <li><strong>Cliente:</strong> Responsável pela franquia</li>
+                        <li><strong>Terceiros:</strong> Valores recuperáveis de terceiros (quando aplicável)</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>💡 Dica:</strong> Guarde todos os comprovantes e notas fiscais de equipamentos adicionais instalados no veículo.
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(10)">
+                        ← Voltar
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep(12)">
+                        Destino da Posse →
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 12: Destino da Posse -->
+            <section class="step" data-step="12" id="step12">
+                <h2 class="step-title">Destino da Posse do Veículo</h2>
+                <p class="step-description">Após a indenização, para onde vai o veículo?</p>
+
+                <div class="options-grid">
+                    <button class="option-button" onclick="goToStep(13)">
+                        <span class="icon">👤</span>
+                        <span class="label">Cliente</span>
+                        <span class="description">Posse fica com cliente</span>
+                    </button>
+
+                    <button class="option-button" onclick="goToStep(13)">
+                        <span class="icon">🏢</span>
+                        <span class="label">Seguradora</span>
+                        <span class="description">Posse transferida</span>
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <h3>Quando a posse fica com o Cliente</h3>
+                    <ul>
+                        <li>Danos reparáveis e o cliente opta por ficar com o veículo</li>
+                        <li>Valor da indenização é reduzido pelo valor de salvado</li>
+                        <li>Cliente assume responsabilidade pelo veículo</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h3>Quando a posse vai para a Seguradora</h3>
+                    <ul>
+                        <li>Perda total com indenização integral</li>
+                        <li>Seguradora assume a posse e venda do salvado</li>
+                        <li>Cliente recebe valor integral conforme apólice</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(11)">
+                        ← Voltar
+                    </button>
+                </div>
+            </section>
+
+            <!-- Step 13: Resumo Final -->
+            <section class="step" data-step="13" id="step13">
+                <h2 class="step-title">✅ Resumo do Manual</h2>
+                <p class="step-description">Você completou o guia interativo de processos de sinistro!</p>
+
+                <div class="summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Tipos de Sinistro:</span>
+                        <span class="summary-value">4 categorias</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Documentos Principais:</span>
+                        <span class="summary-value">B.O., CNH, CRLV, Fotos</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Prazo Limitação Parcial:</span>
+                        <span class="summary-value">5 dias úteis</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Prazo Limitação Total:</span>
+                        <span class="summary-value">10 ou 60 dias</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Setores do Fluxo:</span>
+                        <span class="summary-value">6 etapas</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h3>📞 Precisa de Ajuda?</h3>
+                    <ul>
+                        <li>Entre em contato com o setor responsável</li>
+                        <li>Consulte o status do seu processo no sistema</li>
+                        <li>Revise este manual sempre que necessário</li>
+                    </ul>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-secondary" onclick="goToStep(1)">
+                        ← Voltar ao Início
+                    </button>
+                    <button class="btn btn-success" onclick="finalizarManual()">
+                        Finalizar Manual ✓
+                    </button>
+                </div>
+            </section>
         </div>
     </div>
 
     <script>
-        // ============================================================================
-        // STATE MANAGEMENT
-        // ============================================================================
-        
-        // State Machine Implementation
-        const state = {
-            current: 1,
-            limitacao: '',        // 'parcial' or 'total'
-            docsReceived: false,
-            seguradora: '',       // name of insurance company
-            cliente: '',          // client name
-            placa: '',
-            prazoDias: 0,         // deadline in days (5, 10, or 60)
-            valorIndenizacao: '',
-            destinoPosse: ''      // 'cliente' or 'seguradora'
-        };
-
         let currentStep = 1;
-        const totalSteps = 7;
-        const formData = {};
+        const totalSteps = 13;
 
-        // ============================================================================
-        // STATE PERSISTENCE
-        // ============================================================================
-        
-        function saveState() {
-            const stateData = {
-                ...state,
-                formData: formData,
-                currentStep: currentStep
-            };
-            localStorage.setItem('sinistroState', JSON.stringify(stateData));
-            localStorage.setItem('sinistroData', JSON.stringify(formData));
-        }
-
-        function restoreState() {
-            const saved = localStorage.getItem('sinistroState');
-            if (saved) {
-                try {
-                    const stateData = JSON.parse(saved);
-                    Object.assign(state, {
-                        current: stateData.current || 1,
-                        limitacao: stateData.limitacao || '',
-                        docsReceived: stateData.docsReceived || false,
-                        seguradora: stateData.seguradora || '',
-                        cliente: stateData.cliente || '',
-                        placa: stateData.placa || '',
-                        prazoDias: stateData.prazoDias || 0,
-                        valorIndenizacao: stateData.valorIndenizacao || '',
-                        destinoPosse: stateData.destinoPosse || ''
-                    });
-                    if (stateData.formData) {
-                        Object.assign(formData, stateData.formData);
-                    }
-                    if (stateData.currentStep) {
-                        currentStep = stateData.currentStep;
-                    }
-                } catch (e) {
-                    console.error('Error restoring state:', e);
-                }
-            }
-        }
-
-        // ============================================================================
-        // NAVIGATION
-        // ============================================================================
-        
-        function goTo(stepId) {
-            const targetStep = typeof stepId === 'number' ? stepId : parseInt(stepId);
-            
-            if (targetStep < 1 || targetStep > totalSteps) {
-                showToast('Passo inválido', 'error');
-                return false;
-            }
-
-            if (!canProceed(targetStep)) {
-                return false;
-            }
-
+        function goToStep(stepNumber) {
             // Remove active class from current step
             const currentStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
             if (currentStepEl) {
                 currentStepEl.classList.remove('active');
             }
 
-            // Update step counters
-            currentStep = targetStep;
-            state.current = targetStep;
+            // Update step
+            currentStep = stepNumber;
 
             // Add active class to new step
             const newStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
             if (newStepEl) {
                 newStepEl.classList.add('active');
-                
-                // Set focus to the step title for screen readers
-                const stepTitle = newStepEl.querySelector('.step-title');
-                if (stepTitle) {
-                    stepTitle.setAttribute('tabindex', '-1');
-                    stepTitle.focus({ preventScroll: true });
-                }
             }
 
+            // Update progress
             updateProgress();
-            updateProgressBarAria();
-            saveState();
+
+            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            return true;
-        }
-
-        function canProceed(toStep) {
-            // Validation: cannot proceed from documentation step if no docs are checked
-            // Step 5 is the documentation step - check if moving to step 6
-            if (toStep === 6 && currentStep === 5) {
-                const docBO = document.getElementById('doc-bo')?.checked || false;
-                const docFotos = document.getElementById('doc-fotos')?.checked || false;
-                const docCNH = document.getElementById('doc-cnh')?.checked || false;
-                const docFicha = document.getElementById('doc-ficha')?.checked || false;
-                
-                if (!docBO && !docFotos && !docCNH && !docFicha) {
-                    showToast('Por favor, selecione pelo menos um documento antes de prosseguir', 'error');
-                    return false;
-                }
-            }
-            
-            // Additional validations can be added here
-            return true;
-        }
-
-        function nextStep() {
-            if (!validateStep(currentStep)) return;
-            
-            saveData();
-            
-            if (currentStep === 6) {
-                // Trigger summary update when moving from validation step (6) to summary step (7)
-                updateSummary();
-            }
-            
-            if (currentStep < totalSteps) {
-                goTo(currentStep + 1);
-            }
-        }
-
-        function prevStep() {
-            if (currentStep > 1) {
-                saveData();
-                goTo(currentStep - 1);
-            }
-        }
-
-        // ============================================================================
-        // VALIDATION
-        // ============================================================================
-        
-        function validateStep(step) {
-            switch(step) {
-                case 1:
-                    const placa = document.getElementById('placa').value.trim();
-                    if (!placa) {
-                        showToast('Por favor, insira a placa do veículo', 'error');
-                        document.getElementById('placa').focus();
-                        return false;
-                    }
-                    break;
-                case 2:
-                    const tipo = document.querySelector('input[name="tipo"]:checked');
-                    if (!tipo) {
-                        showToast('Por favor, selecione o tipo de sinistro', 'error');
-                        return false;
-                    }
-                    break;
-                case 3:
-                    const data = document.getElementById('data').value;
-                    const local = document.getElementById('local').value.trim();
-                    const cidade = document.getElementById('cidade').value.trim();
-                    if (!data) {
-                        showToast('Por favor, informe a data da ocorrência', 'error');
-                        document.getElementById('data').focus();
-                        return false;
-                    }
-                    if (!local) {
-                        showToast('Por favor, informe o local da ocorrência', 'error');
-                        document.getElementById('local').focus();
-                        return false;
-                    }
-                    if (!cidade) {
-                        showToast('Por favor, informe a cidade/estado', 'error');
-                        document.getElementById('cidade').focus();
-                        return false;
-                    }
-                    break;
-                case 4:
-                    const descricao = document.getElementById('descricao').value.trim();
-                    const danos = document.getElementById('danos').value.trim();
-                    if (!descricao) {
-                        showToast('Por favor, preencha a descrição do sinistro', 'error');
-                        document.getElementById('descricao').focus();
-                        return false;
-                    }
-                    if (!danos) {
-                        showToast('Por favor, descreva os danos aparentes', 'error');
-                        document.getElementById('danos').focus();
-                        return false;
-                    }
-                    break;
-                case 6:
-                    const cliente = document.getElementById('cliente').value.trim();
-                    const seguradora = document.getElementById('seguradora').value.trim();
-                    if (!cliente) {
-                        showToast('Por favor, informe o nome do cliente', 'error');
-                        document.getElementById('cliente').focus();
-                        return false;
-                    }
-                    if (!seguradora) {
-                        showToast('Por favor, informe a seguradora', 'error');
-                        document.getElementById('seguradora').focus();
-                        return false;
-                    }
-                    const limitacao = document.querySelector('input[name="limitacao"]:checked');
-                    if (!limitacao) {
-                        showToast('Por favor, selecione o tipo de limitação', 'error');
-                        return false;
-                    }
-                    break;
-            }
-            return true;
-        }
-
-        // ============================================================================
-        // DATA MANAGEMENT
-        // ============================================================================
-        
-        function saveData() {
-            formData.placa = document.getElementById('placa')?.value || '';
-            formData.tipo = document.querySelector('input[name="tipo"]:checked')?.value || '';
-            formData.data = document.getElementById('data')?.value || '';
-            formData.local = document.getElementById('local')?.value || '';
-            formData.cidade = document.getElementById('cidade')?.value || '';
-            formData.descricao = document.getElementById('descricao')?.value || '';
-            formData.danos = document.getElementById('danos')?.value || '';
-            formData.obs = document.getElementById('obs')?.value || '';
-            formData.docBO = document.getElementById('doc-bo')?.checked || false;
-            formData.docFotos = document.getElementById('doc-fotos')?.checked || false;
-            formData.docCNH = document.getElementById('doc-cnh')?.checked || false;
-            formData.docFicha = document.getElementById('doc-ficha')?.checked || false;
-            
-            // Update state
-            state.placa = formData.placa;
-            state.docsReceived = formData.docBO || formData.docFotos || formData.docCNH || formData.docFicha;
-            
-            saveState();
-        }
-
-        function loadSavedData() {
-            restoreState();
-            const saved = localStorage.getItem('sinistroData');
-            if (saved) {
-                const data = JSON.parse(saved);
-                Object.assign(formData, data);
-                populateFields();
-            }
-        }
-
-        function populateFields() {
-            if (formData.placa) document.getElementById('placa').value = formData.placa;
-            if (formData.tipo) {
-                const tipoElement = document.getElementById(`tipo-${formData.tipo}`);
-                if (tipoElement) {
-                    tipoElement.checked = true;
-                    tipoElement.parentElement.classList.add('selected');
-                    updateRadioAria('tipo', formData.tipo);
-                }
-            }
-            if (formData.data) document.getElementById('data').value = formData.data;
-            if (formData.local) document.getElementById('local').value = formData.local;
-            if (formData.cidade) document.getElementById('cidade').value = formData.cidade;
-            if (formData.descricao) document.getElementById('descricao').value = formData.descricao;
-            if (formData.danos) document.getElementById('danos').value = formData.danos;
-            if (formData.obs) document.getElementById('obs').value = formData.obs;
-            
-            // Checkboxes
-            if (formData.docBO) document.getElementById('doc-bo').checked = true;
-            if (formData.docFotos) document.getElementById('doc-fotos').checked = true;
-            if (formData.docCNH) document.getElementById('doc-cnh').checked = true;
-            if (formData.docFicha) document.getElementById('doc-ficha').checked = true;
-            
-            // State fields
-            if (state.cliente) {
-                const clienteElement = document.getElementById('cliente');
-                if (clienteElement) clienteElement.value = state.cliente;
-            }
-            if (state.seguradora) {
-                const seguradoraElement = document.getElementById('seguradora');
-                if (seguradoraElement) seguradoraElement.value = state.seguradora;
-            }
-            if (state.limitacao) {
-                const limitacaoElement = document.getElementById(`limitacao-${state.limitacao}`);
-                if (limitacaoElement) {
-                    limitacaoElement.checked = true;
-                    limitacaoElement.parentElement.classList.add('selected');
-                    updateRadioAria('limitacao', state.limitacao);
-                }
-            }
-            if (state.valorIndenizacao) {
-                const valorElement = document.getElementById('valorIndenizacao');
-                if (valorElement) valorElement.value = state.valorIndenizacao;
-            }
-            if (state.destinoPosse) {
-                const destinoElement = document.getElementById(`destino-${state.destinoPosse}`);
-                if (destinoElement) {
-                    destinoElement.checked = true;
-                    destinoElement.parentElement.classList.add('selected');
-                    updateRadioAria('destinoPosse', state.destinoPosse);
-                }
-            }
-        }
-
-        function clearData() {
-            if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
-                localStorage.removeItem('sinistroData');
-                localStorage.removeItem('sinistroState');
-                Object.keys(formData).forEach(key => delete formData[key]);
-                Object.keys(state).forEach(key => {
-                    if (key === 'current') state[key] = 1;
-                    else if (key === 'docsReceived') state[key] = false;
-                    else if (key === 'prazoDias') state[key] = 0;
-                    else state[key] = '';
-                });
-                location.reload();
-            }
-        }
-
-        // ============================================================================
-        // UI HELPERS
-        // ============================================================================
-        
-        function updateStateField(fieldName, value) {
-            state[fieldName] = value;
-            saveState();
-        }
-
-        function selectRadio(name, value) {
-            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-                radio.parentElement.classList.remove('selected');
-            });
-            const radioEl = document.getElementById(`${name}-${value}`);
-            if (radioEl) {
-                radioEl.checked = true;
-                radioEl.parentElement.classList.add('selected');
-                updateRadioAria(name, value);
-            }
-        }
-
-        function selectRadioState(name, value) {
-            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-                radio.parentElement.classList.remove('selected');
-            });
-            const radioElement = document.getElementById(`${name}-${value}`);
-            if (radioElement) {
-                radioElement.checked = true;
-                radioElement.parentElement.classList.add('selected');
-                state[name] = value;
-                updateRadioAria(name, value);
-                saveState();
-            }
-        }
-
-        function updateRadioAria(name, value) {
-            // Update aria-checked attributes for radio buttons
-            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-                const parent = radio.parentElement;
-                if (parent && parent.hasAttribute('role') && parent.getAttribute('role') === 'radio') {
-                    parent.setAttribute('aria-checked', radio.id === `${name}-${value}` ? 'true' : 'false');
-                }
-            });
         }
 
         function updateProgress() {
@@ -1170,697 +860,28 @@
             if (progressFill) {
                 progressFill.style.width = progress + '%';
             }
-        }
 
-        function updateProgressBarAria() {
+            // Update aria attributes
             const progressBar = document.querySelector('.progress-bar');
             if (progressBar) {
-                const progress = (currentStep / totalSteps) * 100;
                 progressBar.setAttribute('aria-valuenow', Math.round(progress));
-                progressBar.setAttribute('aria-label', `Progresso do formulário: Passo ${currentStep} de ${totalSteps}`);
+            }
+
+            // Update page description
+            const pageDescription = document.getElementById('pageDescription');
+            if (pageDescription) {
+                pageDescription.textContent = `Passo ${currentStep} de ${totalSteps}`;
             }
         }
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            if (toast) {
-                toast.textContent = message;
-                toast.className = `toast ${type}`;
-                toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3000);
-            }
+        function finalizarManual() {
+            alert('Obrigado por usar o Manual Interativo de Processos de Sinistro!\n\nVocê pode revisitá-lo a qualquer momento.');
+            goToStep(1);
         }
 
-        // ============================================================================
-        // SUMMARY
-        // ============================================================================
-        
-        function updateSummary() {
-            saveData();
-            
-            const tipoLabels = {
-                'colisao': 'Colisão',
-                'furto': 'Furto/Roubo',
-                'incendio': 'Incêndio',
-                'natureza': 'Fenômenos da Natureza'
-            };
-
-            const limitacaoLabels = {
-                'parcial': 'Limitação Parcial',
-                'total': 'Limitação Total'
-            };
-            
-            const summary = document.getElementById('summary');
-            if (summary) {
-                summary.innerHTML = `
-                    <div class="summary-item">
-                        <span class="summary-label">Placa:</span>
-                        <span class="summary-value">${formData.placa || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Cliente:</span>
-                        <span class="summary-value">${state.cliente || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Tipo:</span>
-                        <span class="summary-value">${tipoLabels[formData.tipo] || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Data:</span>
-                        <span class="summary-value">${formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Local:</span>
-                        <span class="summary-value">${formData.local || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Cidade/Estado:</span>
-                        <span class="summary-value">${formData.cidade || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Descrição:</span>
-                        <span class="summary-value">${formData.descricao || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Danos:</span>
-                        <span class="summary-value">${formData.danos || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Documentos:</span>
-                        <span class="summary-value">
-                            ${formData.docBO ? '✓ B.O. ' : ''}
-                            ${formData.docFotos ? '✓ Fotos ' : ''}
-                            ${formData.docCNH ? '✓ CNH ' : ''}
-                            ${formData.docFicha ? '✓ Ficha ' : ''}
-                            ${!formData.docBO && !formData.docFotos && !formData.docCNH && !formData.docFicha ? '<span class="placeholder">Nenhum selecionado</span>' : ''}
-                        </span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Seguradora:</span>
-                        <span class="summary-value">${state.seguradora || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Tipo de Limitação:</span>
-                        <span class="summary-value">${limitacaoLabels[state.limitacao] || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Prazo (dias):</span>
-                        <span class="summary-value">${state.prazoDias || '<span class="placeholder">Calculado automaticamente</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Valor de Indenização:</span>
-                        <span class="summary-value">${state.valorIndenizacao || '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Destino da Posse:</span>
-                        <span class="summary-value">${state.destinoPosse === 'cliente' ? 'Cliente' : state.destinoPosse === 'seguradora' ? 'Seguradora' : '<span class="placeholder">Não informado</span>'}</span>
-                    </div>
-                `;
-            }
-        }
-
-        // ============================================================================
-        // EMAIL TEMPLATES
-        // ============================================================================
-
-        // Email Template System
-        const emailTemplates = {
-            abertura: `Assunto: Abertura de Sinistro - Placa {{placa}}
-
-Prezados,
-
-Segue abertura de sinistro:
-
-DADOS DO VEÍCULO:
-- Placa: {{placa}}
-- Cliente: {{cliente}}
-
-DADOS DA OCORRÊNCIA:
-- Tipo: {{tipo}}
-- Data: {{data}}
-- Local: {{local}}
-- Cidade/Estado: {{cidade}}
-
-DESCRIÇÃO:
-{{descricao}}
-
-DANOS APARENTES:
-{{danos}}
-
-DOCUMENTAÇÃO:
-{{documentacao}}
-
-Atenciosamente.`,
-
-            validacao: `Assunto: Validação de Sinistro - Placa {{placa}}
-
-Prezados,
-
-Informamos os dados de validação do sinistro:
-
-- Placa: {{placa}}
-- Seguradora: {{seguradora}}
-- Tipo de Limitação: {{limitacao}}
-- Prazo: {{prazoDias}} dias
-- Valor de Indenização: {{valorIndenizacao}}
-- Destino da Posse: {{destinoPosse}}
-
-Atenciosamente.`,
-
-            conclusao: `Assunto: Conclusão de Sinistro - Placa {{placa}}
-
-Prezados,
-
-O processo de sinistro foi finalizado:
-
-- Placa: {{placa}}
-- Cliente: {{cliente}}
-- Status: Concluído
-- Data de Conclusão: {{dataConclusao}}
-
-Atenciosamente.`
-        };
-
-        function fillTemplate(templateKey) {
-            let template = emailTemplates[templateKey];
-            if (!template) {
-                console.error('Template não encontrado:', templateKey);
-                return '';
-            }
-
-            // Automatic deadline generation based on limitacao and seguradora
-            if (templateKey === 'validacao') {
-                if (state.limitacao === 'parcial') {
-                    state.prazoDias = 5;
-                } else if (state.limitacao === 'total') {
-                    // Check if seguradora is set for special handling
-                    if (state.seguradora && state.seguradora.toLowerCase().includes('azul')) {
-                        state.prazoDias = 10;
-                    } else {
-                        state.prazoDias = 60;
-                    }
-                } else {
-                    state.prazoDias = 10; // default
-                }
-            }
-
-            const tipoLabels = {
-                'colisao': 'Colisão',
-                'furto': 'Furto/Roubo',
-                'incendio': 'Incêndio',
-                'natureza': 'Fenômenos da Natureza'
-            };
-
-            const replacements = {
-                '{{placa}}': state.placa || formData.placa || '[PLACA]',
-                '{{cliente}}': state.cliente || '[CLIENTE]',
-                '{{tipo}}': tipoLabels[formData.tipo] || '[TIPO]',
-                '{{data}}': formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '[DATA]',
-                '{{local}}': formData.local || '[LOCAL]',
-                '{{cidade}}': formData.cidade || '[CIDADE/ESTADO]',
-                '{{descricao}}': formData.descricao || '[DESCRIÇÃO]',
-                '{{danos}}': formData.danos || '[DANOS]',
-                '{{documentacao}}': getDocumentacao(),
-                '{{seguradora}}': state.seguradora || '[SEGURADORA]',
-                '{{limitacao}}': state.limitacao === 'parcial' ? 'Limitação Parcial' : 
-                                state.limitacao === 'total' ? 'Limitação Total' : '[LIMITAÇÃO]',
-                '{{prazoDias}}': state.prazoDias || '[PRAZO]',
-                '{{valorIndenizacao}}': state.valorIndenizacao || '[VALOR]',
-                '{{destinoPosse}}': state.destinoPosse || '[DESTINO]',
-                '{{dataConclusao}}': new Date().toLocaleDateString('pt-BR')
-            };
-
-            for (const [key, value] of Object.entries(replacements)) {
-                template = template.replace(new RegExp(key, 'g'), value);
-            }
-
-            return template;
-        }
-
-        function getDocumentacao() {
-            const docs = [];
-            if (formData.docBO) docs.push('✓ B.O.');
-            if (formData.docFotos) docs.push('✓ Fotos');
-            if (formData.docCNH) docs.push('✓ CNH');
-            if (formData.docFicha) docs.push('✓ Ficha');
-            return docs.length > 0 ? docs.join('\n') : 'Nenhum documento selecionado';
-        }
-
-        function copiarEmail(templateKey) {
-            const emailText = fillTemplate(templateKey);
-            const textArea = document.createElement('textarea');
-            textArea.value = emailText;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                showToast(`Email "${templateKey}" copiado para área de transferência!`);
-            } catch (err) {
-                showToast('Erro ao copiar email', 'error');
-            } finally {
-                document.body.removeChild(textArea);
-            }
-        }
-
-        function finalizarFluxo() {
-            saveData();
-            saveState();
-            showToast('Sinistro registrado com sucesso! Os dados foram salvos localmente.');
-            
-            // Optional: Here you could send data to backend
-            // fetch('/api/sinistros/', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ state, formData })
-            // });
-        }
-
-        // Helper function to update state fields
-        function updateStateField(fieldName, value) {
-            state[fieldName] = value;
-            saveState();
-        }
-
-        // Radio selection handler for state fields
-        function selectRadioState(name, value) {
-            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-                radio.parentElement.classList.remove('selected');
-            });
-            const radioElement = document.getElementById(`${name}-${value}`);
-            if (radioElement) {
-                radioElement.checked = true;
-                radioElement.parentElement.classList.add('selected');
-                state[name] = value;
-                saveState();
-            }
-        }
-
-        // Load saved data from localStorage (legacy support)
-        function loadSavedData() {
-            restoreState();
-            const saved = localStorage.getItem('sinistroData');
-            if (saved) {
-                const data = JSON.parse(saved);
-                Object.assign(formData, data);
-                populateFields();
-            }
-        }
-
-        // Populate fields with saved data
-        function populateFields() {
-            if (formData.placa) document.getElementById('placa').value = formData.placa;
-            if (formData.tipo) {
-                const tipoElement = document.getElementById(`tipo-${formData.tipo}`);
-                if (tipoElement) {
-                    tipoElement.checked = true;
-                    tipoElement.parentElement.classList.add('selected');
-                }
-            }
-            if (formData.data) document.getElementById('data').value = formData.data;
-            if (formData.local) document.getElementById('local').value = formData.local;
-            if (formData.cidade) document.getElementById('cidade').value = formData.cidade;
-            if (formData.descricao) document.getElementById('descricao').value = formData.descricao;
-            if (formData.danos) document.getElementById('danos').value = formData.danos;
-            if (formData.obs) document.getElementById('obs').value = formData.obs;
-            
-            // Checkboxes
-            if (formData.docBO) document.getElementById('doc-bo').checked = true;
-            if (formData.docFotos) document.getElementById('doc-fotos').checked = true;
-            if (formData.docCNH) document.getElementById('doc-cnh').checked = true;
-            if (formData.docFicha) document.getElementById('doc-ficha').checked = true;
-            
-            // State fields
-            if (state.cliente) {
-                const clienteElement = document.getElementById('cliente');
-                if (clienteElement) clienteElement.value = state.cliente;
-            }
-            if (state.seguradora) {
-                const seguradoraElement = document.getElementById('seguradora');
-                if (seguradoraElement) seguradoraElement.value = state.seguradora;
-            }
-            if (state.limitacao) {
-                const limitacaoElement = document.getElementById(`limitacao-${state.limitacao}`);
-                if (limitacaoElement) {
-                    limitacaoElement.checked = true;
-                    limitacaoElement.parentElement.classList.add('selected');
-                }
-            }
-            if (state.valorIndenizacao) {
-                const valorElement = document.getElementById('valorIndenizacao');
-                if (valorElement) valorElement.value = state.valorIndenizacao;
-            }
-            if (state.destinoPosse) {
-                const destinoElement = document.getElementById(`destino-${state.destinoPosse}`);
-                if (destinoElement) {
-                    destinoElement.checked = true;
-                    destinoElement.parentElement.classList.add('selected');
-                }
-            }
-        }
-
-        // Save data to localStorage
-        function saveData() {
-            formData.placa = document.getElementById('placa')?.value || '';
-            formData.tipo = document.querySelector('input[name="tipo"]:checked')?.value || '';
-            formData.data = document.getElementById('data')?.value || '';
-            formData.local = document.getElementById('local')?.value || '';
-            formData.cidade = document.getElementById('cidade')?.value || '';
-            formData.descricao = document.getElementById('descricao')?.value || '';
-            formData.danos = document.getElementById('danos')?.value || '';
-            formData.obs = document.getElementById('obs')?.value || '';
-            formData.docBO = document.getElementById('doc-bo')?.checked || false;
-            formData.docFotos = document.getElementById('doc-fotos')?.checked || false;
-            formData.docCNH = document.getElementById('doc-cnh')?.checked || false;
-            formData.docFicha = document.getElementById('doc-ficha')?.checked || false;
-            
-            // Update state
-            state.placa = formData.placa;
-            state.docsReceived = formData.docBO || formData.docFotos || formData.docCNH || formData.docFicha;
-            
-            saveState();
-        }
-
-        // Radio selection handler
-        function selectRadio(name, value) {
-            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-                radio.parentElement.classList.remove('selected');
-            });
-            document.getElementById(`${name}-${value}`).checked = true;
-            document.getElementById(`${name}-${value}`).parentElement.classList.add('selected');
-        }
-
-        // Validate current step
-        function validateStep(step) {
-            switch(step) {
-                case 1:
-                    const placa = document.getElementById('placa').value.trim();
-                    if (!placa) {
-                        showToast('Por favor, insira a placa do veículo', 'error');
-                        return false;
-                    }
-                    break;
-                case 2:
-                    const tipo = document.querySelector('input[name="tipo"]:checked');
-                    if (!tipo) {
-                        showToast('Por favor, selecione o tipo de sinistro', 'error');
-                        return false;
-                    }
-                    break;
-                case 3:
-                    const data = document.getElementById('data').value;
-                    const local = document.getElementById('local').value.trim();
-                    const cidade = document.getElementById('cidade').value.trim();
-                    if (!data || !local || !cidade) {
-                        showToast('Por favor, preencha todos os campos obrigatórios', 'error');
-                        return false;
-                    }
-                    break;
-                case 4:
-                    const descricao = document.getElementById('descricao').value.trim();
-                    const danos = document.getElementById('danos').value.trim();
-                    if (!descricao || !danos) {
-                        showToast('Por favor, preencha a descrição e os danos', 'error');
-                        return false;
-                    }
-                    break;
-            }
-            return true;
-        }
-
-        // Next step
-        function nextStep() {
-            if (!validateStep(currentStep)) return;
-            
-            saveData();
-            
-            if (currentStep === 6) {
-                // Trigger summary update when moving from validation step (6) to summary step (7)
-                updateSummary();
-            }
-            
-            if (currentStep < totalSteps) {
-                goTo(currentStep + 1);
-            }
-        }
-
-        // Previous step
-        function prevStep() {
-            if (currentStep > 1) {
-                saveData();
-                goTo(currentStep - 1);
-            }
-        }
-
-        // Update progress bar
-        function updateProgress() {
-            const progress = (currentStep / totalSteps) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-        }
-
-        // Update summary
-        function updateSummary() {
-            saveData();
-            
-            const tipoLabels = {
-                'colisao': 'Colisão',
-                'furto': 'Furto/Roubo',
-                'incendio': 'Incêndio',
-                'natureza': 'Fenômenos da Natureza'
-            };
-
-            const limitacaoLabels = {
-                'parcial': 'Limitação Parcial',
-                'total': 'Limitação Total'
-            };
-            
-            const summary = document.getElementById('summary');
-            summary.innerHTML = `
-                <div class="summary-item">
-                    <span class="summary-label">Placa:</span>
-                    <span class="summary-value">${formData.placa || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Cliente:</span>
-                    <span class="summary-value">${state.cliente || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Tipo:</span>
-                    <span class="summary-value">${tipoLabels[formData.tipo] || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Data:</span>
-                    <span class="summary-value">${formData.data ? new Date(formData.data).toLocaleDateString('pt-BR') : '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Local:</span>
-                    <span class="summary-value">${formData.local || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Cidade/Estado:</span>
-                    <span class="summary-value">${formData.cidade || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Descrição:</span>
-                    <span class="summary-value">${formData.descricao || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Danos:</span>
-                    <span class="summary-value">${formData.danos || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Documentos:</span>
-                    <span class="summary-value">
-                        ${formData.docBO ? '✓ B.O. ' : ''}
-                        ${formData.docFotos ? '✓ Fotos ' : ''}
-                        ${formData.docCNH ? '✓ CNH ' : ''}
-                        ${formData.docFicha ? '✓ Ficha ' : ''}
-                        ${!formData.docBO && !formData.docFotos && !formData.docCNH && !formData.docFicha ? '<span class="placeholder">Nenhum selecionado</span>' : ''}
-                    </span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Seguradora:</span>
-                    <span class="summary-value">${state.seguradora || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Tipo de Limitação:</span>
-                    <span class="summary-value">${limitacaoLabels[state.limitacao] || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Prazo (dias):</span>
-                    <span class="summary-value">${state.prazoDias || '<span class="placeholder">Calculado automaticamente</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Valor de Indenização:</span>
-                    <span class="summary-value">${state.valorIndenizacao || '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Destino da Posse:</span>
-                    <span class="summary-value">${state.destinoPosse === 'cliente' ? 'Cliente' : state.destinoPosse === 'seguradora' ? 'Seguradora' : '<span class="placeholder">Não informado</span>'}</span>
-                </div>
-            `;
-        }
-
-        // ============================================================================
-        // MODAL & EXPORT FUNCTIONS
-        // ============================================================================
-        
-        let modalTriggerElement = null; // Store the element that opened the modal
-        
-        function showEmailModal() {
-            saveData();
-            
-            // Save the currently focused element
-            modalTriggerElement = document.activeElement;
-            
-            const emailOptions = `
-                <div style="margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="showEmailTemplate('abertura')" style="margin: 5px;">📧 Email de Abertura</button>
-                    <button class="btn btn-primary" onclick="showEmailTemplate('validacao')" style="margin: 5px;">✅ Email de Validação</button>
-                    <button class="btn btn-primary" onclick="showEmailTemplate('conclusao')" style="margin: 5px;">🏁 Email de Conclusão</button>
-                </div>
-                <div id="emailContent"></div>
-            `;
-            
-            document.getElementById('emailPreview').innerHTML = emailOptions;
-            const modal = document.getElementById('emailModal');
-            if (modal) {
-                modal.classList.add('show');
-                // Focus on the close button or first focusable element
-                setTimeout(() => {
-                    const closeButton = modal.querySelector('.modal-close');
-                    if (closeButton) {
-                        closeButton.focus();
-                    }
-                }, 100);
-            }
-        }
-
-        function showEmailTemplate(templateKey) {
-            const emailText = fillTemplate(templateKey);
-            document.getElementById('emailContent').innerHTML = `
-                <pre style="white-space: pre-wrap; font-family: monospace; background: #f5f5f5; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto;">${emailText}</pre>
-                <button class="btn btn-primary" onclick="copiarEmail('${templateKey}')" style="width: 100%; margin-top: 10px;">📋 Copiar para Área de Transferência</button>
-            `;
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('emailModal');
-            if (modal) {
-                modal.classList.remove('show');
-                // Restore focus to the element that opened the modal
-                if (modalTriggerElement && modalTriggerElement.focus) {
-                    modalTriggerElement.focus();
-                    modalTriggerElement = null;
-                }
-            }
-        }
-
-        function exportJSON() {
-            saveData();
-            const exportData = {
-                formData: formData,
-                state: state,
-                timestamp: new Date().toISOString()
-            };
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `sinistro_${formData.placa || 'dados'}_${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-            showToast('JSON exportado com sucesso!');
-        }
-
-        function finishFlow() {
-            saveData();
-            saveState();
-            showToast('Sinistro registrado com sucesso! Os dados foram salvos localmente.');
-            
-            // Optional: Send data to backend
-            // fetch('/api/sinistros/', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ state, formData })
-            // });
-        }
-
-        // ============================================================================
-        // KEYBOARD NAVIGATION
-        // ============================================================================
-        
-        function setupKeyboardNavigation() {
-            // Handle keyboard events on radio options
-            document.querySelectorAll('.radio-option').forEach(option => {
-                option.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        option.click();
-                    }
-                });
-            });
-
-            // Handle Escape key to close modal
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    const modal = document.getElementById('emailModal');
-                    if (modal && modal.classList.contains('show')) {
-                        closeModal();
-                    }
-                }
-            });
-
-            // Handle modal backdrop click
-            document.getElementById('emailModal')?.addEventListener('click', (e) => {
-                if (e.target.id === 'emailModal') {
-                    closeModal();
-                }
-            });
-
-            // Focus trap for modal
-            document.getElementById('emailModal')?.addEventListener('keydown', (e) => {
-                if (e.key === 'Tab') {
-                    const modal = document.getElementById('emailModal');
-                    if (modal && modal.classList.contains('show')) {
-                        const focusableElements = modal.querySelectorAll(
-                            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                        );
-                        const firstElement = focusableElements[0];
-                        const lastElement = focusableElements[focusableElements.length - 1];
-
-                        if (e.shiftKey && document.activeElement === firstElement) {
-                            e.preventDefault();
-                            lastElement.focus();
-                        } else if (!e.shiftKey && document.activeElement === lastElement) {
-                            e.preventDefault();
-                            firstElement.focus();
-                        }
-                    }
-                }
-            });
-        }
-
-        // ============================================================================
-        // INITIALIZATION
-        // ============================================================================
-        
+        // Initialize progress on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // loadSavedData(); // Commented out to ensure form starts empty without pre-filled fields
             updateProgress();
-            updateProgressBarAria();
-            setupKeyboardNavigation();
-            
-            // Set initial focus
-            const firstInput = document.querySelector('.step.active input, .step.active select, .step.active textarea');
-            if (firstInput) {
-                firstInput.focus();
-            }
         });
     </script>
 </body>
