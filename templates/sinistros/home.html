@@ -51,19 +51,34 @@
             </a>
         {% endif %}
     </form>
+    
     <div class="card border-0 shadow-sm">
-        
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 fw-bold text-primary">
-                <i class="bi bi-list-task me-2"></i>Processos em Andamento
-            </h6>
-
-            <button type="submit" form="formBulkDelete" id="btnDeleteSelected" class="btn btn-sm btn-outline-danger" disabled>
-                <i class="bi bi-trash me-1"></i> Excluir Selecionados
-            </button>
+        <div class="card-header bg-white py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="gestaoTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="processos-tab" data-bs-toggle="tab" data-bs-target="#processos-pane" type="button" role="tab" aria-controls="processos-pane" aria-selected="true">
+                        <i class="bi bi-list-task me-2"></i>Processos em Andamento
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab" aria-controls="manual-pane" aria-selected="false">
+                        <i class="bi bi-book me-2"></i>Manual de Sinistro
+                    </button>
+                </li>
+            </ul>
         </div>
 
-        <div class="card-body p-0">
+        <div class="card-body p-0 tab-content" id="gestaoTabsContent">
+            
+            <!-- Tab: Processos em Andamento -->
+            <div class="tab-pane fade show active" id="processos-pane" role="tabpanel" aria-labelledby="processos-tab">
+                <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+                    <button type="submit" form="formBulkDelete" id="btnDeleteSelected" class="btn btn-sm btn-outline-danger" disabled>
+                        <i class="bi bi-trash me-1"></i> Excluir Selecionados
+                    </button>
+                </div>
+                
+                <div class="p-0">
             <form method="post" id="formBulkDelete" action="{% url 'excluir_sinistros_selecionados' %}">
                 {% csrf_token %}
                 
@@ -155,11 +170,670 @@
                     </table>
                 </div>
             </form>
+            </div>
+            
+            <!-- Tab: Manual de Sinistro -->
+            <div class="tab-pane fade" id="manual-pane" role="tabpanel" aria-labelledby="manual-tab">
+                <div class="p-4">
+                    <div id="manual-container">
+                        <!-- Step 1: Início -->
+                        <section class="manual-step active" data-step="1" id="manual-step-1">
+                            <h3 class="fw-bold text-primary mb-3">
+                                <i class="bi bi-book-fill me-2"></i>Bem-vindo ao Manual de Sinistros
+                            </h3>
+                            <p class="text-muted mb-4">
+                                Este guia interativo irá orientá-lo através do processo de gestão de sinistros.
+                                Selecione o tipo de orientação que você precisa:
+                            </p>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(2)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">📋</div>
+                                            <h5 class="card-title fw-bold">Como Registrar</h5>
+                                            <p class="card-text text-muted small">Processo de abertura</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(6)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">📄</div>
+                                            <h5 class="card-title fw-bold">Documentação</h5>
+                                            <p class="card-text text-muted small">Documentos necessários</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(9)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">⏱️</div>
+                                            <h5 class="card-title fw-bold">Prazos e SLA</h5>
+                                            <p class="card-text text-muted small">Entenda os prazos</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(11)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">💰</div>
+                                            <h5 class="card-title fw-bold">Valores e Franquias</h5>
+                                            <p class="card-text text-muted small">Informações financeiras</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Step 2: Tipo de Sinistro -->
+                        <section class="manual-step" data-step="2" id="manual-step-2" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Tipo de Sinistro</h3>
+                            <p class="text-muted mb-4">Selecione o tipo de ocorrência para ver o fluxo específico:</p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(3)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">🚗</div>
+                                            <h5 class="card-title fw-bold">Colisão</h5>
+                                            <p class="card-text text-muted small">Acidente com impacto</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(4)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">🔒</div>
+                                            <h5 class="card-title fw-bold">Furto/Roubo</h5>
+                                            <p class="card-text text-muted small">Perda do veículo</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(5)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">🔥</div>
+                                            <h5 class="card-title fw-bold">Incêndio</h5>
+                                            <p class="card-text text-muted small">Danos por fogo</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(5)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">🌪️</div>
+                                            <h5 class="card-title fw-bold">Natureza</h5>
+                                            <p class="card-text text-muted small">Fenômenos naturais</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-outline-secondary" onclick="manualGoToStep(1)">
+                                <i class="bi bi-arrow-left me-2"></i>Voltar
+                            </button>
+                        </section>
+
+                        <!-- Step 3: Fluxo Colisão -->
+                        <section class="manual-step" data-step="3" id="manual-step-3" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Processo: Colisão</h3>
+                            <p class="text-muted mb-4">Siga estas etapas para processar uma colisão:</p>
+
+                            <div class="alert alert-info border-info">
+                                <h5 class="alert-heading"><i class="bi bi-check-circle me-2"></i>Passos Imediatos</h5>
+                                <ul class="mb-0">
+                                    <li>Registrar Boletim de Ocorrência (B.O.)</li>
+                                    <li>Fotografar o local e os danos</li>
+                                    <li>Coletar dados de testemunhas</li>
+                                    <li>Anotar dados do outro veículo envolvido</li>
+                                    <li>Contatar a seguradora imediatamente</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning border-warning">
+                                <strong><i class="bi bi-exclamation-triangle me-2"></i>Atenção:</strong> Não movimentar o veículo do local sem autorização das autoridades, exceto se houver risco de segurança.
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h5 class="alert-heading">Documentação Necessária</h5>
+                                <ul class="mb-0">
+                                    <li>B.O. completo</li>
+                                    <li>Fotos dos danos (mínimo 4 ângulos)</li>
+                                    <li>CNH do condutor</li>
+                                    <li>Dados do terceiro (se houver)</li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(2)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(6)">
+                                    Ver Documentação Completa<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 4: Fluxo Furto/Roubo -->
+                        <section class="manual-step" data-step="4" id="manual-step-4" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Processo: Furto/Roubo</h3>
+                            <p class="text-muted mb-4">Procedimentos específicos para furto ou roubo:</p>
+
+                            <div class="alert alert-danger border-danger">
+                                <h5 class="alert-heading"><i class="bi bi-exclamation-octagon me-2"></i>Ações Urgentes (primeiras 24h)</h5>
+                                <ul class="mb-0">
+                                    <li>Registrar B.O. imediatamente</li>
+                                    <li>Comunicar a seguradora</li>
+                                    <li>Informar ao DETRAN</li>
+                                    <li>Bloquear documentos do veículo</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning border-warning">
+                                <strong><i class="bi bi-clock me-2"></i>Importante:</strong> O prazo para comunicação à seguradora é crítico. Comunique em até 24 horas.
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h5 class="alert-heading">Prazo de Limitação</h5>
+                                <ul class="mb-0">
+                                    <li>Limitação Total: 60 dias (ou 10 dias para Seguradora Azul)</li>
+                                    <li>Após esse período, inicia-se processo de indenização</li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(2)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(9)">
+                                    Ver Prazos Detalhados<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 5: Fluxo Incêndio/Natureza -->
+                        <section class="manual-step" data-step="5" id="manual-step-5" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Processo: Incêndio / Fenômenos Naturais</h3>
+                            <p class="text-muted mb-4">Procedimentos para danos por incêndio ou natureza:</p>
+
+                            <div class="alert alert-info border-info">
+                                <h5 class="alert-heading"><i class="bi bi-check-circle me-2"></i>Primeiros Passos</h5>
+                                <ul class="mb-0">
+                                    <li>Registrar B.O. descrevendo a ocorrência</li>
+                                    <li>Fotografar extensivamente os danos</li>
+                                    <li>Se possível, coletar laudos técnicos (bombeiros, defesa civil)</li>
+                                    <li>Comunicar seguradora</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h5 class="alert-heading">Documentação Especial</h5>
+                                <ul class="mb-0">
+                                    <li>Laudo do Corpo de Bombeiros (se aplicável)</li>
+                                    <li>Relatório de defesa civil (fenômenos naturais)</li>
+                                    <li>Fotos detalhadas de todos os ângulos</li>
+                                    <li>Testemunhas e relatos</li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(2)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(6)">
+                                    Ver Documentação<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 6: Documentação -->
+                        <section class="manual-step" data-step="6" id="manual-step-6" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Documentação Necessária</h3>
+                            <p class="text-muted mb-4">Lista completa de documentos para processar um sinistro:</p>
+
+                            <div class="alert alert-light border">
+                                <h5 class="alert-heading">Documentos Obrigatórios</h5>
+                                <ul class="mb-0">
+                                    <li>Boletim de Ocorrência (B.O.) - via original ou cópia autenticada</li>
+                                    <li>CNH do condutor no momento do sinistro</li>
+                                    <li>CRLV do veículo</li>
+                                    <li>Ficha de Ocorrência preenchida e assinada</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-info border-info">
+                                <h5 class="alert-heading">Documentos Complementares</h5>
+                                <ul class="mb-0">
+                                    <li>Fotos do local (mínimo 4 ângulos)</li>
+                                    <li>Fotos dos danos no veículo</li>
+                                    <li>Dados do terceiro envolvido (se houver)</li>
+                                    <li>Orçamentos de reparo (se solicitado)</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning border-warning">
+                                <strong><i class="bi bi-clock me-2"></i>Prazo:</strong> Toda documentação deve ser entregue em até 5 dias úteis após a ocorrência.
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(1)">
+                                    <i class="bi bi-arrow-left me-2"></i>Início
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(7)">
+                                    Como Enviar Documentos<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 7: Envio de Documentos -->
+                        <section class="manual-step" data-step="7" id="manual-step-7" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Como Enviar Documentos</h3>
+                            <p class="text-muted mb-4">Escolha o método de envio da documentação:</p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(8)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">📧</div>
+                                            <h5 class="card-title fw-bold">Por Email</h5>
+                                            <p class="card-text text-muted small">Digitalizar e enviar</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(8)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">☁️</div>
+                                            <h5 class="card-title fw-bold">Upload Sistema</h5>
+                                            <p class="card-text text-muted small">Portal online</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoToStep(8)" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <div class="fs-1 mb-3">📞</div>
+                                            <h5 class="card-title fw-bold">Presencial</h5>
+                                            <p class="card-text text-muted small">Na sede da empresa</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h5 class="alert-heading">Dicas para Digitalização</h5>
+                                <ul class="mb-0">
+                                    <li>Use scanner ou câmera de alta qualidade</li>
+                                    <li>Certifique-se de que o texto está legível</li>
+                                    <li>Salve em formato PDF ou JPG</li>
+                                    <li>Nomeie os arquivos claramente (ex: BO_PLACA_DATA.pdf)</li>
+                                </ul>
+                            </div>
+
+                            <button class="btn btn-outline-secondary" onclick="manualGoToStep(6)">
+                                <i class="bi bi-arrow-left me-2"></i>Voltar
+                            </button>
+                        </section>
+
+                        <!-- Step 8: Confirmação de Documentos -->
+                        <section class="manual-step" data-step="8" id="manual-step-8" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Após o Envio</h3>
+                            <p class="text-muted mb-4">O que acontece depois do envio dos documentos:</p>
+
+                            <div class="alert alert-info border-info">
+                                <h5 class="alert-heading"><i class="bi bi-check-circle me-2"></i>Próximos Passos</h5>
+                                <ul class="mb-0">
+                                    <li>Aguarde confirmação de recebimento (em até 24h úteis)</li>
+                                    <li>Acompanhe o status pelo sistema</li>
+                                    <li>Análise da documentação (2-3 dias úteis)</li>
+                                    <li>Receba notificação sobre aprovação ou documentação adicional</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <strong><i class="bi bi-phone me-2"></i>Acompanhamento:</strong> Você pode consultar o status do seu processo a qualquer momento pelo sistema.
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(7)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(9)">
+                                    Ver Prazos de Análise<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 9: Prazos e SLA -->
+                        <section class="manual-step" data-step="9" id="manual-step-9" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Prazos e SLA</h3>
+                            <p class="text-muted mb-4">Entenda os prazos de cada etapa do processo:</p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">Limitação Parcial</h5>
+                                            <ul class="mb-0">
+                                                <li><strong>Prazo:</strong> 5 dias úteis</li>
+                                                <li><strong>Aplicável:</strong> Danos reparáveis menores</li>
+                                                <li><strong>Processo:</strong> Avaliação rápida e liberação</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">Limitação Total</h5>
+                                            <ul class="mb-0">
+                                                <li><strong>Prazo Geral:</strong> 60 dias corridos</li>
+                                                <li><strong>Seguradora Azul:</strong> em 10 dias corridos</li>
+                                                <li><strong>Aplicável:</strong> Perda total ou danos graves</li>
+                                                <li><strong>Processo:</strong> Análise completa e perícia</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning border-warning">
+                                <strong><i class="bi bi-info-circle me-2"></i>Importante:</strong> Os prazos começam a contar a partir do recebimento completo da documentação.
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(1)">
+                                    <i class="bi bi-arrow-left me-2"></i>Início
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(10)">
+                                    Fluxo de Setores<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 10: Fluxo de Setores -->
+                        <section class="manual-step" data-step="10" id="manual-step-10" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Fluxo entre Setores</h3>
+                            <p class="text-muted mb-4">Entenda como o processo tramita pelos setores:</p>
+
+                            <div class="accordion" id="accordionSetores">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#setor1">
+                                            1. ABERTURA
+                                        </button>
+                                    </h2>
+                                    <div id="setor1" class="accordion-collapse collapse show" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Registro inicial do sinistro</li>
+                                                <li>Validação de dados básicos</li>
+                                                <li><strong>SLA:</strong> 1 dia útil</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setor2">
+                                            2. MANUTENÇÃO
+                                        </button>
+                                    </h2>
+                                    <div id="setor2" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Análise técnica dos danos</li>
+                                                <li>Aprovação de orçamentos</li>
+                                                <li><strong>SLA:</strong> 3 dias úteis</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setor3">
+                                            3. CLIENTE
+                                        </button>
+                                    </h2>
+                                    <div id="setor3" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Aguardando ação ou documentação do cliente</li>
+                                                <li><strong>SLA:</strong> Conforme acordado</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setor4">
+                                            4. JURÍDICO
+                                        </button>
+                                    </h2>
+                                    <div id="setor4" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Análise de responsabilidades</li>
+                                                <li>Processos com terceiros</li>
+                                                <li><strong>SLA:</strong> 5 dias úteis</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setor5">
+                                            5. FINANCEIRO
+                                        </button>
+                                    </h2>
+                                    <div id="setor5" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Processamento de pagamentos</li>
+                                                <li>Acertos de valores</li>
+                                                <li><strong>SLA:</strong> 2 dias úteis</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setor6">
+                                            6. FINALIZADO
+                                        </button>
+                                    </h2>
+                                    <div id="setor6" class="accordion-collapse collapse" data-bs-parent="#accordionSetores">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>Processo concluído</li>
+                                                <li>Todas as partes foram resolvidas</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-4">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(9)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(11)">
+                                    Valores e Franquias<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 11: Valores e Franquias -->
+                        <section class="manual-step" data-step="11" id="manual-step-11" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Valores e Franquias</h3>
+                            <p class="text-muted mb-4">Informações sobre valores, franquias e indenizações:</p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">Composição do Valor</h5>
+                                            <ul class="mb-0">
+                                                <li><strong>Valor FIPE:</strong> Valor de mercado do veículo</li>
+                                                <li><strong>Valor do Implemento:</strong> Equipamentos adicionais</li>
+                                                <li><strong>Valor da Franquia:</strong> Participação obrigatória</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">Distribuição de Custos</h5>
+                                            <ul class="mb-0">
+                                                <li><strong>Seguradora:</strong> Cobre até o limite da apólice</li>
+                                                <li><strong>Cliente:</strong> Responsável pela franquia</li>
+                                                <li><strong>Terceiros:</strong> Valores recuperáveis (quando aplicável)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <strong><i class="bi bi-lightbulb me-2"></i>Dica:</strong> Guarde todos os comprovantes e notas fiscais de equipamentos adicionais instalados no veículo.
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(10)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-primary" onclick="manualGoToStep(12)">
+                                    Destino da Posse<i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 12: Destino da Posse -->
+                        <section class="manual-step" data-step="12" id="manual-step-12" style="display:none;">
+                            <h3 class="fw-bold text-primary mb-3">Destino da Posse do Veículo</h3>
+                            <p class="text-muted mb-4">Após a indenização, para onde vai o veículo?</p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">
+                                                <i class="bi bi-person-fill me-2"></i>Posse fica com o Cliente
+                                            </h5>
+                                            <ul class="mb-0">
+                                                <li>Danos reparáveis e o cliente opta por ficar com o veículo</li>
+                                                <li>Valor da indenização é reduzido pelo valor de salvado</li>
+                                                <li>Cliente assume responsabilidade pelo veículo</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold">
+                                                <i class="bi bi-building me-2"></i>Posse vai para a Seguradora
+                                            </h5>
+                                            <ul class="mb-0">
+                                                <li>Perda total com indenização integral</li>
+                                                <li>Seguradora assume a posse e venda do salvado</li>
+                                                <li>Cliente recebe valor integral conforme apólice</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="manualGoToStep(11)">
+                                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                                </button>
+                                <button class="btn btn-success" onclick="manualGoToStep(1)">
+                                    <i class="bi bi-check-circle me-2"></i>Voltar ao Início
+                                </button>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
+<style>
+.manual-option-card {
+    transition: all 0.3s ease;
+}
+
+.manual-option-card:hover {
+    transform: translateY(-5px);
+    border-color: #0d6efd !important;
+    box-shadow: 0 10px 20px rgba(13, 110, 253, 0.2);
+}
+
+.manual-step {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
 <script>
+    // Manual navigation functions
+    let manualContainer = null;
+    
+    function manualGoToStep(stepNumber) {
+        // Hide all steps
+        document.querySelectorAll('.manual-step').forEach(step => {
+            step.classList.remove('active');
+            step.style.display = 'none';
+        });
+        
+        // Show the target step
+        const targetStep = document.getElementById(`manual-step-${stepNumber}`);
+        if (targetStep) {
+            targetStep.style.display = 'block';
+            targetStep.classList.add('active');
+            
+            // Scroll to top of manual container (cached)
+            if (!manualContainer) {
+                manualContainer = document.getElementById('manual-container');
+            }
+            if (manualContainer) {
+                manualContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const selectAll = document.getElementById('selectAll');
         const checkboxes = Array.from(document.querySelectorAll('.select-row'));
