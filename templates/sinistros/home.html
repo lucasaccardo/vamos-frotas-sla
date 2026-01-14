@@ -187,33 +187,33 @@
 
                             <div class="row g-4">
                                 <div class="col-md-4">
-                                    <button class="card h-100 border-2 manual-option-card w-100" onclick="manualGoTo('furto-roubo')" style="cursor: pointer; background: white; border: 2px solid #dee2e6;">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoTo('furto-roubo')" style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3">🚨</div>
                                             <h5 class="card-title fw-bold">Furto/Roubo</h5>
                                             <p class="card-text text-muted">Processo de limitação e indenização</p>
                                         </div>
-                                    </button>
+                                    </div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <button class="card h-100 border-2 manual-option-card w-100" onclick="manualGoTo('pt')" style="cursor: pointer; background: white; border: 2px solid #dee2e6;">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoTo('pt')" style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3">💥</div>
                                             <h5 class="card-title fw-bold">Perda Total (PT)</h5>
                                             <p class="card-text text-muted">Procedimentos para sinistro total</p>
                                         </div>
-                                    </button>
+                                    </div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <button class="card h-100 border-2 manual-option-card w-100" onclick="manualGoTo('particular')" style="cursor: pointer; background: white; border: 2px solid #dee2e6;">
+                                    <div class="card h-100 border-2 manual-option-card" onclick="manualGoTo('particular')" style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3">🔧</div>
                                             <h5 class="card-title fw-bold">Particular/Seguradora</h5>
                                             <p class="card-text text-muted">Reparos e coberturas parciais</p>
                                         </div>
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -534,6 +534,8 @@
 
 <script>
     // Manual navigation function - Simplified version
+    let cachedManualContainer = null;
+    
     function manualGoTo(stepName) {
         // Hide all steps
         document.querySelectorAll('.manual-step').forEach(step => {
@@ -547,10 +549,12 @@
             targetStep.style.display = 'block';
             targetStep.classList.add('active');
             
-            // Scroll to top of manual container
-            const manualContainer = document.getElementById('manual-container');
-            if (manualContainer) {
-                manualContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Scroll to top of manual container (with caching)
+            if (!cachedManualContainer) {
+                cachedManualContainer = document.getElementById('manual-container');
+            }
+            if (cachedManualContainer) {
+                cachedManualContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
     }
