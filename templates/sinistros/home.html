@@ -809,6 +809,8 @@
 
 <script>
     // Manual navigation functions
+    let manualContainer = null;
+    
     function manualGoToStep(stepNumber) {
         // Hide all steps
         document.querySelectorAll('.manual-step').forEach(step => {
@@ -822,8 +824,10 @@
             targetStep.style.display = 'block';
             targetStep.classList.add('active');
             
-            // Scroll to top of manual container
-            const manualContainer = document.getElementById('manual-container');
+            // Scroll to top of manual container (cached)
+            if (!manualContainer) {
+                manualContainer = document.getElementById('manual-container');
+            }
             if (manualContainer) {
                 manualContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
