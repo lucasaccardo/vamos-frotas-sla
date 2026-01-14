@@ -829,7 +829,8 @@
 
     <script>
         let currentStep = 1;
-        const totalSteps = 13;
+        // Calculate total steps dynamically
+        const totalSteps = document.querySelectorAll('.step[data-step]').length;
 
         function goToStep(stepNumber) {
             // Remove active class from current step
