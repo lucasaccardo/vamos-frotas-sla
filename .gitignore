@@ -48,3 +48,7 @@ media/
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups
+*.backup
+*.bak
