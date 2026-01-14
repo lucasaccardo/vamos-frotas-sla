@@ -252,6 +252,37 @@ assert b'Manual de Sinistro' in response.content
 5. **PDF Generation**: Export completed workflow as PDF
 6. **Email Integration**: Send emails directly from interface
 7. **Admin Panel**: GUI for editing JSON workflow
+8. **Production Build**: Pre-compile JSX and host libraries locally for improved performance
+9. **SRI Hashes**: Add Subresource Integrity hashes to CDN links for enhanced security
+10. **Local Assets**: Host React and Tailwind locally instead of CDN for production
+
+## Security Considerations
+
+### CDN Usage
+The current implementation uses CDN-hosted libraries (React, Tailwind CSS, Babel) for simplicity and ease of deployment. While suitable for internal applications, consider the following for production:
+
+**Advantages:**
+- ✅ No build process required
+- ✅ Globally cached (faster load times)
+- ✅ Easy to update
+- ✅ Minimal setup
+
+**Considerations:**
+- ⚠️ CDN availability dependency
+- ⚠️ Potential security risk if CDN compromised
+- ⚠️ Network latency for first load
+
+**Production Recommendations:**
+1. Add Subresource Integrity (SRI) hashes to CDN script tags
+2. Implement fallback to local copies if CDN fails
+3. Consider hosting libraries locally for critical production use
+4. Use a build process (Webpack/Vite) to bundle and optimize assets
+
+### Example with SRI:
+```html
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" 
+        integrity="sha384-..." crossorigin="anonymous"></script>
+```
 
 ## Troubleshooting
 
