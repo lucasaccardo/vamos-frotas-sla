@@ -1,16 +1,30 @@
-import google.generativeai as genai
+# Protected import to prevent site crashes if google-generativeai is not installed
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GENAI_AVAILABLE = False
+
 from django.conf import settings
 from .models import Analise, Ticket, User
 import pandas as pd
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Pega a chave do settings
 GENAI_API_KEY = getattr(settings, "GOOGLE_API_KEY", "")
 
 def get_gemini_model():
     """Configura e retorna o modelo Gemini 2.0 Flash."""
+    if not GENAI_AVAILABLE:
+        logger.error("google-generativeai não está instalado.")
+        return None
+    
     if not GENAI_API_KEY:
-        print("ERRO IA: API Key não encontrada.")
+        logger.error("API Key não encontrada.")
         return None
 
     try:
@@ -33,7 +47,7 @@ def get_gemini_model():
         return model
         
     except Exception as e:
-        print(f"Erro crítico ao configurar Gemini: {e}")
+        logger.error(f"Erro crítico ao configurar Gemini: {e}")
         return None
 
 def load_folder_data():
@@ -67,7 +81,7 @@ def load_folder_data():
                     full_text_data += f"\n\n--- ARQUIVO: {arquivo} ---\n{csv_text}"
                     arquivos_lidos += 1
                 except Exception as e:
-                    print(f"Erro ao ler {arquivo}: {e}")
+                    logger.error(f"Erro ao ler {arquivo}: {e}")
 
             # Se for CSV
             elif arquivo.endswith('.csv'):
@@ -77,7 +91,7 @@ def load_folder_data():
                     full_text_data += f"\n\n--- ARQUIVO: {arquivo} ---\n{csv_text}"
                     arquivos_lidos += 1
                 except Exception as e:
-                    print(f"Erro ao ler {arquivo}: {e}")
+                    logger.error(f"Erro ao ler {arquivo}: {e}")
 
         if arquivos_lidos == 0:
             return " (Nenhum arquivo de dados compatível encontrado na pasta data)"
