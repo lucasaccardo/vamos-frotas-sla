@@ -1,0 +1,408 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<div id="root"></div>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- React and ReactDOM -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- Babel Standalone for JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+    /* Custom animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-30px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    .slide-in {
+        animation: slideIn 0.4s ease-out;
+    }
+    
+    .btn-option {
+        transition: all 0.3s ease;
+    }
+    
+    .btn-option:hover {
+        transform: translateX(8px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Progress bar animation */
+    .progress-bar-fill {
+        transition: width 0.5s ease-in-out;
+    }
+    
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #dc2626;
+        border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #b91c1c;
+    }
+</style>
+
+{% verbatim %}
+<script type="text/babel">
+    const { useState, useEffect } = React;
+    
+    // Main Application Component
+    function ManualSinistroApp() {
+        const [flowData, setFlowData] = useState(null);
+        const [currentNodeId, setCurrentNodeId] = useState(null);
+        const [history, setHistory] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [copiedEmail, setCopiedEmail] = useState(false);
+        const [errorMessage, setErrorMessage] = useState(null);
+        
+        // Load flow data from JSON
+        useEffect(() => {
+            fetch('{% endverbatim %}{% static "data/manual-sinistro-flow.json" %}{% verbatim %}')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Falha ao carregar dados do fluxo');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data || !data.nodes || !data.startNodeId) {
+                        throw new Error('Estrutura de dados inválida');
+                    }
+                    setFlowData(data);
+                    setCurrentNodeId(data.startNodeId);
+                    setHistory([data.startNodeId]);
+                    setLoading(false);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar fluxo:', error);
+                    setErrorMessage(error.message || 'Erro ao carregar o manual. Por favor, recarregue a página.');
+                    setLoading(false);
+                });
+        }, []);
+        
+        // Navigate to next node
+        const navigateToNode = (nodeId) => {
+            setCurrentNodeId(nodeId);
+            setHistory([...history, nodeId]);
+            setCopiedEmail(false);
+            // Scroll to top with fallback for older browsers
+            try {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                window.scrollTo(0, 0);
+            }
+        };
+        
+        // Go back to previous node
+        const goBack = () => {
+            if (history.length > 1) {
+                const newHistory = history.slice(0, -1);
+                setHistory(newHistory);
+                setCurrentNodeId(newHistory[newHistory.length - 1]);
+                setCopiedEmail(false);
+            }
+        };
+        
+        // Reset flow
+        const resetFlow = () => {
+            if (flowData) {
+                setCurrentNodeId(flowData.startNodeId);
+                setHistory([flowData.startNodeId]);
+                setCopiedEmail(false);
+            }
+        };
+        
+        // Copy email to clipboard with fallback
+        const copyToClipboard = (text) => {
+            if (!navigator.clipboard) {
+                // Fallback for browsers without clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    setCopiedEmail(true);
+                    setTimeout(() => setCopiedEmail(false), 3000);
+                } catch (err) {
+                    console.error('Falha ao copiar texto:', err);
+                    alert('Não foi possível copiar automaticamente. Por favor, copie manualmente.');
+                }
+                document.body.removeChild(textArea);
+                return;
+            }
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    setCopiedEmail(true);
+                    setTimeout(() => setCopiedEmail(false), 3000);
+                })
+                .catch(err => {
+                    console.error('Falha ao copiar para área de transferência:', err);
+                    alert('Não foi possível copiar automaticamente. Por favor, selecione e copie o texto manualmente.');
+                });
+        };
+        
+        if (loading) {
+            return (
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600 text-lg">Carregando Manual de Sinistro...</p>
+                    </div>
+                </div>
+            );
+        }
+        
+        if (!flowData || !currentNodeId) {
+            return (
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-8 py-6 rounded-lg shadow-lg max-w-md">
+                        <div className="flex items-center mb-3">
+                            <svg className="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p className="font-bold text-lg">Erro ao Carregar</p>
+                        </div>
+                        <p className="text-sm mb-4">{errorMessage || 'Não foi possível carregar o fluxo de dados do manual.'}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold transition-colors"
+                        >
+                            Recarregar Página
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        
+        const currentNode = flowData.nodes[currentNodeId];
+        const progress = (history.length / Object.keys(flowData.nodes).length) * 100;
+        
+        return (
+            <div className="max-w-5xl mx-auto px-4 py-8">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl shadow-lg p-6 mb-6 fade-in">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">📋 Manual de Sinistro</h1>
+                            <p className="text-red-100 text-sm">Assistente interativo para abertura e gestão de sinistros</p>
+                        </div>
+                        <button 
+                            onClick={resetFlow}
+                            className="bg-white text-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-50 transition-all duration-300 shadow-md hover:shadow-lg"
+                        >
+                            🔄 Reiniciar
+                        </button>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="mt-4">
+                        <div className="flex justify-between text-xs text-red-100 mb-1">
+                            <span>Progresso</span>
+                            <span>{Math.round(progress)}%</span>
+                        </div>
+                        <div className="w-full bg-red-800 rounded-full h-2 overflow-hidden">
+                            <div 
+                                className="progress-bar-fill h-full bg-white rounded-full"
+                                style={{ width: progress + '%' }}
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Navigation Breadcrumb */}
+                {history.length > 1 && (
+                    <div className="mb-6 fade-in">
+                        <button 
+                            onClick={goBack}
+                            className="inline-flex items-center text-red-600 hover:text-red-700 font-semibold transition-colors duration-200"
+                        >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Voltar
+                        </button>
+                    </div>
+                )}
+                
+                {/* Main Content Card */}
+                <div className="bg-white rounded-xl shadow-xl p-8 mb-6 fade-in">
+                    <FlowNode 
+                        node={currentNode}
+                        onNavigate={navigateToNode}
+                        onCopyEmail={copyToClipboard}
+                        copiedEmail={copiedEmail}
+                    />
+                </div>
+                
+                {/* Footer Help */}
+                <div className="text-center text-gray-500 text-sm fade-in">
+                    <p>💡 <strong>Dica:</strong> Use os botões para navegar pelo fluxo. Não é necessário digitar nada.</p>
+                </div>
+            </div>
+        );
+    }
+    
+    // Flow Node Component
+    function FlowNode({ node, onNavigate, onCopyEmail, copiedEmail }) {
+        if (!node) return null;
+        
+        return (
+            <div className="slide-in">
+                {/* Icon and Title */}
+                <div className="text-center mb-6">
+                    <div className="text-6xl mb-4">{node.icon}</div>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">{node.title}</h2>
+                    <p className="text-gray-600 text-lg">{node.description}</p>
+                </div>
+                
+                {/* Content based on node type */}
+                {node.type === 'information' && (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6 rounded-r-lg">
+                        <ul className="space-y-3">
+                            {node.content.map((item, index) => (
+                                <li key={index} className="text-gray-700 leading-relaxed">
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                
+                {node.type === 'checklist' && (
+                    <div className="bg-green-50 border-l-4 border-green-500 p-6 mb-6 rounded-r-lg">
+                        <ul className="space-y-3">
+                            {node.items.map((item, index) => (
+                                <li key={index} className="flex items-start">
+                                    <svg className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-gray-700">{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                
+                {node.type === 'email' && (
+                    <div className="mb-6">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Para:</label>
+                                <p className="text-gray-800 bg-white px-4 py-2 rounded border border-gray-300">{node.emailTo}</p>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Assunto:</label>
+                                <p className="text-gray-800 bg-white px-4 py-2 rounded border border-gray-300">{node.emailSubject}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Mensagem:</label>
+                                <pre className="text-gray-800 bg-white px-4 py-4 rounded border border-gray-300 whitespace-pre-wrap font-sans text-sm leading-relaxed custom-scrollbar overflow-auto max-h-96">
+                                    {node.emailBody}
+                                </pre>
+                            </div>
+                        </div>
+                        
+                        <button
+                            onClick={() => onCopyEmail(node.emailBody)}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center"
+                        >
+                            {copiedEmail ? (
+                                <>
+                                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Copiado!
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Copiar E-mail
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
+                
+                {node.type === 'completion' && (
+                    <div className="bg-green-50 border-l-4 border-green-500 p-6 mb-6 rounded-r-lg">
+                        <ul className="space-y-3">
+                            {node.content.map((item, index) => (
+                                <li key={index} className="text-gray-700 leading-relaxed">
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                
+                {/* Options/Buttons */}
+                <div className="space-y-3 mt-8">
+                    {node.options && node.options.map((option, index) => {
+                        const colorClasses = {
+                            primary: 'bg-blue-600 hover:bg-blue-700 border-blue-700',
+                            success: 'bg-green-600 hover:bg-green-700 border-green-700',
+                            danger: 'bg-red-600 hover:bg-red-700 border-red-700',
+                            warning: 'bg-yellow-500 hover:bg-yellow-600 border-yellow-600 text-gray-900',
+                            secondary: 'bg-gray-500 hover:bg-gray-600 border-gray-600',
+                            info: 'bg-cyan-600 hover:bg-cyan-700 border-cyan-700'
+                        };
+                        
+                        const colorClass = colorClasses[option.color] || colorClasses.primary;
+                        
+                        return (
+                            <button
+                                key={index}
+                                onClick={() => onNavigate(option.nextNode)}
+                                className={`btn-option w-full ${colorClass} text-white font-semibold py-4 px-6 rounded-lg border-2 transition-all duration-300 shadow-md text-left flex items-center justify-between group`}
+                            >
+                                <span className="text-lg">{option.label}</span>
+                                <svg className="w-6 h-6 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+    
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ManualSinistroApp />);
+</script>
+{% endverbatim %}
+
+{% endblock %}

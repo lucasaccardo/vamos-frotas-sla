@@ -1,0 +1,509 @@
+{
+  "flowName": "Manual de Sinistro - Fluxo Interativo",
+  "version": "1.0",
+  "startNodeId": "inicio",
+  "nodes": {
+    "inicio": {
+      "id": "inicio",
+      "type": "question",
+      "title": "Bem-vindo ao Manual de Sinistro",
+      "description": "Este assistente irá guiá-lo através do processo de abertura e gestão de sinistros. Selecione o tipo de situação:",
+      "icon": "🚗",
+      "options": [
+        {
+          "label": "Abertura de Novo Sinistro",
+          "nextNode": "tipo_sinistro",
+          "color": "danger"
+        },
+        {
+          "label": "Acompanhamento de Sinistro Existente",
+          "nextNode": "acompanhamento",
+          "color": "warning"
+        },
+        {
+          "label": "Dúvidas sobre Documentação",
+          "nextNode": "documentacao",
+          "color": "info"
+        }
+      ]
+    },
+    "tipo_sinistro": {
+      "id": "tipo_sinistro",
+      "type": "question",
+      "title": "Tipo de Sinistro",
+      "description": "Selecione o tipo de sinistro ocorrido:",
+      "icon": "⚠️",
+      "options": [
+        {
+          "label": "Colisão com Terceiros",
+          "nextNode": "colisao_terceiros",
+          "color": "danger"
+        },
+        {
+          "label": "Furto ou Roubo",
+          "nextNode": "furto_roubo",
+          "color": "danger"
+        },
+        {
+          "label": "Incêndio",
+          "nextNode": "incendio",
+          "color": "danger"
+        },
+        {
+          "label": "Danos da Natureza",
+          "nextNode": "natureza",
+          "color": "warning"
+        },
+        {
+          "label": "Outros Danos",
+          "nextNode": "outros_danos",
+          "color": "secondary"
+        }
+      ]
+    },
+    "colisao_terceiros": {
+      "id": "colisao_terceiros",
+      "type": "information",
+      "title": "Colisão com Terceiros",
+      "description": "Procedimentos para sinistro de colisão:",
+      "icon": "💥",
+      "content": [
+        "1. **Preservar o Local**: Se possível, tire fotos do local do acidente",
+        "2. **Boletim de Ocorrência**: Registre um B.O. na delegacia mais próxima",
+        "3. **Dados do Terceiro**: Anote placa, CNH, nome e telefone",
+        "4. **Não Assuma Culpa**: Evite fazer acordos no local"
+      ],
+      "options": [
+        {
+          "label": "Documentos Necessários",
+          "nextNode": "docs_colisao",
+          "color": "primary"
+        },
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_colisao",
+          "color": "success"
+        }
+      ]
+    },
+    "furto_roubo": {
+      "id": "furto_roubo",
+      "type": "information",
+      "title": "Furto ou Roubo",
+      "description": "Procedimentos para sinistro de furto/roubo:",
+      "icon": "🚨",
+      "content": [
+        "1. **B.O. Imediato**: Registre o B.O. em até 24 horas",
+        "2. **Comunicação à Seguradora**: Informe imediatamente",
+        "3. **Bloqueio do Veículo**: Solicite bloqueio via rastreador (se houver)",
+        "4. **Documentação**: Separe CRLV, nota fiscal, chaves reserva"
+      ],
+      "options": [
+        {
+          "label": "Documentos Necessários",
+          "nextNode": "docs_furto",
+          "color": "primary"
+        },
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_furto",
+          "color": "success"
+        }
+      ]
+    },
+    "incendio": {
+      "id": "incendio",
+      "type": "information",
+      "title": "Incêndio",
+      "description": "Procedimentos para sinistro de incêndio:",
+      "icon": "🔥",
+      "content": [
+        "1. **Corpo de Bombeiros**: Solicite atendimento imediato",
+        "2. **Laudo Técnico**: Obtenha laudo dos bombeiros sobre a causa",
+        "3. **Fotos e Vídeos**: Registre o estado do veículo",
+        "4. **B.O.**: Faça o registro na delegacia"
+      ],
+      "options": [
+        {
+          "label": "Documentos Necessários",
+          "nextNode": "docs_incendio",
+          "color": "primary"
+        },
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_incendio",
+          "color": "success"
+        }
+      ]
+    },
+    "natureza": {
+      "id": "natureza",
+      "type": "information",
+      "title": "Danos da Natureza",
+      "description": "Procedimentos para danos causados pela natureza (queda de árvore, granizo, etc.):",
+      "icon": "🌪️",
+      "content": [
+        "1. **Registro Fotográfico**: Documente todos os danos",
+        "2. **Laudo Meteorológico**: Se possível, obtenha dados climáticos do dia",
+        "3. **Local do Ocorrido**: Anote endereço completo",
+        "4. **Testemunhas**: Se houver, colete contatos"
+      ],
+      "options": [
+        {
+          "label": "Documentos Necessários",
+          "nextNode": "docs_natureza",
+          "color": "primary"
+        },
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_natureza",
+          "color": "success"
+        }
+      ]
+    },
+    "outros_danos": {
+      "id": "outros_danos",
+      "type": "information",
+      "title": "Outros Danos",
+      "description": "Procedimentos para outros tipos de danos:",
+      "icon": "🔧",
+      "content": [
+        "1. **Descrição Detalhada**: Descreva como ocorreu o dano",
+        "2. **Registro Fotográfico**: Tire fotos de todos os ângulos",
+        "3. **Data e Hora**: Anote com precisão quando ocorreu",
+        "4. **Testemunhas**: Colete contatos se houver"
+      ],
+      "options": [
+        {
+          "label": "Documentos Necessários",
+          "nextNode": "docs_outros",
+          "color": "primary"
+        },
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_outros",
+          "color": "success"
+        }
+      ]
+    },
+    "docs_colisao": {
+      "id": "docs_colisao",
+      "type": "checklist",
+      "title": "Documentos Necessários - Colisão",
+      "description": "Lista de documentos obrigatórios:",
+      "icon": "📋",
+      "items": [
+        "Boletim de Ocorrência (B.O.)",
+        "Fotos do local e dos danos em ambos veículos",
+        "CNH do Condutor",
+        "CRLV do Veículo",
+        "Dados do terceiro envolvido (placa, CNH, contato)",
+        "Formulário de Declaração de Acidente (se aplicável)",
+        "Croqui ou desenho do acidente"
+      ],
+      "options": [
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_colisao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar",
+          "nextNode": "colisao_terceiros",
+          "color": "secondary"
+        }
+      ]
+    },
+    "docs_furto": {
+      "id": "docs_furto",
+      "type": "checklist",
+      "title": "Documentos Necessários - Furto/Roubo",
+      "description": "Lista de documentos obrigatórios:",
+      "icon": "📋",
+      "items": [
+        "Boletim de Ocorrência (B.O.) - Registrado em até 24h",
+        "CRLV Original",
+        "Chaves do Veículo (todas as cópias)",
+        "Nota Fiscal do Veículo",
+        "Comprovante de Bloqueio (se rastreado)",
+        "Declaração de Débitos e Ônus"
+      ],
+      "options": [
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_furto",
+          "color": "success"
+        },
+        {
+          "label": "Voltar",
+          "nextNode": "furto_roubo",
+          "color": "secondary"
+        }
+      ]
+    },
+    "docs_incendio": {
+      "id": "docs_incendio",
+      "type": "checklist",
+      "title": "Documentos Necessários - Incêndio",
+      "description": "Lista de documentos obrigatórios:",
+      "icon": "📋",
+      "items": [
+        "Boletim de Ocorrência (B.O.)",
+        "Laudo do Corpo de Bombeiros",
+        "Fotos e vídeos do veículo após o incêndio",
+        "CNH do Condutor",
+        "CRLV do Veículo",
+        "Relatório de Vistoria Prévia (se houver)"
+      ],
+      "options": [
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_incendio",
+          "color": "success"
+        },
+        {
+          "label": "Voltar",
+          "nextNode": "incendio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "docs_natureza": {
+      "id": "docs_natureza",
+      "type": "checklist",
+      "title": "Documentos Necessários - Danos da Natureza",
+      "description": "Lista de documentos obrigatórios:",
+      "icon": "📋",
+      "items": [
+        "Fotos completas dos danos",
+        "Comprovante de endereço do local",
+        "Laudo meteorológico (se disponível)",
+        "CNH do Condutor",
+        "CRLV do Veículo",
+        "Declaração de testemunhas (se houver)"
+      ],
+      "options": [
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_natureza",
+          "color": "success"
+        },
+        {
+          "label": "Voltar",
+          "nextNode": "natureza",
+          "color": "secondary"
+        }
+      ]
+    },
+    "docs_outros": {
+      "id": "docs_outros",
+      "type": "checklist",
+      "title": "Documentos Necessários - Outros Danos",
+      "description": "Lista de documentos obrigatórios:",
+      "icon": "📋",
+      "items": [
+        "Fotos dos danos",
+        "Descrição detalhada do ocorrido",
+        "CNH do Condutor",
+        "CRLV do Veículo",
+        "Comprovantes relevantes ao caso",
+        "Contato de testemunhas (se houver)"
+      ],
+      "options": [
+        {
+          "label": "Gerar E-mail de Abertura",
+          "nextNode": "email_outros",
+          "color": "success"
+        },
+        {
+          "label": "Voltar",
+          "nextNode": "outros_danos",
+          "color": "secondary"
+        }
+      ]
+    },
+    "email_colisao": {
+      "id": "email_colisao",
+      "type": "email",
+      "title": "E-mail de Abertura - Colisão",
+      "description": "Copie o texto abaixo e envie para o e-mail de sinistros:",
+      "icon": "✉️",
+      "emailTo": "sinistros@vamosfrotas.com.br",
+      "emailSubject": "Abertura de Sinistro - Colisão com Terceiros",
+      "emailBody": "Prezados,\n\nVenho por meio deste comunicar a ocorrência de um sinistro do tipo COLISÃO COM TERCEIROS.\n\n**DADOS DO VEÍCULO:**\nPlaca: [INSERIR PLACA]\nModelo: [INSERIR MODELO]\nChassi: [INSERIR CHASSI]\n\n**DADOS DO SINISTRO:**\nData/Hora: [INSERIR DATA E HORA]\nLocal: [INSERIR ENDEREÇO COMPLETO]\n\n**DADOS DO TERCEIRO:**\nNome: [INSERIR NOME]\nPlaca: [INSERIR PLACA]\nCNH: [INSERIR CNH]\nTelefone: [INSERIR TELEFONE]\n\n**DESCRIÇÃO:**\n[INSERIR DESCRIÇÃO DETALHADA DO OCORRIDO]\n\n**DOCUMENTOS EM ANEXO:**\n- Boletim de Ocorrência\n- Fotos dos danos\n- CNH do condutor\n- CRLV\n- Dados do terceiro\n\nAguardo retorno para prosseguimento.\n\nAtenciosamente,\n[SEU NOME]",
+      "options": [
+        {
+          "label": "Finalizar",
+          "nextNode": "conclusao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "email_furto": {
+      "id": "email_furto",
+      "type": "email",
+      "title": "E-mail de Abertura - Furto/Roubo",
+      "description": "Copie o texto abaixo e envie para o e-mail de sinistros:",
+      "icon": "✉️",
+      "emailTo": "sinistros@vamosfrotas.com.br",
+      "emailSubject": "Abertura de Sinistro - Furto/Roubo de Veículo",
+      "emailBody": "Prezados,\n\nVenho por meio deste comunicar a ocorrência de um sinistro do tipo FURTO/ROUBO DE VEÍCULO.\n\n**DADOS DO VEÍCULO:**\nPlaca: [INSERIR PLACA]\nModelo: [INSERIR MODELO]\nChassi: [INSERIR CHASSI]\nCor: [INSERIR COR]\n\n**DADOS DO SINISTRO:**\nData/Hora: [INSERIR DATA E HORA]\nLocal: [INSERIR ENDEREÇO COMPLETO]\nBoletim de Ocorrência Nº: [INSERIR NÚMERO DO B.O.]\nDelegacia: [INSERIR DELEGACIA]\n\n**INFORMAÇÕES ADICIONAIS:**\nRastreador: [SIM/NÃO]\nStatus do Bloqueio: [INSERIR STATUS]\n\n**DOCUMENTOS EM ANEXO:**\n- Boletim de Ocorrência\n- CRLV Original\n- Chaves do Veículo\n- Nota Fiscal\n- Comprovante de Bloqueio\n\nAguardo retorno urgente.\n\nAtenciosamente,\n[SEU NOME]",
+      "options": [
+        {
+          "label": "Finalizar",
+          "nextNode": "conclusao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "email_incendio": {
+      "id": "email_incendio",
+      "type": "email",
+      "title": "E-mail de Abertura - Incêndio",
+      "description": "Copie o texto abaixo e envie para o e-mail de sinistros:",
+      "icon": "✉️",
+      "emailTo": "sinistros@vamosfrotas.com.br",
+      "emailSubject": "Abertura de Sinistro - Incêndio de Veículo",
+      "emailBody": "Prezados,\n\nVenho por meio deste comunicar a ocorrência de um sinistro do tipo INCÊNDIO.\n\n**DADOS DO VEÍCULO:**\nPlaca: [INSERIR PLACA]\nModelo: [INSERIR MODELO]\nChassi: [INSERIR CHASSI]\n\n**DADOS DO SINISTRO:**\nData/Hora: [INSERIR DATA E HORA]\nLocal: [INSERIR ENDEREÇO COMPLETO]\nCausa Provável: [INSERIR CAUSA SE CONHECIDA]\n\n**ATENDIMENTO:**\nCorpo de Bombeiros: [SIM/NÃO]\nNúmero da Ocorrência: [INSERIR NÚMERO]\n\n**DOCUMENTOS EM ANEXO:**\n- Boletim de Ocorrência\n- Laudo do Corpo de Bombeiros\n- Fotos e vídeos\n- CNH do condutor\n- CRLV\n\nAguardo orientações.\n\nAtenciosamente,\n[SEU NOME]",
+      "options": [
+        {
+          "label": "Finalizar",
+          "nextNode": "conclusao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "email_natureza": {
+      "id": "email_natureza",
+      "type": "email",
+      "title": "E-mail de Abertura - Danos da Natureza",
+      "description": "Copie o texto abaixo e envie para o e-mail de sinistros:",
+      "icon": "✉️",
+      "emailTo": "sinistros@vamosfrotas.com.br",
+      "emailSubject": "Abertura de Sinistro - Danos da Natureza",
+      "emailBody": "Prezados,\n\nVenho por meio deste comunicar a ocorrência de um sinistro do tipo DANOS DA NATUREZA.\n\n**DADOS DO VEÍCULO:**\nPlaca: [INSERIR PLACA]\nModelo: [INSERIR MODELO]\nChassi: [INSERIR CHASSI]\n\n**DADOS DO SINISTRO:**\nData/Hora: [INSERIR DATA E HORA]\nLocal: [INSERIR ENDEREÇO COMPLETO]\nTipo de Dano: [GRANIZO/QUEDA DE ÁRVORE/ALAGAMENTO/OUTRO]\n\n**CONDIÇÕES CLIMÁTICAS:**\n[DESCREVER CONDIÇÕES DO DIA]\n\n**DOCUMENTOS EM ANEXO:**\n- Fotos dos danos\n- Comprovante de endereço\n- Laudo meteorológico (se disponível)\n- CNH do condutor\n- CRLV\n\nAguardo retorno.\n\nAtenciosamente,\n[SEU NOME]",
+      "options": [
+        {
+          "label": "Finalizar",
+          "nextNode": "conclusao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "email_outros": {
+      "id": "email_outros",
+      "type": "email",
+      "title": "E-mail de Abertura - Outros Danos",
+      "description": "Copie o texto abaixo e envie para o e-mail de sinistros:",
+      "icon": "✉️",
+      "emailTo": "sinistros@vamosfrotas.com.br",
+      "emailSubject": "Abertura de Sinistro - Outros Danos",
+      "emailBody": "Prezados,\n\nVenho por meio deste comunicar a ocorrência de um sinistro.\n\n**DADOS DO VEÍCULO:**\nPlaca: [INSERIR PLACA]\nModelo: [INSERIR MODELO]\nChassi: [INSERIR CHASSI]\n\n**DADOS DO SINISTRO:**\nData/Hora: [INSERIR DATA E HORA]\nLocal: [INSERIR ENDEREÇO COMPLETO]\n\n**DESCRIÇÃO DETALHADA:**\n[INSERIR DESCRIÇÃO COMPLETA DO OCORRIDO]\n\n**DOCUMENTOS EM ANEXO:**\n- Fotos dos danos\n- Descrição detalhada\n- CNH do condutor\n- CRLV\n- Outros documentos relevantes\n\nAguardo orientações.\n\nAtenciosamente,\n[SEU NOME]",
+      "options": [
+        {
+          "label": "Finalizar",
+          "nextNode": "conclusao",
+          "color": "success"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "acompanhamento": {
+      "id": "acompanhamento",
+      "type": "information",
+      "title": "Acompanhamento de Sinistro",
+      "description": "Para acompanhar um sinistro já aberto:",
+      "icon": "🔍",
+      "content": [
+        "1. **Número do Sinistro**: Tenha em mãos o número do processo",
+        "2. **Contato**: sinistros@vamosfrotas.com.br",
+        "3. **Informações**: Placa e número do sinistro",
+        "4. **Prazo de Resposta**: 24-48 horas úteis"
+      ],
+      "options": [
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "documentacao": {
+      "id": "documentacao",
+      "type": "information",
+      "title": "Dúvidas sobre Documentação",
+      "description": "Principais documentos para cada tipo de sinistro:",
+      "icon": "📄",
+      "content": [
+        "**Obrigatórios em Todos os Casos:**",
+        "- Boletim de Ocorrência (B.O.)",
+        "- CNH do Condutor",
+        "- CRLV do Veículo",
+        "- Fotos dos danos",
+        "",
+        "**Específicos por Tipo:**",
+        "- Colisão: Dados do terceiro",
+        "- Furto/Roubo: Chaves e nota fiscal",
+        "- Incêndio: Laudo dos bombeiros",
+        "- Natureza: Laudo meteorológico"
+      ],
+      "options": [
+        {
+          "label": "Ver Tipos de Sinistro",
+          "nextNode": "tipo_sinistro",
+          "color": "primary"
+        },
+        {
+          "label": "Voltar ao Início",
+          "nextNode": "inicio",
+          "color": "secondary"
+        }
+      ]
+    },
+    "conclusao": {
+      "id": "conclusao",
+      "type": "completion",
+      "title": "Processo Concluído! ✅",
+      "description": "Seu processo de abertura de sinistro foi finalizado com sucesso.",
+      "icon": "🎉",
+      "content": [
+        "**Próximos Passos:**",
+        "1. Envie o e-mail gerado para sinistros@vamosfrotas.com.br",
+        "2. Anexe todos os documentos solicitados",
+        "3. Aguarde retorno em até 48 horas úteis",
+        "4. Guarde o número do protocolo que será enviado"
+      ],
+      "options": [
+        {
+          "label": "Iniciar Novo Processo",
+          "nextNode": "inicio",
+          "color": "primary"
+        }
+      ]
+    }
+  }
+}
