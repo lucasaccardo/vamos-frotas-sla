@@ -884,7 +884,8 @@
                 // Set focus to the step title for screen readers
                 const stepTitle = newStepEl.querySelector('.step-title');
                 if (stepTitle) {
-                    stepTitle.focus();
+                    stepTitle.setAttribute('tabindex', '-1');
+                    stepTitle.focus({ preventScroll: true });
                 }
             }
 
@@ -1708,8 +1709,13 @@ Atenciosamente.`
         // MODAL & EXPORT FUNCTIONS
         // ============================================================================
         
+        let modalTriggerElement = null; // Store the element that opened the modal
+        
         function showEmailModal() {
             saveData();
+            
+            // Save the currently focused element
+            modalTriggerElement = document.activeElement;
             
             const emailOptions = `
                 <div style="margin-bottom: 20px;">
@@ -1724,7 +1730,13 @@ Atenciosamente.`
             const modal = document.getElementById('emailModal');
             if (modal) {
                 modal.classList.add('show');
-                modal.querySelector('.modal-close')?.focus();
+                // Focus on the close button or first focusable element
+                setTimeout(() => {
+                    const closeButton = modal.querySelector('.modal-close');
+                    if (closeButton) {
+                        closeButton.focus();
+                    }
+                }, 100);
             }
         }
 
@@ -1740,8 +1752,11 @@ Atenciosamente.`
             const modal = document.getElementById('emailModal');
             if (modal) {
                 modal.classList.remove('show');
-                // Return focus to the button that opened the modal
-                document.querySelector('button[onclick="showEmailModal()"]')?.focus();
+                // Restore focus to the element that opened the modal
+                if (modalTriggerElement && modalTriggerElement.focus) {
+                    modalTriggerElement.focus();
+                    modalTriggerElement = null;
+                }
             }
         }
 
@@ -1781,7 +1796,7 @@ Atenciosamente.`
         // ============================================================================
         
         function setupKeyboardNavigation() {
-            // Handle Enter key on radio options
+            // Handle keyboard events on radio options
             document.querySelectorAll('.radio-option').forEach(option => {
                 option.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -1805,6 +1820,28 @@ Atenciosamente.`
             document.getElementById('emailModal')?.addEventListener('click', (e) => {
                 if (e.target.id === 'emailModal') {
                     closeModal();
+                }
+            });
+
+            // Focus trap for modal
+            document.getElementById('emailModal')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    const modal = document.getElementById('emailModal');
+                    if (modal && modal.classList.contains('show')) {
+                        const focusableElements = modal.querySelectorAll(
+                            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                        );
+                        const firstElement = focusableElements[0];
+                        const lastElement = focusableElements[focusableElements.length - 1];
+
+                        if (e.shiftKey && document.activeElement === firstElement) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        } else if (!e.shiftKey && document.activeElement === lastElement) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
+                    }
                 }
             });
         }
