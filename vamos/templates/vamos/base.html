@@ -197,9 +197,6 @@
                     <a href="{% url 'buscar_clientes' %}" class="nav-link {% if 'buscar-clientes' in request.path %}active{% endif %}">
                         <i class="bi bi-search"></i> Buscar Clientes
                     </a>
-                    <a href="{% url 'manual_sinistro' %}" class="nav-link {% if 'manual-sinistro' in request.path %}active{% endif %}">
-                        <i class="bi bi-book"></i> Manual de Sinistro
-                    </a>
                     
                     <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Gestão</small>
                     <a href="{% url 'dashboard' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
@@ -247,6 +244,10 @@
                     
                     <a href="{% url 'novo_sinistro' %}" class="nav-link {% if request.resolver_match.url_name == 'novo_sinistro' %}active{% endif %}">
                         <i class="bi bi-plus-circle-fill text-danger"></i> Novo Processo
+                    </a>
+
+                    <a href="{% url 'manual_sinistro' %}" class="nav-link {% if 'manual-sinistro' in request.path %}active{% endif %}">
+                        <i class="bi bi-book"></i> Manual de Sinistro
                     </a>
 
                 {% endif %}
