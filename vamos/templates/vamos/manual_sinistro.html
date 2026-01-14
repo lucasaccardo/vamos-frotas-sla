@@ -79,12 +79,21 @@
         const [history, setHistory] = useState([]);
         const [loading, setLoading] = useState(true);
         const [copiedEmail, setCopiedEmail] = useState(false);
+        const [errorMessage, setErrorMessage] = useState(null);
         
         // Load flow data from JSON
         useEffect(() => {
             fetch('{% endverbatim %}{% static "data/manual-sinistro-flow.json" %}{% verbatim %}')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Falha ao carregar dados do fluxo');
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    if (!data || !data.nodes || !data.startNodeId) {
+                        throw new Error('Estrutura de dados inválida');
+                    }
                     setFlowData(data);
                     setCurrentNodeId(data.startNodeId);
                     setHistory([data.startNodeId]);
@@ -92,6 +101,7 @@
                 })
                 .catch(error => {
                     console.error('Erro ao carregar fluxo:', error);
+                    setErrorMessage(error.message || 'Erro ao carregar o manual. Por favor, recarregue a página.');
                     setLoading(false);
                 });
         }, []);
@@ -101,7 +111,12 @@
             setCurrentNodeId(nodeId);
             setHistory([...history, nodeId]);
             setCopiedEmail(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Scroll to top with fallback for older browsers
+            try {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                window.scrollTo(0, 0);
+            }
         };
         
         // Go back to previous node
@@ -123,12 +138,37 @@
             }
         };
         
-        // Copy email to clipboard
+        // Copy email to clipboard with fallback
         const copyToClipboard = (text) => {
-            navigator.clipboard.writeText(text).then(() => {
-                setCopiedEmail(true);
-                setTimeout(() => setCopiedEmail(false), 3000);
-            });
+            if (!navigator.clipboard) {
+                // Fallback for browsers without clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    setCopiedEmail(true);
+                    setTimeout(() => setCopiedEmail(false), 3000);
+                } catch (err) {
+                    console.error('Falha ao copiar texto:', err);
+                    alert('Não foi possível copiar automaticamente. Por favor, copie manualmente.');
+                }
+                document.body.removeChild(textArea);
+                return;
+            }
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    setCopiedEmail(true);
+                    setTimeout(() => setCopiedEmail(false), 3000);
+                })
+                .catch(err => {
+                    console.error('Falha ao copiar para área de transferência:', err);
+                    alert('Não foi possível copiar automaticamente. Por favor, selecione e copie o texto manualmente.');
+                });
         };
         
         if (loading) {
@@ -145,8 +185,20 @@
         if (!flowData || !currentNodeId) {
             return (
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
-                        <p className="font-semibold">Erro ao carregar o fluxo de dados.</p>
+                    <div className="bg-red-50 border-2 border-red-200 text-red-700 px-8 py-6 rounded-lg shadow-lg max-w-md">
+                        <div className="flex items-center mb-3">
+                            <svg className="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p className="font-bold text-lg">Erro ao Carregar</p>
+                        </div>
+                        <p className="text-sm mb-4">{errorMessage || 'Não foi possível carregar o fluxo de dados do manual.'}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold transition-colors"
+                        >
+                            Recarregar Página
+                        </button>
                     </div>
                 </div>
             );
