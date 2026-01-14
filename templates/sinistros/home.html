@@ -192,7 +192,7 @@
                                          tabindex="0"
                                          aria-label="Selecionar fluxo de Furto ou Roubo"
                                          onclick="manualGoTo('furto-roubo')" 
-                                         onkeypress="if(event.key==='Enter'||event.key===' ')manualGoTo('furto-roubo')"
+                                         onkeypress="if(event.key==='Enter'||event.code==='Space')manualGoTo('furto-roubo')"
                                          style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3" aria-hidden="true">🚨</div>
@@ -208,7 +208,7 @@
                                          tabindex="0"
                                          aria-label="Selecionar fluxo de Perda Total"
                                          onclick="manualGoTo('pt')" 
-                                         onkeypress="if(event.key==='Enter'||event.key===' ')manualGoTo('pt')"
+                                         onkeypress="if(event.key==='Enter'||event.code==='Space')manualGoTo('pt')"
                                          style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3" aria-hidden="true">💥</div>
@@ -224,7 +224,7 @@
                                          tabindex="0"
                                          aria-label="Selecionar fluxo Particular ou Seguradora"
                                          onclick="manualGoTo('particular')" 
-                                         onkeypress="if(event.key==='Enter'||event.key===' ')manualGoTo('particular')"
+                                         onkeypress="if(event.key==='Enter'||event.code==='Space')manualGoTo('particular')"
                                          style="cursor: pointer;">
                                         <div class="card-body text-center p-4">
                                             <div class="fs-1 mb-3" aria-hidden="true">🔧</div>
@@ -567,12 +567,17 @@
             targetStep.style.display = 'block';
             targetStep.classList.add('active');
             
-            // Scroll to top of manual container (with caching)
+            // Scroll to top of manual container (with caching and motion preferences)
             if (!cachedManualContainer) {
                 cachedManualContainer = document.getElementById('manual-container');
             }
             if (cachedManualContainer) {
-                cachedManualContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Respect user's motion preferences
+                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                cachedManualContainer.scrollIntoView({ 
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth', 
+                    block: 'start' 
+                });
             }
         }
     }
