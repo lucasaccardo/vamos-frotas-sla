@@ -68,6 +68,7 @@
     }
 </style>
 
+{% verbatim %}
 <script type="text/babel">
     const { useState, useEffect } = React;
     
@@ -81,7 +82,7 @@
         
         // Load flow data from JSON
         useEffect(() => {
-            fetch('{% static "data/manual-sinistro-flow.json" %}')
+            fetch('{% endverbatim %}{% static "data/manual-sinistro-flow.json" %}{% verbatim %}')
                 .then(response => response.json())
                 .then(data => {
                     setFlowData(data);
@@ -180,7 +181,7 @@
                         <div className="w-full bg-red-800 rounded-full h-2 overflow-hidden">
                             <div 
                                 className="progress-bar-fill h-full bg-white rounded-full"
-                                style={{ width: `${progress}%` }}
+                                style={{ width: progress + '%' }}
                             ></div>
                         </div>
                     </div>
@@ -350,5 +351,6 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<ManualSinistroApp />);
 </script>
+{% endverbatim %}
 
 {% endblock %}
