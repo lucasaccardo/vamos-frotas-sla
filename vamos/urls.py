@@ -31,6 +31,7 @@ urlpatterns = [
     path("cenarios/", views.cenarios_view, name="cenarios"),
     path("buscar-clientes/", views.buscar_clientes_view, name="buscar_clientes"),
     path("analises/", views.analise_list_view, name="lista_analises"), # Histórico costuma ficar na manutenção
+    path("manual-sinistro/", views.manual_sinistro_view, name="manual_sinistro"), # Manual de Sinistro Interativo
     
     # === Funcionalidades Gerais / Admin ===
     path("assistente-ia/", views.assistente_ia_view, name="assistente_ia"),
