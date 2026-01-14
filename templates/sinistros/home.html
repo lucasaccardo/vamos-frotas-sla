@@ -566,8 +566,9 @@
 </style>
 
 <script>
-    // Manual navigation function - Simplified version
+    // Manual navigation function - Simplified version with caching
     let cachedManualContainer = null;
+    let prefersReducedMotion = null;
     
     function manualGoTo(stepName) {
         // Hide all steps
@@ -587,8 +588,10 @@
                 cachedManualContainer = document.getElementById('manual-container');
             }
             if (cachedManualContainer) {
-                // Respect user's motion preferences
-                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                // Cache motion preference check
+                if (prefersReducedMotion === null) {
+                    prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                }
                 cachedManualContainer.scrollIntoView({ 
                     behavior: prefersReducedMotion ? 'auto' : 'smooth', 
                     block: 'start' 
