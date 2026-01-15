@@ -72,6 +72,9 @@
 <script type="text/babel">
     const { useState, useEffect } = React;
     
+    // Constants
+    const SUPPORT_EMAIL = "sinistros@vamosfrotas.com.br";
+    
     // FAQ Data
     const faqData = [
         {
@@ -88,7 +91,7 @@
         },
         {
             question: "Como acompanhar o andamento do meu sinistro?",
-            answer: "Você pode acompanhar o status enviando um e-mail para sinistros@vamosfrotas.com.br com o número do processo e a placa do veículo. Normalmente, você receberá atualizações automáticas em cada etapa do processo."
+            answer: `Você pode acompanhar o status enviando um e-mail para ${SUPPORT_EMAIL} com o número do processo e a placa do veículo. Normalmente, você receberá atualizações automáticas em cada etapa do processo.`
         },
         {
             question: "Preciso contratar um guincho ou a empresa fornece?",
@@ -104,7 +107,7 @@
         },
         {
             question: "Meu sinistro foi recusado. O que fazer?",
-            answer: "Solicite por escrito a justificativa detalhada da recusa. Você tem direito a contestar a decisão apresentando documentação adicional ou esclarecimentos. Entre em contato com sinistros@vamosfrotas.com.br."
+            answer: `Solicite por escrito a justificativa detalhada da recusa. Você tem direito a contestar a decisão apresentando documentação adicional ou esclarecimentos. Entre em contato com ${SUPPORT_EMAIL}.`
         },
         {
             question: "Como proceder em caso de sinistro no final de semana ou feriado?",
@@ -314,9 +317,11 @@
                     <button
                         onClick={() => setShowFAQ(!showFAQ)}
                         className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between"
+                        aria-label="Alternar seção de perguntas frequentes"
+                        aria-expanded={showFAQ}
                     >
                         <span className="flex items-center gap-3">
-                            <span className="text-2xl">❓</span>
+                            <span className="text-2xl" aria-hidden="true">❓</span>
                             <span className="text-lg">Perguntas Frequentes (FAQ)</span>
                         </span>
                         <svg 
@@ -324,6 +329,7 @@
                             fill="none" 
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
+                            aria-hidden="true"
                         >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -333,7 +339,7 @@
                 </div>
                 
                 {/* Footer Help */}
-                <div className="text-center text-gray-500 text-sm mt-6 fade-in">
+                <div className="text-center text-gray-500 text-sm mt-8 fade-in">
                     <p>💡 <strong>Dica:</strong> Use os botões para navegar pelo fluxo. Não é necessário digitar nada.</p>
                 </div>
             </div>
@@ -388,8 +394,8 @@
                 <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
                     <p className="text-gray-700">
                         <strong>Não encontrou sua resposta?</strong> Entre em contato conosco em{' '}
-                        <a href="mailto:sinistros@vamosfrotas.com.br" className="text-blue-600 hover:text-blue-700 font-semibold underline">
-                            sinistros@vamosfrotas.com.br
+                        <a href={`mailto:${SUPPORT_EMAIL}`} className="text-blue-600 hover:text-blue-700 font-semibold underline">
+                            {SUPPORT_EMAIL}
                         </a>
                     </p>
                 </div>
