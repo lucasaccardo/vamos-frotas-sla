@@ -1,7 +1,24 @@
 # Manual de Sinistro - Interactive Flowchart Implementation
 
 ## Overview
-This document describes the implementation of the "Manual de Sinistro" (Claims Manual) interactive flowchart feature integrated into the Gestão de Manutenção (Maintenance Management) section.
+This document describes the implementation of the "Manual de Sinistro" (Claims Manual) interactive flowchart feature integrated into the Gestão de Sinistros (Claims Management) section. The system implements three main payment process flows based on branching decision logic.
+
+## Version 2.0 - Payment Process Structure
+**Release Date**: 2026-01-15
+
+This version refocuses the manual from incident types to **payment processes**, implementing three distinct workflows:
+
+1. **Pagamento pelo Cliente** - Customer pays 100% of repair costs
+2. **Pagamento pelo Cliente - Co-participação** - Customer pays a percentage + insurance covers the rest
+3. **Pagamento pela Seguradora** - Insurance pays 100% of repair costs
+
+### Key Statistics
+- **Total Nodes**: 43 interconnected decision nodes
+- **Email Templates**: 5 comprehensive templates
+- **Question Nodes**: 14 decision points
+- **Information Nodes**: 15 instructional screens
+- **Completion Nodes**: 9 end/waiting states
+- **FAQ Questions**: 10 payment-focused questions
 
 ## Architecture
 
@@ -10,14 +27,72 @@ This document describes the implementation of the "Manual de Sinistro" (Claims M
 - **Styling**: Tailwind CSS (via CDN) for modern, responsive design
 - **JSX Transpilation**: Babel Standalone for in-browser JSX transformation
 - **Backend**: Django (Python) for routing and authentication
-- **Data**: JSON-based workflow definition for branching logic
+- **Data**: JSON-based workflow definition for branching logic (Version 2.0)
 
 ### Design Principles
-1. **Zero Manual Input**: Complete click-based navigation system
-2. **JSON-Driven**: All workflow logic defined in external JSON file
-3. **Responsive**: Mobile-first design with Tailwind CSS
-4. **Accessible**: Semantic HTML with proper ARIA labels
-5. **Animated**: Smooth transitions for better UX
+1. **Zero Manual Input**: Complete click-based navigation system - no typing required
+2. **JSON-Driven**: All workflow logic defined in external JSON file for easy updates
+3. **Three Payment Processes**: Clear separation between customer payment, co-participation, and insurance payment
+4. **Responsive**: Mobile-first design with Tailwind CSS
+5. **Accessible**: Semantic HTML with proper ARIA labels
+6. **Animated**: Smooth fade-in and slide-in transitions for better UX
+7. **Decision Trees**: Branching logic based on user selections
+
+## Payment Process Flows
+
+### Flow 1: Pagamento pelo Cliente (Customer Payment)
+**Description**: Customer assumes 100% of repair costs
+**Nodes**: 13 nodes
+**Key Features**:
+- Verify if claim is registered
+- Request/approve quotation
+- Choose payment method (cash or installments)
+- Cash: 5% discount, 3x interest-free or 6x with 1.99% interest/month
+- Email templates for payment request
+
+**Sample Path**:
+```
+inicio → pagamento_cliente → cliente_verificar_sinistro →
+cliente_possui_orcamento → cliente_forma_pagamento →
+cliente_pagamento_vista → cliente_apos_pagamento
+```
+
+### Flow 2: Pagamento com Co-participação (Co-participation)
+**Description**: Customer pays percentage + insurance covers the rest
+**Nodes**: 14 nodes
+**Key Features**:
+- Insurance analysis and approval (3-5 days)
+- Quotation with defined percentage
+- Calculate customer's share (typically 10-30%)
+- Payment options: 2x interest-free or 4x with 2.49% interest/month
+- Email templates for co-participation payment
+
+**Sample Path**:
+```
+inicio → pagamento_coparticipacao → copart_verificar_sinistro →
+copart_possui_orcamento → copart_calcular_valores →
+copart_forma_pagamento → copart_pagamento_parcelado →
+copart_apos_pagamento
+```
+
+### Flow 3: Pagamento pela Seguradora (Insurance Payment)
+**Description**: Insurance pays 100% directly to repair shop
+**Nodes**: 15 nodes
+**Key Features**:
+- Communicate claim to insurance
+- Wait for coverage approval (3-7 days)
+- Schedule and complete inspection
+- Choose repair shop (referral or free choice)
+- Insurance pays directly to shop (zero cost to customer)
+- Email template for repair authorization
+
+**Sample Path**:
+```
+inicio → pagamento_seguradora → seguradora_verificar_cobertura →
+seguradora_numero_sinistro → seguradora_agendar_pericia →
+seguradora_escolher_oficina → seguradora_enviar_veiculo →
+seguradora_acompanhamento
+```
 
 ## File Structure
 
@@ -38,44 +113,93 @@ This document describes the implementation of the "Manual de Sinistro" (Claims M
 
 ## JSON Workflow Structure
 
-The workflow is defined in `static/data/manual-sinistro-flow.json`:
+The workflow is defined in `static/data/manual-sinistro-flow.json` (Version 2.0):
 
+### Top-Level Structure
 ```json
 {
-  "flowName": "Manual de Sinistro - Fluxo Interativo",
-  "version": "1.0",
+  "flowName": "Manual de Sinistro - Fluxo Interativo de Pagamento",
+  "version": "2.0",
   "startNodeId": "inicio",
   "nodes": {
-    "node_id": {
-      "id": "node_id",
-      "type": "question|information|checklist|email|completion",
-      "title": "Node Title",
-      "description": "Node description",
-      "icon": "🚗",
-      "content": [...],         // For information/completion nodes
-      "items": [...],           // For checklist nodes
-      "emailTo": "...",         // For email nodes
-      "emailSubject": "...",    // For email nodes
-      "emailBody": "...",       // For email nodes
-      "options": [
-        {
-          "label": "Option text",
-          "nextNode": "next_node_id",
-          "color": "primary|success|danger|warning|secondary|info"
-        }
-      ]
-    }
+    // 43 nodes defining the complete payment process flows
   }
+}
+```
+
+### Node Structure
+```json
+"node_id": {
+  "id": "node_id",
+  "type": "question|information|checklist|email|completion",
+  "title": "Node Title",
+  "description": "Node description",
+  "icon": "🚗",
+  "content": [...],         // For information/completion nodes
+  "items": [...],           // For checklist nodes (not used in v2.0)
+  "emailTo": "...",         // For email nodes
+  "emailSubject": "...",    // For email nodes
+  "emailBody": "...",       // For email nodes
+  "options": [
+    {
+      "label": "Option text",
+      "nextNode": "next_node_id",
+      "color": "primary|success|danger|warning|secondary|info"
+    }
+  ]
 }
 ```
 
 ### Node Types
 
-1. **question**: Presents multiple options to the user
-2. **information**: Displays informational content with list items
-3. **checklist**: Shows a checklist of required documents
-4. **email**: Generates an email template with copy-to-clipboard functionality
-5. **completion**: Final confirmation screen
+1. **question**: Presents multiple options to the user (14 nodes)
+2. **information**: Displays informational content with list items (15 nodes)
+3. **email**: Generates an email template with copy-to-clipboard functionality (5 nodes)
+4. **completion**: Final confirmation screen or waiting state (9 nodes)
+
+## Email Templates
+
+The system includes 5 comprehensive email templates covering all payment scenarios:
+
+### 1. Pagamento à Vista - Instruções
+- **Recipient**: financeiro@vamosfrotas.com.br
+- **Use Case**: Customer requests cash payment details
+- **Features**: 5% discount mention, payment method options, invoice data fields
+
+### 2. Pagamento Parcelado - Instruções
+- **Recipient**: financeiro@vamosfrotas.com.br
+- **Use Case**: Customer requests installment payment
+- **Features**: Installment options (3x or 6x), card data fields, invoice data
+
+### 3. Pagamento à Vista - Co-participação
+- **Recipient**: financeiro@vamosfrotas.com.br
+- **Use Case**: Customer requests co-participation cash payment
+- **Features**: Insurance approval data, percentage and value breakdown
+
+### 4. Pagamento Parcelado - Co-participação
+- **Recipient**: financeiro@vamosfrotas.com.br
+- **Use Case**: Customer requests co-participation installment
+- **Features**: 2x or 4x options, insurance approval data
+
+### 5. Autorizar Reparo pela Seguradora
+- **Recipient**: sinistros@vamosfrotas.com.br
+- **Use Case**: Authorize repair with insurance payment
+- **Features**: Insurance data, inspection details, repair shop info, timeline
+
+## FAQ Section
+
+The system includes 10 payment-focused FAQ questions:
+
+1. **Payment Types**: Differences between the three payment processes
+2. **Determining Payment Type**: How to identify which applies
+3. **Installment Options**: Details on payment plans available
+4. **Processing Time**: Timelines for each payment type
+5. **Mandatory Deductible**: Explanation of insurance deductibles
+6. **Repair Shop Selection**: Options for each payment type
+7. **Vehicle Use During Processing**: Safety and coverage considerations
+8. **Insurance Denial**: Options when insurance refuses coverage
+9. **Non-payment Consequences**: What happens if co-participation isn't paid
+10. **Changing Payment Method**: Possibility of switching between processes
 
 ## React Components
 
