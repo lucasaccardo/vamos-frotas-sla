@@ -72,6 +72,50 @@
 <script type="text/babel">
     const { useState, useEffect } = React;
     
+    // FAQ Data
+    const faqData = [
+        {
+            question: "Quanto tempo demora para processar um sinistro?",
+            answer: "O prazo médio é de 24 a 48 horas úteis após o recebimento de toda a documentação necessária. Em casos de maior complexidade, o prazo pode ser estendido, mas você será informado sobre o andamento."
+        },
+        {
+            question: "Posso abrir um sinistro sem o Boletim de Ocorrência?",
+            answer: "Não. O Boletim de Ocorrência (B.O.) é obrigatório em praticamente todos os tipos de sinistro, principalmente em casos de colisão, furto, roubo e incêndio. Ele serve como documento oficial do ocorrido."
+        },
+        {
+            question: "O que fazer se esquecer de tirar fotos no local do acidente?",
+            answer: "Tente registrar fotos o mais rápido possível, mesmo que o veículo já tenha sido removido do local. Fotos posteriores ainda são válidas. Caso não seja possível, entre em contato com nossa equipe para orientações específicas."
+        },
+        {
+            question: "Como acompanhar o andamento do meu sinistro?",
+            answer: "Você pode acompanhar o status enviando um e-mail para sinistros@vamosfrotas.com.br com o número do processo e a placa do veículo. Normalmente, você receberá atualizações automáticas em cada etapa do processo."
+        },
+        {
+            question: "Preciso contratar um guincho ou a empresa fornece?",
+            answer: "Isso depende do tipo de cobertura do seu contrato. Entre em contato com a central de sinistros imediatamente após o ocorrido para receber orientações sobre o procedimento adequado."
+        },
+        {
+            question: "Posso usar o veículo enquanto o sinistro está em análise?",
+            answer: "Depende do tipo e da gravidade do sinistro. Se o veículo estiver em condições de circular legalmente e com segurança, geralmente pode ser usado. Consulte sempre a equipe de sinistros antes de tomar essa decisão."
+        },
+        {
+            question: "O que são documentos de ônus e débitos?",
+            answer: "São documentos que comprovam se o veículo possui débitos (multas, IPVA) ou se está alienado/financiado. São essenciais especialmente em casos de furto ou perda total do veículo."
+        },
+        {
+            question: "Meu sinistro foi recusado. O que fazer?",
+            answer: "Solicite por escrito a justificativa detalhada da recusa. Você tem direito a contestar a decisão apresentando documentação adicional ou esclarecimentos. Entre em contato com sinistros@vamosfrotas.com.br."
+        },
+        {
+            question: "Como proceder em caso de sinistro no final de semana ou feriado?",
+            answer: "Tome todas as providências de segurança (B.O., fotos, preservação de local). Guarde todos os documentos e entre em contato com a equipe de sinistros no primeiro dia útil seguinte."
+        },
+        {
+            question: "É necessário fazer vistoria antes de abrir o sinistro?",
+            answer: "Não. A vistoria prévia geralmente é feita no momento da contratação do seguro. Para abertura de sinistro, basta seguir o fluxo apresentado neste manual e enviar a documentação solicitada."
+        }
+    ];
+    
     // Main Application Component
     function ManualSinistroApp() {
         const [flowData, setFlowData] = useState(null);
@@ -80,6 +124,7 @@
         const [loading, setLoading] = useState(true);
         const [copiedEmail, setCopiedEmail] = useState(false);
         const [errorMessage, setErrorMessage] = useState(null);
+        const [showFAQ, setShowFAQ] = useState(false);
         
         // Load flow data from JSON
         useEffect(() => {
@@ -264,9 +309,89 @@
                     />
                 </div>
                 
+                {/* FAQ Section */}
+                <div className="mt-6 fade-in">
+                    <button
+                        onClick={() => setShowFAQ(!showFAQ)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between"
+                    >
+                        <span className="flex items-center gap-3">
+                            <span className="text-2xl">❓</span>
+                            <span className="text-lg">Perguntas Frequentes (FAQ)</span>
+                        </span>
+                        <svg 
+                            className={`w-6 h-6 transform transition-transform duration-300 ${showFAQ ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    {showFAQ && <FAQSection />}
+                </div>
+                
                 {/* Footer Help */}
-                <div className="text-center text-gray-500 text-sm fade-in">
+                <div className="text-center text-gray-500 text-sm mt-6 fade-in">
                     <p>💡 <strong>Dica:</strong> Use os botões para navegar pelo fluxo. Não é necessário digitar nada.</p>
+                </div>
+            </div>
+        );
+    }
+    
+    // FAQ Section Component
+    function FAQSection() {
+        const [openIndex, setOpenIndex] = useState(null);
+        
+        const toggleFAQ = (index) => {
+            setOpenIndex(openIndex === index ? null : index);
+        };
+        
+        return (
+            <div className="mt-4 bg-white rounded-xl shadow-xl p-6 fade-in">
+                <div className="mb-6 text-center">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Perguntas Frequentes</h3>
+                    <p className="text-gray-600">Encontre respostas rápidas para as dúvidas mais comuns</p>
+                </div>
+                
+                <div className="space-y-3">
+                    {faqData.map((faq, index) => (
+                        <div 
+                            key={index} 
+                            className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors duration-200"
+                        >
+                            <button
+                                onClick={() => toggleFAQ(index)}
+                                className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex items-center justify-between"
+                            >
+                                <span className="font-semibold text-gray-800 pr-4">{faq.question}</span>
+                                <svg 
+                                    className={`w-5 h-5 text-blue-600 flex-shrink-0 transform transition-transform duration-200 ${openIndex === index ? 'rotate-180' : ''}`}
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            
+                            {openIndex === index && (
+                                <div className="p-4 bg-white border-t border-gray-200 slide-in">
+                                    <p className="text-gray-700 leading-relaxed">{faq.answer}</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <p className="text-gray-700">
+                        <strong>Não encontrou sua resposta?</strong> Entre em contato conosco em{' '}
+                        <a href="mailto:sinistros@vamosfrotas.com.br" className="text-blue-600 hover:text-blue-700 font-semibold underline">
+                            sinistros@vamosfrotas.com.br
+                        </a>
+                    </p>
                 </div>
             </div>
         );
