@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Interativo de Sinistros - Vamos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .step-card { display: none; }
+        .step-card.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .email-template { background: #f1f5f9; border-left: 4px solid #1e40af; padding: 1.5rem; border-radius: 0.5rem; margin: 1rem 0; position: relative; font-family: monospace; }
+        .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: #1e40af; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+        .instruction-tag { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans text-slate-800">
+
+    <div id="flow-container" class="max-w-5xl mx-auto bg-white shadow-2xl rounded-3xl p-6 md:p-10 border border-slate-200">
+        <header class="border-b-4 border-blue-900 pb-6 mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-blue-900 uppercase">Manual de Sinistros CAV</h1>
+                <p class="text-slate-500 font-bold italic text-sm">Ferramenta Educativa de Fluxos de Trabalho</p>
+            </div>
+            <button onclick="location.reload()" class="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold text-sm">REINICIAR</button>
+        </header>
+
+        <div id="start-menu" class="step-card active text-center">
+            <h2 class="text-2xl font-bold mb-8">Escolha o Fluxo para Iniciar o Treinamento:</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="setFlow('seguradora')" class="p-8 bg-blue-50 border-2 border-blue-200 hover:border-blue-600 rounded-2xl font-black text-blue-900 transition shadow-sm">PAGAMENTO POR SEGURADORA</button>
+                <button onclick="setFlow('copart')" class="p-8 bg-orange-50 border-2 border-orange-200 hover:border-orange-600 rounded-2xl font-black text-orange-900 transition shadow-sm">CLIENTE - CO-PARTICIPAÇÃO (20%)</button>
+                <button onclick="setFlow('particular')" class="p-8 bg-green-50 border-2 border-green-200 hover:border-green-600 rounded-2xl font-black text-green-900 transition shadow-sm">PAGAMENTO PELO CLIENTE (100%)</button>
+                <button onclick="setFlow('faq')" class="p-8 bg-slate-800 text-white rounded-2xl font-black transition shadow-sm">FAQ - DÚVIDAS E REGRAS</button>
+            </div>
+        </div>
+
+        <div id="step-1" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 1: Chamado Aberto no CAV?</h2>
+            <p class="mb-6 font-medium">O chamado foi aberto no CAV (Central de Atendimento Vamos)?</p>
+            <div class="flex gap-4">
+                <button onclick="next('step-2')" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-md">SIM</button>
+                <button onclick="showEmail('em-cav')" class="bg-slate-500 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-md">NÃO</button>
+            </div>
+            <div id="em-cav" class="hidden mt-6">
+                <div class="email-template" id="txt-cav">
+                    <span class="copy-btn" onclick="copy('txt-cav')">COPIAR</span>
+                    Prezado,<br>Para abertura de sinistro, necessário realizar abertura de chamado na nossa central do CAV(Central de Atendimento Vamos):<br>• Contatos 0800 025 4141 ou WhatsApp (11) 97837-9385;<br>Após abertura, retornar o e-mail com o número do chamado.
+                </div>
+            </div>
+        </div>
+
+        <div id="step-2" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 2: Recebimento de Documentos</h2>
+            <div class="bg-slate-50 p-4 rounded-lg mb-6 text-sm leading-relaxed">
+                <strong>O cliente enviou:</strong> B.O Oficial, Ficha de Ocorrência, CNH (Vigente), Fotos das Avarias, Contato, Endereço do Ativo (Exceto furto/roubo) e se possui Seguradora?
+            </div>
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button onclick="handleStep2('SIM')" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">SIM (Documentos OK)</button>
+                <button onclick="showEmail('em-pend')" class="bg-slate-500 text-white px-6 py-3 rounded-xl font-bold">NÃO (Pendente)</button>
+            </div>
+            <div id="em-pend" class="hidden">
+                <div class="email-template" id="txt-pend">
+                    <span class="copy-btn" onclick="copy('txt-pend')">COPIAR</span>
+                    Prezados, solicito retorno com as documentações que ainda estão pendentes: (Citar quais são elas).
+                </div>
+            </div>
+        </div>
+
+        <div id="step-3" class="step-card">
+            <h2 class="text-xl font-bold mb-4 text-blue-900">ETAPA 3: Qual motivo do Sinistro?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="next('step-4')" class="p-6 bg-slate-100 hover:bg-slate-200 border rounded-xl font-bold">🔥 Incêndio / 🚨 Furto / Roubo</button>
+                <button onclick="next('step-3-5')" class="p-6 bg-slate-100 hover:bg-slate-200 border rounded-xl font-bold">🚗 Colisão</button>
+            </div>
+        </div>
+
+        <div id="step-3-5" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 3.5: Solicitou vistoria BVQI?</h2>
+            <div class="flex gap-4 mb-6">
+                <button onclick="next('step-3-6')" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">SIM</button>
+                <button onclick="showEmail('em-bvqi')" class="bg-slate-500 text-white px-6 py-3 rounded-xl font-bold">NÃO</button>
+            </div>
+            <div id="em-bvqi" class="hidden">
+                <p class="text-sm font-bold text-red-600 mb-2 underline">Ação: Solicite a vistoria gerando AF no chamado e envie e-mail para BVQI:</p>
+                <div class="email-template" id="txt-bvqi">
+                    <span class="copy-btn" onclick="copy('txt-bvqi')">COPIAR</span>
+                    Destinatários: eduardo.centenaro@somosvistorias.com.br, auditoria.autoreg@bureauveritas.com, klebert.oliveira@bureauveritas.com<br><br>Prezados, boa tarde!<br>Solicito a vistoria pós sinistro para o ativo (PLACA), conforme dados abaixo:<br>Endereço: [INFORMAR]<br>Placa: [INFORMAR]<br>Modelo: [INFORMAR]
+                </div>
+            </div>
+        </div>
+
+        <div id="step-3-6" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 3.6: O ativo deu PT?</h2>
+            <p class="mb-6 font-medium">Confirme com o setor de manutenção.</p>
+            <div class="flex gap-4">
+                <button onclick="next('step-4')" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">SIM</button>
+                <button onclick="alert('Encaminhar caso para o Controlador de Frota responsável.')" class="bg-slate-500 text-white px-8 py-3 rounded-xl font-bold">NÃO</button>
+            </div>
+        </div>
+
+        <div id="step-4" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 4: Verifique Proteção no PDV</h2>
+            <p class="mb-6 font-medium italic">Selecione de acordo com o número do contrato:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="handlePDV('SIM')" class="p-6 bg-orange-100 hover:bg-orange-200 border-2 border-orange-300 rounded-xl font-black">POSSUI LIMITAÇÃO (CO-PARTICIPAÇÃO)</button>
+                <button onclick="handlePDV('NÃO')" class="p-6 bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 rounded-xl font-black">NÃO POSSUI LIMITAÇÃO</button>
+            </div>
+        </div>
+
+        <div id="step-5" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 5: Envio à Manutenção</h2>
+            <div class="bg-blue-50 p-6 rounded-xl border border-blue-200 mb-6">
+                <p class="font-bold mb-2 uppercase text-xs">Ação Requerida:</p>
+                <p>1. Encaminhe docs + vistoria ao setor MANUTENÇÃO via chamado.</p>
+                <p class="mt-2 font-bold text-red-700 italic">E-mail ao cliente: Informe que a análise tem um prazo de 15 dias corridos.</p>
+            </div>
+            <p class="font-bold mb-4">Recebeu o Processo de Sinistro da Manutenção?</p>
+            <div class="flex gap-4">
+                <button onclick="next('step-6')" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-lg transition">SIM</button>
+                <button onclick="alert('Aguardar o Processo ser finalizado.')" class="bg-slate-400 text-white px-8 py-3 rounded-xl font-bold">NÃO</button>
+            </div>
+        </div>
+
+        <div id="step-6" class="step-card">
+            <h2 class="text-xl font-bold mb-4">ETAPA 6: Validação do Processo</h2>
+            <p class="mb-4">Encaminhe ao cliente o Processo de Sinistro e solicite validação.</p>
+            <div class="email-template" id="txt-val">
+                <span class="copy-btn" onclick="copy('txt-val')">COPIAR</span>
+                Apresentamos os processos de PERDA TOTAL, para a placa (PLACA). Aguardamos validação em <span class="deadline">5 dias corridos</span>.<br>VALOR INDENIZAÇÃO: R$ [INFORMAR VALOR]
+            </div>
+            <div id="seg-extra-info" class="hidden bg-slate-100 p-4 rounded mb-4 text-xs font-bold uppercase">Solicite os dados da Seguradora (Aviso, Data, Valor, Formulários e Apólice).</div>
+            <p class="font-bold mb-4">Recebeu retorno completo do cliente?</p>
+            <div class="flex gap-4">
+                <button onclick="handleStep6('SIM')" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-lg transition">SIM</button>
+                <button onclick="handleStep6('NÃO')" class="bg-slate-400 text-white px-8 py-3 rounded-xl font-bold">NÃO</button>
+            </div>
+        </div>
+
+        <div id="step-7" class="step-card">
+            </div>
+
+        <div id="step-8" class="step-card"></div>
+        <div id="step-9" class="step-card"></div>
+        <div id="step-10" class="step-card"></div>
+        <div id="step-11" class="step-card"></div>
+        <div id="step-12" class="step-card"></div>
+        <div id="step-13" class="step-card text-center p-10 bg-green-50 rounded-3xl border-4 border-green-500">
+            <h2 class="text-4xl font-black text-green-700 mb-6">PROCESSO FINALIZADO!</h2>
+            <p class="text-xl mb-10 font-medium">Verifique anexos, O.S. e assinaturas no D4Sign antes de encerrar.</p>
+            <button onclick="location.reload()" class="bg-green-700 text-white px-12 py-4 rounded-full font-black text-xl hover:bg-green-800 transition shadow-xl">NOVO SINISTRO</button>
+        </div>
+
+        <div id="faq" class="step-card">
+            <h2 class="text-3xl font-black mb-8 border-b-2 pb-4 text-slate-800">FAQ - Dúvidas Técnicas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm leading-relaxed">
+                <div><h3 class="font-black text-blue-800 uppercase mb-2">Vistoria em Incêndio?</h3><p>Não se solicita vistoria para incêndio total, exceto no segmento Agro.</p></div>
+                <div><h3 class="font-black text-blue-800 uppercase mb-2">Número de Contrato?</h3><p>GEO > Aba Dados da O.M > Dados do Contrato.</p></div>
+                <div><h3 class="font-black text-blue-800 uppercase mb-2">O que é Ofício?</h3><p>Documento de venda/transferência emitido em pagamentos de 100%.</p></div>
+                <div><h3 class="font-black text-blue-800 uppercase mb-2">Segmento do Ativo?</h3><p>CC Iniciais: H15/H16 (Pesados), G (Agro), H30/H60 (Intra).</p></div>
+            </div>
+            <button onclick="location.reload()" class="mt-12 bg-slate-800 text-white px-8 py-3 rounded-xl font-bold">Voltar ao Início</button>
+        </div>
+
+    </div>
+
+    <script>
+        let currentFlow = ""; 
+        let hasSeguradoraInStep2 = false;
+
+        function setFlow(flow) {
+            currentFlow = flow;
+            document.getElementById('start-menu').classList.remove('active');
+            if(flow === 'faq') next('faq');
+            else next('step-1');
+        }
+
+        function next(id) {
+            document.querySelectorAll('.step-card').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        function copy(id) {
+            const text = document.getElementById(id).innerText.split('COPIAR')[1].trim();
+            navigator.clipboard.writeText(text).then(() => alert("E-mail copiado!"));
+        }
+
+        function showEmail(id) { document.getElementById(id).classList.remove('hidden'); }
+
+        function handleStep2(choice) {
+            if(choice === 'SIM') {
+                // Aqui o usuário confirma se possui seguradora para definir o rumo
+                const segChoice = confirm("O cliente possui Seguradora?");
+                hasSeguradoraInStep2 = segChoice;
+                if(!segChoice && currentFlow === 'seguradora') {
+                    currentFlow = 'particular';
+                    alert("Redirecionando para fluxo de Pagamento pelo Cliente (Sem Seguradora)");
+                }
+                next('step-3');
+            }
+        }
+
+        function handlePDV(choice) {
+            if(choice === 'SIM') {
+                currentFlow = 'copart';
+                next('step-5');
+            } else {
+                if(hasSeguradoraInStep2) currentFlow = 'seguradora';
+                else currentFlow = 'particular';
+                next('step-5');
+            }
+        }
+
+        function handleStep6(choice) {
+            if(choice === 'NÃO') {
+                if(currentFlow === 'copart' || currentFlow === 'particular') {
+                    alert("Ação: Aguarde SLA de 5 dias. Após 3º e-mail, acione gerência e comercial.");
+                } else {
+                    alert("Aguardar retorno do cliente ou solicitar informações ausentes.");
+                }
+            } else {
+                renderStep7();
+            }
+        }
+
+        function renderStep7() {
+            const container = document.getElementById('step-7');
+            let html = "";
+
+            if(currentFlow === 'seguradora') {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 7: Trâmite Seguradora</h2>
+                <div class="bg-indigo-50 p-4 border border-indigo-200 rounded mb-4 text-xs font-bold uppercase">Encaminhe para Jadilma (jadilma.limal@simpar.com.br) e informe prazo de 60 dias ao cliente.</div>
+                <p class="font-bold mb-4">Recebeu retorno do Depto de Sinistro?</p>
+                <div class="flex gap-4">
+                    <button onclick="renderStep7_5()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold">SIM</button>
+                    <button onclick="alert('Aguardar Processo ser finalizado.')" class="bg-slate-500 text-white px-6 py-2 rounded font-bold">NÃO</button>
+                </div>`;
+            } else if(currentFlow === 'copart') {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 7: Assinaturas e D4Sign (Copart)</h2>
+                <p class="text-sm italic mb-4">Retorne O.S. via sistema ("Retorno do Cliente"). Após assinatura Rafael Gomes no D4Sign, anexe e retorne ao consultor.</p>
+                <p class="font-bold mb-4">Realizou todas as aprovações e assinaturas?</p>
+                <button onclick="renderStep8()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-lg transition">SIM, Feito</button>
+                <button onclick="alert('Aguardar as aprovações das alçadas e assinatura da CAPA DE PT pelo Diretor.')" class="bg-slate-400 text-white px-6 py-2 rounded-lg ml-2">Não</button>`;
+            } else {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 7: Validação e Aprovação (100%)</h2>
+                <p class="text-sm italic mb-4">Anexe e-mail na O.S., retorne ao consultor. Aguarde D4Sign e aprovação diretoria.</p>
+                <button onclick="renderStep8()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase shadow-lg transition">Aprovações Concluídas</button>`;
+            }
+            container.innerHTML = html;
+            next('step-7');
+        }
+
+        function renderStep7_5() {
+            const container = document.getElementById('step-7');
+            container.innerHTML = `
+            <h2 class="text-xl font-bold mb-4">ETAPA 7.1: Malote e Endereço</h2>
+            <p class="font-bold mb-4 underline">O cliente enviou o endereço para via física?</p>
+            <div class="flex gap-4">
+                <button onclick="renderStep8()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold">SIM</button>
+                <button onclick="alert('Aguardar Envio do Endereço.')" class="bg-slate-500 text-white px-6 py-2 rounded font-bold">NÃO</button>
+            </div>`;
+        }
+
+        function renderStep8() {
+            const container = document.getElementById('step-8');
+            let html = "";
+
+            if(currentFlow === 'seguradora') {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 8: Setor do Malote</h2>
+                <p class="text-sm italic mb-4 font-bold tracking-tight text-3xl font-bold Italic mb-4 font-bold">Enviar e-mail para malote@jsl.com.br solicitando rastreio.</p>
+                <p class="font-bold">Recebeu código de rastreio?</p>
+                <button onclick="renderStep9()" class="bg-blue-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">SIM</button>`;
+            } else if(currentFlow === 'copart') {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 8: Geração da ND (20%)</h2>
+                <p class="text-sm mb-4 font-bold tracking-tight text-3xl font-bold font-bold font-bold italic mb-4 font-bold tracking-tight text-3xl font-bold font-bold font-bold underline font-bold">Realizar encerramento para gerar C.A. e ND de 20% da FIPE via Medição.</p>
+                <p class="font-bold">A ND foi gerada?</p>
+                <button onclick="renderStep11()" class="bg-blue-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">SIM</button>`;
+            } else {
+                html = `
+                <h2 class="text-xl font-bold mb-4">ETAPA 8: Ofício e Boleto (100%)</h2>
+                <p class="text-sm mb-4 italic font-bold tracking-tight text-3xl font-bold italic mb-4 font-bold italic mb-4 font-bold">Solicitar emissão de Ofício e Boleto ao Gerente de Precificação.</p>
+                <p class="font-bold">Enviou solicitação ao setor?</p>
+                <button onclick="renderStep9()" class="bg-blue-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">SIM</button>`;
+            }
+            container.innerHTML = html;
+            next('step-8');
+        }
+
+        function renderStep9() {
+            const container = document.getElementById('step-9');
+            let html = "";
+
+            if(currentFlow === 'seguradora') {
+                html = `<h2 class="text-xl font-bold mb-4">ETAPA 9: Envio de Rastreio</h2>
+                <p class="mb-4">Envie o código ao cliente e peça confirmação em 5 dias.</p>
+                <p class="font-bold">Cliente confirmou recebimento?</p>
+                <button onclick="renderStep10()" class="bg-blue-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">SIM</button>`;
+            } else {
+                html = `<h2 class="text-xl font-bold mb-4">ETAPA 9: Envio Boleto/Ofício</h2>
+                <p class="mb-4">Encaminhe os anexos com a data de vencimento.</p>
+                <button onclick="renderStep10()" class="bg-blue-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">Enviado</button>`;
+            }
+            container.innerHTML = html;
+            next('step-9');
+        }
+
+        function renderStep10() {
+            const container = document.getElementById('step-10');
+            html = `<h2 class="text-xl font-bold mb-4">ETAPA 10: Programação de Pagamento</h2>
+            <p class="font-bold">Recebeu a Data de Programação do pagamento?</p>
+            <div class="flex gap-4 mt-4">
+                <button onclick="renderStep11()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold">SIM</button>
+                <button onclick="alert('Aguardar Programação.')" class="bg-slate-400 text-white px-6 py-2 rounded font-bold">NÃO</button>
+            </div>`;
+            container.innerHTML = html;
+            next('step-10');
+        }
+
+        function renderStep11() {
+            const container = document.getElementById('step-11');
+            html = `<h2 class="text-xl font-bold mb-4">ETAPA 11: Confirmação Financeiro</h2>
+            <div class="email-template" id="txt-fin">
+                <span class="copy-btn" onclick="copy('txt-fin')">COPIAR</span>
+                Poderia confirmar se o valor de (VALOR) foi depositado pela [SEGURADORA/CLIENTE]?
+            </div>
+            <p class="font-bold">Pagamento confirmado?</p>
+            <div class="flex gap-4 mt-4">
+                <button onclick="renderStep12()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">SIM</button>
+                <button onclick="alert('Aguardar Confirmação.')" class="bg-slate-400 text-white px-6 py-2 rounded font-bold">NÃO</button>
+            </div>`;
+            container.innerHTML = html;
+            next('step-11');
+        }
+
+        function renderStep12() {
+            const container = document.getElementById('step-12');
+            let desc = "";
+            if(currentFlow === 'seguradora') desc = "A indenização de 100% foi conduzida pela Seguradora, desta forma o ativo ficará com ela.";
+            else if(currentFlow === 'copart') desc = "A indenização de 20% foi conduzida pelo cliente, desta forma o ativo ficará com a Vamos Locação.";
+            else desc = "A indenização de 100% foi conduzida pelo cliente, desta forma o ativo ficará com o Locatário.";
+
+            html = `<h2 class="text-xl font-bold mb-4">ETAPA 12: Desmobilização</h2>
+            <div class="email-box bg-green-50 p-4 rounded text-sm italic font-bold tracking-tight text-3xl font-bold font-bold font-bold font-bold font-bold italic font-bold tracking-tight text-3xl font-bold font-bold font-bold font-bold font-bold">Enviar para desmobilizacao@grupovamos.com.br e barbara.almeida@grupovamos.com.br</div>
+            <div class="email-template" id="txt-des">
+                <span class="copy-btn" onclick="copy('txt-des')">COPIAR</span>
+                Poderiam seguir com desmobilização do ativo (PLACA) de acordo com pagamento em (DATA). <br>${desc}
+            </div>
+            <button onclick="next('step-13')" class="bg-green-600 text-white mt-4 px-8 py-3 rounded-xl font-bold">E-mail Enviado</button>`;
+            container.innerHTML = html;
+            next('step-12');
+        }
+    </script>
+</body>
+</html>
