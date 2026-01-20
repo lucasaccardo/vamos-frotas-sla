@@ -27,4 +27,8 @@ urlpatterns = [
     path('relatorios/', views.exportar_relatorios_view, name='exportar_relatorios'),
     path('export/xlsx/', views.exportar_xlsx, name='exportar_xlsx'),
     path('export/csv/', views.exportar_csv, name='exportar_csv'),
+    
+    # --- CUSTOM SECTORS (ADMIN ONLY) ---
+    path('admin/criar-setor/', views.criar_setor_customizado_view, name='criar_setor_customizado'),
+    path('admin/desativar-setor/<int:sector_id>/', views.desativar_setor_customizado_view, name='desativar_setor_customizado'),
 ]

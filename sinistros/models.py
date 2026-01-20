@@ -11,7 +11,8 @@ class Sinistro(models.Model):
         ('FINANCEIRO', 'Financeiro (Pagamento)'),
         ('DESMOBILIZACAO_MEDICAO', 'Desmobilização / Medição'),
         ('DEPTO_SINISTRO', 'Depto. Sinistro'),
-        ('MANUTENCAO', 'Manutenção'),
+        ('MANUTENCAO', 'Manutenção (Aprovação de O.S)'),
+        ('MANUTENCAO_CRIACAO', 'Manutenção (Criação de Processo)'),
         ('FINALIZADO', 'Finalizado'),
     ]
     
@@ -162,6 +163,10 @@ class Sinistro(models.Model):
             else:
                 return (15, '15 dias corridos')
         
+        # Caso especial: MANUTENCAO_CRIACAO tem prazo fixo
+        if setor == 'MANUTENCAO_CRIACAO':
+            return (10, '10 dias corridos')
+        
         # Retorna do mapeamento ou default
         return SLA_CONFIG.get(setor, (None, 'SEM PRAZO'))
 
@@ -187,3 +192,23 @@ class Frota(models.Model):
 
     def __str__(self):
         return f"{self.placa} - {self.cliente}"
+
+
+class CustomSetor(models.Model):
+    """
+    Custom sectors that can be created by admin users.
+    These are added dynamically to the sector choices.
+    """
+    key = models.CharField(max_length=50, unique=True, help_text="Chave única do setor (ex: CUSTOM_SETOR_1)")
+    display_name = models.CharField(max_length=100, help_text="Nome exibido do setor")
+    is_active = models.BooleanField(default=True, help_text="Se o setor está ativo")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Setor Customizado"
+        verbose_name_plural = "Setores Customizados"
+        ordering = ['display_name']
+    
+    def __str__(self):
+        return self.display_name

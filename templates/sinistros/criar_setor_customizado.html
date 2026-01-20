@@ -1,0 +1,133 @@
+{% extends 'vamos/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Criar Setor Customizado</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Atenção:</strong> Esta funcionalidade está disponível apenas para administradores.
+                        Use-a para criar setores personalizados que não estão na lista padrão.
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.key.id_for_label }}" class="form-label fw-bold">
+                                {{ form.key.label }}
+                            </label>
+                            {{ form.key }}
+                            {% if form.key.help_text %}
+                                <small class="form-text text-muted">{{ form.key.help_text }}</small>
+                            {% endif %}
+                            {% if form.key.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.key.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.display_name.id_for_label }}" class="form-label fw-bold">
+                                {{ form.display_name.label }}
+                            </label>
+                            {{ form.display_name }}
+                            {% if form.display_name.help_text %}
+                                <small class="form-text text-muted">{{ form.display_name.help_text }}</small>
+                            {% endif %}
+                            {% if form.display_name.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.display_name.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Criar Setor
+                            </button>
+                            <a href="{% url 'sinistros_home' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Setores Customizados -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Setores Customizados Existentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if custom_sectors %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Chave</th>
+                                        <th>Nome</th>
+                                        <th>Status</th>
+                                        <th>Criado por</th>
+                                        <th>Data de Criação</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sector in custom_sectors %}
+                                        <tr>
+                                            <td><code>{{ sector.key }}</code></td>
+                                            <td>{{ sector.display_name }}</td>
+                                            <td>
+                                                {% if sector.is_active %}
+                                                    <span class="badge bg-success">Ativo</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inativo</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ sector.created_by.username|default:"N/A" }}</td>
+                                            <td>{{ sector.created_at|date:"d/m/Y H:i" }}</td>
+                                            <td>
+                                                {% if sector.is_active %}
+                                                    <form method="post" action="{% url 'desativar_setor_customizado' sector.id %}" style="display:inline;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Tem certeza que deseja desativar este setor?')">
+                                                            <i class="bi bi-x-circle"></i> Desativar
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">Nenhum setor customizado criado ainda.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -96,3 +96,38 @@ class EditarSinistroForm(forms.ModelForm):
 # --- FORMULÁRIO DE UPLOAD ---
 class UploadBaseForm(forms.Form):
     arquivo = forms.FileField(label="Selecione a Planilha (Excel ou CSV)")
+
+
+# --- FORMULÁRIO DE SETOR CUSTOMIZADO ---
+class CustomSetorForm(forms.Form):
+    """Form para criar setores customizados (apenas para admins)"""
+    key = forms.CharField(
+        max_length=50,
+        label='Chave do Setor',
+        help_text='Chave única em maiúsculas, ex: CUSTOM_SETOR_1',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CUSTOM_SETOR_1'})
+    )
+    display_name = forms.CharField(
+        max_length=100,
+        label='Nome do Setor',
+        help_text='Nome que será exibido no sistema',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do Setor'})
+    )
+    
+    def clean_key(self):
+        key = self.cleaned_data.get('key', '').upper().strip()
+        # Validar formato
+        if not key.replace('_', '').isalnum():
+            raise forms.ValidationError('A chave deve conter apenas letras, números e underscores.')
+        
+        # Verificar se já existe
+        from .models import CustomSetor, Sinistro
+        if CustomSetor.objects.filter(key=key).exists():
+            raise forms.ValidationError('Já existe um setor customizado com essa chave.')
+        
+        # Verificar se conflita com setores predefinidos
+        predefined_keys = [choice[0] for choice in Sinistro.SETORES]
+        if key in predefined_keys:
+            raise forms.ValidationError('Esta chave conflita com um setor predefinido.')
+        
+        return key

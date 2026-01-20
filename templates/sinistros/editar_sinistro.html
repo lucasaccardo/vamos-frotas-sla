@@ -49,6 +49,7 @@
          data-desmobilizacao_medicao="SEM PRAZO"
          data-depto_sinistro="60 dias corridos"
          data-manutencao="15 dias corridos"
+         data-manutencao_criacao="10 dias corridos"
          data-manutencao_aguardando="2 dias corridos"
          data-finalizado="SEM PRAZO"
          data-abertura="SEM PRAZO"
@@ -91,6 +92,15 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold text-primary">Mudar Setor Atual</label>
                                         {{ form.setor_atual }}
+                                        {% if user.is_staff %}
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <a href="{% url 'criar_setor_customizado' %}" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-plus-circle me-1"></i>Criar novo setor (Admin)
+                                                </a>
+                                            </small>
+                                        </div>
+                                        {% endif %}
                                         <div id="sla_display" class="mt-2 text-muted small">
                                             <i class="bi bi-clock-fill me-1"></i>
                                             <span id="sla_text">Carregando SLA...</span>
@@ -265,6 +275,7 @@
         'DESMOBILIZACAO_MEDICAO': slaConfig.dataset.desmobilizacao_medicao,
         'DEPTO_SINISTRO': slaConfig.dataset.depto_sinistro,
         'MANUTENCAO': slaConfig.dataset.manutencao,
+        'MANUTENCAO_CRIACAO': slaConfig.dataset.manutencao_criacao,
         'MANUTENCAO_AGUARDANDO': slaConfig.dataset.manutencao_aguardando,
         'FINALIZADO': slaConfig.dataset.finalizado,
         'ABERTURA': slaConfig.dataset.abertura
