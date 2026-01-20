@@ -217,6 +217,9 @@ def api_buscar_dados_sinistro(request):
 def novo_sinistro_view(request):
     if request.method == 'POST':
         form = SinistroForm(request.POST)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
+        
         if form.is_valid():
             sinistro = form.save(commit=False)
             sinistro.criado_por = request.user
@@ -239,6 +242,8 @@ def novo_sinistro_view(request):
             messages.error(request, "Erro ao salvar. Verifique os campos.")
     else:
         form = SinistroForm()
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
@@ -254,6 +259,9 @@ def editar_sinistro_view(request, pk):
         aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
         retornar_ate_antigo = sinistro.retornar_ate
         form = EditarSinistroForm(request.POST, instance=sinistro)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
+        
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
@@ -302,6 +310,8 @@ def editar_sinistro_view(request, pk):
             messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
     else:
         form = EditarSinistroForm(instance=sinistro)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
 
     # Display flags (control visibility in template)
     setor_val = str(sinistro.setor_atual).upper() if sinistro.setor_atual is not None else ''
@@ -1030,10 +1040,11 @@ def criar_setor_customizado_view(request):
             CustomSetor.objects.create(
                 key=form.cleaned_data['key'],
                 display_name=form.cleaned_data['display_name'],
+                sla_days=form.cleaned_data.get('sla_days'),
                 created_by=request.user
             )
             messages.success(request, f'Setor "{form.cleaned_data["display_name"]}" criado com sucesso!')
-            return redirect('sinistros_home')
+            return redirect('criar_setor_customizado')  # Redirect back to the form to see the new sector
     else:
         form = CustomSetorForm()
     

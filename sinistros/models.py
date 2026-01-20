@@ -167,6 +167,16 @@ class Sinistro(models.Model):
         if setor == 'MANUTENCAO_CRIACAO':
             return (10, '10 dias corridos')
         
+        # Check if it's a custom sector
+        try:
+            custom_sector = CustomSetor.objects.get(key=setor, is_active=True)
+            if custom_sector.sla_days is not None:
+                return (custom_sector.sla_days, f'{custom_sector.sla_days} dias corridos')
+            else:
+                return (None, 'SEM PRAZO')
+        except CustomSetor.DoesNotExist:
+            pass
+        
         # Retorna do mapeamento ou default
         return SLA_CONFIG.get(setor, (None, 'SEM PRAZO'))
 
@@ -201,6 +211,7 @@ class CustomSetor(models.Model):
     """
     key = models.CharField(max_length=50, unique=True, help_text="Chave única do setor (ex: CUSTOM_SETOR_1)")
     display_name = models.CharField(max_length=100, help_text="Nome exibido do setor")
+    sla_days = models.IntegerField(default=None, null=True, blank=True, help_text="Prazo SLA em dias corridos (deixe vazio para SEM PRAZO)")
     is_active = models.BooleanField(default=True, help_text="Se o setor está ativo")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

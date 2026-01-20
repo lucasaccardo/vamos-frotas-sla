@@ -62,6 +62,23 @@
                             {% endif %}
                         </div>
 
+                        <div class="mb-3">
+                            <label for="{{ form.sla_days.id_for_label }}" class="form-label fw-bold">
+                                {{ form.sla_days.label }}
+                            </label>
+                            {{ form.sla_days }}
+                            {% if form.sla_days.help_text %}
+                                <small class="form-text text-muted">{{ form.sla_days.help_text }}</small>
+                            {% endif %}
+                            {% if form.sla_days.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.sla_days.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-check-circle me-1"></i>Criar Setor
@@ -87,6 +104,7 @@
                                     <tr>
                                         <th>Chave</th>
                                         <th>Nome</th>
+                                        <th>SLA (dias)</th>
                                         <th>Status</th>
                                         <th>Criado por</th>
                                         <th>Data de Criação</th>
@@ -98,6 +116,13 @@
                                         <tr>
                                             <td><code>{{ sector.key }}</code></td>
                                             <td>{{ sector.display_name }}</td>
+                                            <td>
+                                                {% if sector.sla_days %}
+                                                    {{ sector.sla_days }} dias
+                                                {% else %}
+                                                    <span class="text-muted">SEM PRAZO</span>
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 {% if sector.is_active %}
                                                     <span class="badge bg-success">Ativo</span>

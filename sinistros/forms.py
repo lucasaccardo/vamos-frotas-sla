@@ -113,6 +113,12 @@ class CustomSetorForm(forms.Form):
         help_text='Nome que será exibido no sistema',
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do Setor'})
     )
+    sla_days = forms.IntegerField(
+        required=False,
+        label='Prazo SLA (dias)',
+        help_text='Prazo em dias corridos (deixe vazio para SEM PRAZO)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '10', 'min': '1'})
+    )
     
     def clean_key(self):
         key = self.cleaned_data.get('key', '').upper().strip()
