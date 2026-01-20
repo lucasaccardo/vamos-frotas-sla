@@ -976,8 +976,8 @@ def delete_foto_perfil_view(request):
 # MANUAL DE SINISTRO - FLUXOGRAMA INTERATIVO
 # =============================================================================
 
-@login_required(login_url='login')
 # REMOVED: Manual de Sinistro view - removed as per issue to simplify UI
+# @login_required(login_url='login')
 # def manual_sinistro_view(request):
 #     """
 #     Exibe o Manual de Sinistro interativo com fluxograma de decisão.
