@@ -18,11 +18,28 @@ from django.utils.dateparse import parse_date
 from django.db.models import Sum, Count, Q
 from django.urls import reverse
 
-from .models import Sinistro, HistoricoSinistro
-from .forms import SinistroForm, EditarSinistroForm
+from .models import Sinistro, HistoricoSinistro, CustomSetor
+from .forms import SinistroForm, EditarSinistroForm, CustomSetorForm
 
 # Logger configuration
 logger = logging.getLogger(__name__)
+
+# --- HELPER: GET ALL SECTOR CHOICES (PREDEFINED + CUSTOM) ---
+def get_all_sector_choices():
+    """
+    Returns a list of tuples (key, display_name) for all sectors:
+    - Predefined sectors from Sinistro.SETORES
+    - Active custom sectors from CustomSetor model
+    """
+    # Get predefined sectors
+    choices = list(Sinistro.SETORES)
+    
+    # Add custom sectors
+    custom_sectors = CustomSetor.objects.filter(is_active=True).order_by('display_name')
+    for sector in custom_sectors:
+        choices.append((sector.key, sector.display_name))
+    
+    return choices
 
 # --- HELPER: FORMAT TIME ---
 def format_timedelta(td: timedelta):
@@ -75,14 +92,9 @@ def sinistros_home_view(request):
     if setor and setor != 'TODOS':
         qs = qs.filter(setor_atual=setor)
 
-    # 6. Build options list for Sector Select
-    try:
-        field = Sinistro._meta.get_field('setor_atual')
-        raw_choices = getattr(field, 'choices', []) or []
-        setor_choices = [('TODOS', 'Todos os Setores')] + list(raw_choices)
-    except Exception:
-        distinct_values = list(Sinistro.objects.values_list('setor_atual', flat=True).distinct())
-        setor_choices = [('TODOS', 'Todos os Setores')] + [(v, v) for v in distinct_values]
+    # 6. Build options list for Sector Select (including custom sectors)
+    all_sector_choices = get_all_sector_choices()
+    setor_choices = [('TODOS', 'Todos os Setores')] + all_sector_choices
 
     # 7. Ordering
     qs = qs.order_by('-ultima_interacao')
@@ -205,6 +217,9 @@ def api_buscar_dados_sinistro(request):
 def novo_sinistro_view(request):
     if request.method == 'POST':
         form = SinistroForm(request.POST)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
+        
         if form.is_valid():
             sinistro = form.save(commit=False)
             sinistro.criado_por = request.user
@@ -227,6 +242,8 @@ def novo_sinistro_view(request):
             messages.error(request, "Erro ao salvar. Verifique os campos.")
     else:
         form = SinistroForm()
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
     
     return render(request, "sinistros/novo_sinistro.html", {'form': form})
 
@@ -242,6 +259,9 @@ def editar_sinistro_view(request, pk):
         aguarda_aprovacao_antigo = sinistro.aguarda_aprovacao_os
         retornar_ate_antigo = sinistro.retornar_ate
         form = EditarSinistroForm(request.POST, instance=sinistro)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
+        
         if form.is_valid():
             try:
                 sinistro = form.save(commit=False)
@@ -290,6 +310,8 @@ def editar_sinistro_view(request, pk):
             messages.error(request, "Formulário inválido. Verifique os campos e mensagens de erro exibidas.")
     else:
         form = EditarSinistroForm(instance=sinistro)
+        # Update form with custom sectors
+        form.fields['setor_atual'].choices = get_all_sector_choices()
 
     # Display flags (control visibility in template)
     setor_val = str(sinistro.setor_atual).upper() if sinistro.setor_atual is not None else ''
@@ -1001,3 +1023,51 @@ def exportar_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     return response
+
+
+# --- CUSTOM SECTOR MANAGEMENT (ADMIN ONLY) ---
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_staff)
+def criar_setor_customizado_view(request):
+    """
+    View para criar setores customizados.
+    Apenas usuários admin (is_staff=True) podem acessar.
+    """
+    if request.method == 'POST':
+        form = CustomSetorForm(request.POST)
+        if form.is_valid():
+            # Criar o setor customizado
+            CustomSetor.objects.create(
+                key=form.cleaned_data['key'],
+                display_name=form.cleaned_data['display_name'],
+                sla_days=form.cleaned_data.get('sla_days'),
+                created_by=request.user
+            )
+            messages.success(request, f'Setor "{form.cleaned_data["display_name"]}" criado com sucesso!')
+            return redirect('criar_setor_customizado')  # Redirect back to the form to see the new sector
+    else:
+        form = CustomSetorForm()
+    
+    # Listar setores customizados existentes
+    custom_sectors = CustomSetor.objects.all().order_by('-created_at')
+    
+    context = {
+        'form': form,
+        'custom_sectors': custom_sectors,
+    }
+    return render(request, 'sinistros/criar_setor_customizado.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(lambda u: u.is_staff)
+@require_POST
+def desativar_setor_customizado_view(request, sector_id):
+    """
+    View para desativar um setor customizado.
+    Apenas usuários admin (is_staff=True) podem acessar.
+    """
+    sector = get_object_or_404(CustomSetor, id=sector_id)
+    sector.is_active = False
+    sector.save()
+    messages.success(request, f'Setor "{sector.display_name}" desativado com sucesso!')
+    return redirect('criar_setor_customizado')
