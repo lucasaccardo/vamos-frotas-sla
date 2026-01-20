@@ -977,9 +977,10 @@ def delete_foto_perfil_view(request):
 # =============================================================================
 
 @login_required(login_url='login')
-def manual_sinistro_view(request):
-    """
-    Exibe o Manual de Sinistro interativo com fluxograma de decisão.
-    Sistema de navegação baseado em cliques com lógica de ramificação em JSON.
-    """
-    return render(request, 'vamos/manual_sinistro.html')
+# REMOVED: Manual de Sinistro view - removed as per issue to simplify UI
+# def manual_sinistro_view(request):
+#     """
+#     Exibe o Manual de Sinistro interativo com fluxograma de decisão.
+#     Sistema de navegação baseado em cliques com lógica de ramificação em JSON.
+#     """
+#     return render(request, 'vamos/manual_sinistro.html')
