@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Gestão de Frotas - Login">
     <title>Login - Vamos Frotas SLA</title>
     
     <!-- Bootstrap 5 (opcional, para compatibilidade com mensagens) -->
@@ -16,9 +17,9 @@
     <link rel="icon" href="{% static 'img/logo.png' %}">
 </head>
 <body>
-    <div class="login-page">
+    <div class="login-page" role="main">
         <!-- Hero Section (Lado Esquerdo) -->
-        <div class="hero-section">
+        <div class="hero-section" aria-hidden="true">
             <div class="hero-overlay"></div>
             <div class="hero-content">
                 <h1>Gestão Inteligente<br>de Frotas</h1>
@@ -27,9 +28,9 @@
         </div>
 
         <!-- Auth Panel (Lado Direito) -->
-        <div class="auth-panel">
+        <div class="auth-panel" role="region" aria-label="Formulário de Login">
             <!-- Logo -->
-            <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="auth-logo">
+            <img src="{% static 'img/logo.png' %}" alt="Logo Vamos Frotas" class="auth-logo">
             
             <!-- Títulos -->
             <h2 class="auth-title">Bem-vindo de volta</h2>
@@ -38,14 +39,14 @@
             <!-- Mensagens de feedback -->
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
+                    <div class="alert alert-{{ message.tags }}" role="alert" aria-live="polite">
                         {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
             
             <!-- Formulário de Login -->
-            <form method="post" action="{% url 'login' %}" class="auth-form">
+            <form method="post" action="{% url 'login' %}" class="auth-form" aria-label="Formulário de autenticação">
                 {% csrf_token %}
                 
                 <div class="form-group">
@@ -58,6 +59,8 @@
                         placeholder="Digite seu usuário"
                         required 
                         autofocus
+                        aria-required="true"
+                        autocomplete="username"
                     >
                 </div>
                 
@@ -70,18 +73,20 @@
                         class="form-control" 
                         placeholder="Digite sua senha"
                         required
+                        aria-required="true"
+                        autocomplete="current-password"
                     >
                 </div>
                 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-submit" aria-label="Entrar no sistema">
                     Entrar
                 </button>
             </form>
             
             <!-- Links auxiliares -->
             <div class="auth-links">
-                <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
-                <a href="{% url 'signup' %}">Criar conta</a>
+                <a href="{% url 'reset_password' %}" aria-label="Recuperar senha esquecida">Esqueceu a senha?</a>
+                <a href="{% url 'signup' %}" aria-label="Criar nova conta">Criar conta</a>
             </div>
         </div>
     </div>
