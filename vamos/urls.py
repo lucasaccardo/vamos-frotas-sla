@@ -43,9 +43,6 @@ urlpatterns = [
     path("perfil/", views.minha_conta_view, name="minha_conta"),
     path("perfil/foto/delete/", views.delete_foto_perfil_view, name="delete_foto_perfil"),
     
-    # === Manual de Sinistro ===
-    path("manual-sinistro/", views.manual_sinistro_view, name="manual_sinistro"),
-    
     # === Tickets, Usuários, Detalhes de Análise ===
     path("tickets/", views.ticket_list_view, name="ticket_list"),
     path("tickets/<int:pk>/", views.ticket_detail_view, name="ticket_detail"),
