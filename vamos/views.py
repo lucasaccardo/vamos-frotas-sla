@@ -971,8 +971,3 @@ def delete_foto_perfil_view(request):
     
     return redirect("minha_conta")
 
-
-@login_required(login_url='login')
-def manual_sinistro_view(request):
-    """Exibe o Manual de Sinistro interativo."""
-    return render(request, "vamos/manual_sinistro.html")
