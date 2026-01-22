@@ -29,22 +29,36 @@ html, body {
     overflow: hidden;
 }
 
-/* Lado esquerdo: Hero com imagem */
+/* Lado esquerdo: Hero com design neutro e sutil */
 .hero-section {
     flex: 1;
     height: 100vh;
-    /* Background image from static files */
-    background-image: url('../img/background.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    /* Subtle neutral gradient background instead of truck image */
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e293b 100%);
     position: relative;
     display: flex;
     align-items: flex-end;
     padding: 4rem;
+    overflow: hidden;
 }
 
-/* Overlay escuro sobre a imagem hero com gradiente suave e sofisticado */
+/* Adiciona padrão geométrico sutil ao fundo */
+.hero-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(71, 85, 105, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(100, 116, 139, 0.1) 0%, transparent 40%);
+    opacity: 0.6;
+    z-index: 0;
+}
+
+/* Overlay suave sobre o hero com gradiente ajustado */
 .hero-overlay {
     position: absolute;
     top: 0;
@@ -53,10 +67,10 @@ html, body {
     height: 100%;
     background: linear-gradient(
         135deg, 
-        rgba(15, 23, 42, 0.95) 0%, 
-        rgba(15, 23, 42, 0.85) 40%,
-        rgba(15, 23, 42, 0.6) 70%,
-        rgba(220, 38, 38, 0.05) 100%
+        rgba(15, 23, 42, 0.7) 0%, 
+        rgba(15, 23, 42, 0.4) 40%,
+        rgba(30, 41, 59, 0.3) 70%,
+        rgba(220, 38, 38, 0.08) 100%
     );
     z-index: 1;
 }
@@ -98,11 +112,11 @@ html, body {
     }
 }
 
-/* Painel de autenticação à direita com divisão sofisticada */
+/* Painel de autenticação à direita com divisão sofisticada e melhor proporção */
 .auth-panel {
-    width: 420px;
-    max-width: 32vw;
-    min-height: 450px;
+    width: 460px;
+    max-width: 35vw;
+    min-height: 500px;
     background: linear-gradient(
         145deg, 
         rgba(30, 41, 59, 0.98) 0%,
@@ -111,8 +125,8 @@ html, body {
     backdrop-filter: blur(25px) saturate(180%);
     -webkit-backdrop-filter: blur(25px) saturate(180%); /* Safari support */
     border-radius: 24px;
-    padding: 48px 40px;
-    margin-right: 5%; /* Afasta do canto direito */
+    padding: 52px 44px;
+    margin-right: 6%; /* Centered with equal spacing */
     align-self: center; /* Garante centralização vertical */
     box-shadow: 
         -15px 0 60px rgba(220, 38, 38, 0.15),
@@ -167,9 +181,9 @@ html, body {
     }
 }
 
-/* Logo */
+/* Logo com tamanho proporcional ao painel */
 .auth-logo {
-    width: 160px;
+    width: 180px;
     height: auto;
     margin-bottom: 2.5rem;
     display: block;
@@ -207,7 +221,7 @@ html, body {
 }
 
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
     position: relative;
 }
 
@@ -226,8 +240,8 @@ html, body {
 
 .form-control {
     width: 100%;
-    padding: 0.875rem 1.125rem;
-    font-size: 0.95rem;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
     line-height: 1.6;
     color: #ffffff;
     background: linear-gradient(
@@ -270,11 +284,11 @@ html, body {
     color: #64748b;
 }
 
-/* Botão de submit com efeito aprimorado */
+/* Botão de submit com efeito aprimorado e tamanho proporcional */
 .btn-submit {
     width: 100%;
-    padding: 1rem 1.125rem;
-    font-size: 1rem;
+    padding: 1.125rem 1.25rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #ffffff;
     background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
@@ -396,13 +410,17 @@ html, body {
 
 /* === RESPONSIVIDADE === */
 
-/* Telas médias (≤1200px) - Reduz espaçamento */
+/* Telas médias (≤1200px) - Reduz espaçamento mantendo proporções */
 @media (max-width: 1200px) {
     .auth-panel {
-        width: 400px;
-        max-width: 400px;
-        margin-right: 4%;
-        padding: 42px 36px;
+        width: 440px;
+        max-width: 440px;
+        margin-right: 5%;
+        padding: 48px 40px;
+    }
+    
+    .auth-logo {
+        width: 170px;
     }
     
     .hero-content h1 {
@@ -414,12 +432,16 @@ html, body {
     }
 }
 
-/* Tablets (≤900px) - Reduz mais o hero */
+/* Tablets (≤900px) - Reduz mais mantendo proporções */
 @media (max-width: 900px) {
     .auth-panel {
-        width: 360px;
-        margin-right: 3.5%;
-        padding: 36px 32px;
+        width: 400px;
+        margin-right: 4%;
+        padding: 44px 36px;
+    }
+    
+    .auth-logo {
+        width: 160px;
     }
     
     .hero-content h1 {
@@ -445,11 +467,11 @@ html, body {
     }
     
     .auth-panel {
-        width: 92%;
-        max-width: 420px;
+        width: 94%;
+        max-width: 460px;
         margin: 2.5rem auto;
         align-self: center;
-        padding: 2.5rem 2rem;
+        padding: 2.75rem 2.25rem;
         box-shadow: 
             0 20px 50px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(220, 38, 38, 0.2);
@@ -460,37 +482,37 @@ html, body {
     }
     
     .auth-logo {
-        width: 140px;
+        width: 160px;
     }
     
     .auth-title {
-        font-size: 1.5rem;
+        font-size: 1.625rem;
     }
 }
 
-/* Mobile portrait (≤375px) - Ajustes finos */
+/* Mobile portrait (≤375px) - Ajustes finos mantendo proporções */
 @media (max-width: 375px) {
     .auth-panel {
-        width: 95%;
-        padding: 1.5rem;
+        width: 96%;
+        padding: 2rem 1.75rem;
     }
     
     .auth-title {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
     }
     
     .auth-logo {
-        width: 100px;
+        width: 140px;
     }
     
     .form-control {
-        font-size: 0.9rem;
-        padding: 0.65rem 0.9rem;
+        font-size: 0.95rem;
+        padding: 0.875rem 1rem;
     }
     
     .btn-submit {
-        font-size: 0.95rem;
-        padding: 0.75rem 0.9rem;
+        font-size: 1rem;
+        padding: 1rem 1.125rem;
     }
 }
 
