@@ -146,7 +146,7 @@ html, body {
 }
 
 /* Fallback for browsers that don't support backdrop-filter */
-@supports not (backdrop-filter: blur(20px)) {
+@supports not (backdrop-filter: blur(25px)) {
     .auth-panel {
         background: linear-gradient(
             145deg, 
@@ -277,7 +277,7 @@ html, body {
     font-size: 1rem;
     font-weight: 700;
     color: #ffffff;
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
     border: none;
     border-radius: 12px;
     cursor: pointer;
@@ -305,7 +305,7 @@ html, body {
 }
 
 .btn-submit:hover {
-    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 50%, #7f1d1d 100%);
+    background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
     transform: translateY(-3px);
     box-shadow: 
         0 10px 30px rgba(220, 38, 38, 0.6),
@@ -456,7 +456,7 @@ html, body {
     }
     
     .auth-panel::before {
-        display: none; /* Remove borda lateral em mobile */
+        display: none; /* Remove vertical glow effect on mobile */
     }
     
     .auth-logo {
