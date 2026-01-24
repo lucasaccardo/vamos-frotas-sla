@@ -1,6 +1,7 @@
 /* 
  * Login Page Styles - Vamos Frotas SLA
- * Modern split-screen design with two columns
+ * Modern glassmorphism design with centered card
+ * Golden ratio proportions for elegant design
  */
 
 /* Reset and base styles */
@@ -12,117 +13,90 @@ body, html {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Main split container - Two columns layout */
-.login-split-container {
-    height: 100vh;
+/* Full-screen background with truck image */
+.login-background {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100vw;
-    display: flex;
-    position: relative;
-}
-
-/* Left Column: Image with overlay */
-.login-image-column {
-    flex: 1;
-    position: relative;
+    height: 100vh;
     background-image: url('../img/background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-/* Brand color overlay on the image */
-.image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /* Vamos brand red overlay with gradient for depth */
-    background: linear-gradient(
-        135deg, 
-        rgba(220, 38, 38, 0.85) 0%, 
-        rgba(153, 27, 27, 0.75) 50%,
-        rgba(15, 23, 42, 0.85) 100%
-    );
     z-index: 1;
 }
 
-/* Content on the image (optional text overlay) */
-.image-content {
-    position: relative;
+/* Dark gradient overlay using ::before pseudo-element */
+.login-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
     z-index: 2;
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    max-width: 600px;
 }
 
-.image-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.image-subtitle {
-    font-size: 1.25rem;
-    font-weight: 400;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* Right Column: Login Form */
-.login-form-column {
-    flex: 0 0 480px;
-    background: #ffffff;
+/* Main container - centered with Flexbox */
+.login-container {
+    position: relative;
+    z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3rem 2rem;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
+    min-height: 100vh;
+    padding: 20px;
 }
 
-/* Form wrapper to center content */
-.login-form-wrapper {
+/* Glassmorphism login card - centered */
+.login-card {
     width: 100%;
     max-width: 400px;
+    
+    /* Authentic glassmorphism effect */
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+    
+    /* Subtle shadow for depth */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Logo at the top - centered */
+/* Logo at the top - centered with proportional sizing */
 .login-logo {
-    width: 160px;
+    width: 120px;
     height: auto;
     margin: 0 auto 2rem;
     display: block;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
-/* Typography Hierarchy */
+/* Typography Hierarchy with white text for dark background */
 .login-title {
     font-size: 1.875rem;
     font-weight: 700;
-    color: #1e293b;
+    color: #ffffff;
     margin-bottom: 0.5rem;
     text-align: center;
     line-height: 1.3;
     letter-spacing: -0.025em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .login-subtitle {
     font-size: 0.9375rem;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.85);
     margin-bottom: 2rem;
     text-align: center;
     line-height: 1.6;
     letter-spacing: 0.01em;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Form group with proper spacing */
@@ -131,67 +105,69 @@ body, html {
     position: relative;
 }
 
-/* Minimalist input fields with thin borders */
+/* Modern input fields - 50px height, rounded borders, no solid white background */
 .form-control-modern {
     width: 100%;
+    height: 50px;
     padding: 0.875rem 1rem 0.875rem 2.75rem;
     font-size: 0.9375rem;
     line-height: 1.5;
-    color: #334155;
+    color: #ffffff;
     
-    /* Clean white background */
-    background: #ffffff;
+    /* Slightly darkened background instead of solid white */
+    background: rgba(0, 0, 0, 0.3);
     
-    /* Thin border - 1px as specified */
-    border: 1px solid #cbd5e1;
+    /* Rounded borders */
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     
     /* Smooth transitions */
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
     
     /* No heavy shadows */
     box-shadow: none;
 }
 
-/* Hover state - subtle color change */
-.form-control-modern:hover {
-    border-color: #94a3b8;
-}
-
-/* Focus state with smooth transition */
-.form-control-modern:focus {
-    outline: none;
-    border-color: #dc2626;
-    background: #ffffff;
-    
-    /* Subtle focus ring */
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-/* Placeholder styling */
+/* Placeholder styling for white text */
 .form-control-modern::placeholder {
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.6);
     font-size: 0.9375rem;
 }
 
-/* Simple and discrete icons on the left */
+/* Hover state */
+.form-control-modern:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.35);
+}
+
+/* Focus state - border changes to brand red (#D12119) */
+.form-control-modern:focus {
+    outline: none;
+    border-color: #D12119;
+    background: rgba(0, 0, 0, 0.4);
+    
+    /* Subtle focus ring with brand color */
+    box-shadow: 0 0 0 3px rgba(209, 33, 25, 0.2);
+}
+
+/* Input icons on the left */
 .input-icon {
     position: absolute;
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.6);
     font-size: 1.1rem;
     pointer-events: none;
-    transition: color 0.25s ease;
+    transition: color 0.3s ease;
 }
 
-/* Icon color change on focus */
+/* Icon color change on focus to brand red */
 .form-group:focus-within .input-icon {
-    color: #dc2626;
+    color: #D12119;
 }
 
-/* Modern "ENTRAR" button with brand red */
+/* "ENTRAR" button - Brand color #D12119 with uppercase text */
 .btn-login {
     width: 100%;
     padding: 1rem 1.5rem;
@@ -199,38 +175,38 @@ body, html {
     font-weight: 600;
     color: #ffffff;
     
-    /* Brand red solid color */
-    background: #dc2626;
+    /* Brand red solid color #D12119 */
+    background: #D12119;
     
     border: none;
     border-radius: 10px;
     
     cursor: pointer;
     
-    /* Uppercase for emphasis */
+    /* Uppercase text with letter spacing */
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     
     margin-top: 0.5rem;
     
     /* Smooth transitions */
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
     
-    /* Subtle shadow */
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    /* Subtle shadow for depth */
+    box-shadow: 0 4px 12px rgba(209, 33, 25, 0.3);
 }
 
-/* Elegant hover effect - slight scale and darker color */
+/* Elevation effect on hover */
 .btn-login:hover {
-    background: #b91c1c;
-    transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+    background: #b01015;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(209, 33, 25, 0.4);
 }
 
 /* Active state */
 .btn-login:active {
-    transform: translateY(0) scale(0.99);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(209, 33, 25, 0.3);
 }
 
 /* Footer links with harmonious spacing */
@@ -243,9 +219,9 @@ body, html {
 }
 
 .login-footer a {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
 }
 
@@ -257,122 +233,81 @@ body, html {
     left: 0;
     width: 0;
     height: 2px;
-    background-color: #dc2626;
-    transition: width 0.25s ease;
+    background-color: #D12119;
+    transition: width 0.3s ease;
 }
 
 .login-footer a:hover {
-    color: #dc2626;
+    color: #ffffff;
 }
 
 .login-footer a:hover::after {
     width: 100%;
 }
 
-/* Alert messages */
+/* Alert messages with glassmorphism */
 .alert {
     padding: 0.875rem 1rem;
     border-radius: 10px;
     margin-bottom: 1.25rem;
     font-size: 0.875rem;
-    border: 1px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
 }
 
 .alert-danger {
-    background-color: #fef2f2;
-    border-color: #fecaca;
-    color: #991b1b;
-    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.1);
+    background-color: rgba(209, 33, 25, 0.2);
+    border-color: rgba(209, 33, 25, 0.3);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(209, 33, 25, 0.2);
 }
 
 .alert i {
     font-size: 1rem;
-    color: #dc2626;
+    color: #D12119;
 }
 
 /* Responsive Design */
 
-/* Tablets and smaller laptops - Adjust split proportions */
-@media (max-width: 1024px) {
-    .login-form-column {
-        flex: 0 0 420px;
-    }
-    
-    .image-title {
-        font-size: 2.25rem;
-    }
-    
-    .image-subtitle {
-        font-size: 1.125rem;
-    }
-}
-
-/* Tablets - Stack columns vertically */
+/* Tablets and smaller devices */
 @media (max-width: 768px) {
-    .login-split-container {
-        flex-direction: column;
-    }
-    
-    .login-image-column {
-        flex: 0 0 40%;
-        min-height: 250px;
-    }
-    
-    .login-form-column {
-        flex: 1;
-        padding: 2rem 1.5rem;
-    }
-    
-    .image-title {
-        font-size: 1.75rem;
-    }
-    
-    .image-subtitle {
-        font-size: 1rem;
-    }
-    
-    .login-form-wrapper {
-        max-width: 100%;
+    .login-card {
+        max-width: 360px;
+        padding: 32px 28px;
     }
     
     .login-logo {
-        width: 140px;
+        width: 100px;
         margin-bottom: 1.5rem;
     }
     
     .login-title {
         font-size: 1.625rem;
     }
+    
+    .login-subtitle {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
 }
 
-/* Mobile portrait - Single column with small image header */
+/* Mobile devices */
 @media (max-width: 480px) {
-    .login-image-column {
-        flex: 0 0 180px;
-        min-height: 180px;
+    .login-container {
+        padding: 15px;
     }
     
-    .image-content {
-        padding: 1rem;
-    }
-    
-    .image-title {
-        font-size: 1.25rem;
-    }
-    
-    .image-subtitle {
-        font-size: 0.875rem;
-    }
-    
-    .login-form-column {
-        padding: 1.5rem 1.25rem;
+    .login-card {
+        max-width: 100%;
+        padding: 28px 24px;
     }
     
     .login-logo {
-        width: 120px;
+        width: 90px;
         margin-bottom: 1.25rem;
     }
     
@@ -381,11 +316,12 @@ body, html {
     }
     
     .login-subtitle {
-        font-size: 0.875rem;
-        margin-bottom: 1.5rem;
+        font-size: 0.8125rem;
+        margin-bottom: 1.25rem;
     }
     
     .form-control-modern {
+        height: 48px;
         padding: 0.75rem 0.875rem 0.75rem 2.5rem;
         font-size: 0.875rem;
     }
@@ -401,7 +337,7 @@ body, html {
     
     .login-footer {
         flex-direction: column;
-        gap: 0.625rem;
+        gap: 0.75rem;
         text-align: center;
     }
 }
@@ -412,7 +348,7 @@ body, html {
 .form-control-modern:focus-visible,
 .btn-login:focus-visible,
 .login-footer a:focus-visible {
-    outline: 2px solid #dc2626;
+    outline: 2px solid #D12119;
     outline-offset: 3px;
 }
 
@@ -429,8 +365,8 @@ body, html {
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-    .login-form-column {
-        border-left: 3px solid #1e293b;
+    .login-card {
+        border: 2px solid rgba(255, 255, 255, 0.4);
     }
     
     .form-control-modern {
@@ -438,6 +374,6 @@ body, html {
     }
     
     .btn-login {
-        border: 2px solid #1e293b;
+        border: 2px solid rgba(255, 255, 255, 0.3);
     }
 }
