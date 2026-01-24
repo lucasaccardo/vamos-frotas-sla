@@ -3,67 +3,78 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/login.css' %}">
-<div class="login-container">
-    <!-- Centered glassmorphism login card -->
-    <div class="login-card">
-        <!-- Logo -->
-        <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="login-logo">
+<div class="login-split-container">
+    <!-- Left Column: Truck Image with Brand Overlay -->
+    <div class="login-image-column">
+        <div class="image-overlay"></div>
+        <div class="image-content">
+            <h1 class="image-title">Gestão Inteligente de Frotas</h1>
+            <p class="image-subtitle">Soluções completas para otimizar sua operação</p>
+        </div>
+    </div>
 
-        <!-- Enhanced typography hierarchy -->
-        <h2 class="login-title">Bem-vindo à Vamos</h2>
-        <p class="login-subtitle">Insira suas credenciais para acessar o sistema</p>
+    <!-- Right Column: Login Form -->
+    <div class="login-form-column">
+        <div class="login-form-wrapper">
+            <!-- Logo at the top -->
+            <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="login-logo">
 
-        <!-- Alert messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-circle"></i>
-                    <span>{{ message }}</span>
+            <!-- Enhanced typography hierarchy -->
+            <h2 class="login-title">Bem-vindo à Vamos</h2>
+            <p class="login-subtitle">Insira suas credenciais para acessar o sistema</p>
+
+            <!-- Alert messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Login form -->
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Username field with icon -->
+                <div class="form-group">
+                    <i class="bi bi-person input-icon"></i>
+                    <input 
+                        type="text" 
+                        name="username" 
+                        class="form-control-modern" 
+                        placeholder="Usuário" 
+                        required 
+                        autofocus
+                        autocomplete="username"
+                    >
                 </div>
-            {% endfor %}
-        {% endif %}
 
-        <!-- Login form -->
-        <form method="post">
-            {% csrf_token %}
-            
-            <!-- Username field with icon -->
-            <div class="form-group">
-                <i class="bi bi-person input-icon"></i>
-                <input 
-                    type="text" 
-                    name="username" 
-                    class="form-control-modern" 
-                    placeholder="Usuário" 
-                    required 
-                    autofocus
-                    autocomplete="username"
-                >
+                <!-- Password field with icon -->
+                <div class="form-group">
+                    <i class="bi bi-lock input-icon"></i>
+                    <input 
+                        type="password" 
+                        name="password" 
+                        class="form-control-modern" 
+                        placeholder="Senha" 
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <!-- Full-width submit button -->
+                <button type="submit" class="btn-login">
+                    ENTRAR
+                </button>
+            </form>
+
+            <!-- Footer links -->
+            <div class="login-footer">
+                <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
+                <a href="{% url 'signup' %}">Criar conta</a>
             </div>
-
-            <!-- Password field with icon -->
-            <div class="form-group">
-                <i class="bi bi-lock input-icon"></i>
-                <input 
-                    type="password" 
-                    name="password" 
-                    class="form-control-modern" 
-                    placeholder="Senha" 
-                    required
-                    autocomplete="current-password"
-                >
-            </div>
-
-            <!-- Full-width submit button -->
-            <button type="submit" class="btn-login">
-                Entrar
-            </button>
-        </form>
-
-        <!-- Footer links -->
-        <div class="login-footer">
-            <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
-            <a href="{% url 'signup' %}">Criar conta</a>
         </div>
     </div>
 </div>

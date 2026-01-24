@@ -1,6 +1,6 @@
 /* 
  * Login Page Styles - Vamos Frotas SLA
- * Professional glassmorphism design with truck background
+ * Modern split-screen design with two columns
  */
 
 /* Reset and base styles */
@@ -9,175 +9,172 @@ body, html {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Main container - full viewport */
-.login-container {
+/* Main split container - Two columns layout */
+.login-split-container {
     height: 100vh;
     width: 100vw;
     display: flex;
     position: relative;
-    
-    /* Professional truck background with overlay */
-    background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-        url('../img/background.png');
+}
+
+/* Left Column: Image with overlay */
+.login-image-column {
+    flex: 1;
+    position: relative;
+    background-image: url('../img/background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
-/* Alternative overlay using blend mode for better contrast */
-.login-container::before {
-    content: '';
+/* Brand color overlay on the image */
+.image-overlay {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(0, 0, 0, 0.7) 100%);
-    z-index: 0;
-}
-
-/* Centered login card with glassmorphism */
-.login-card {
-    position: relative;
+    right: 0;
+    bottom: 0;
+    /* Vamos brand red overlay with gradient for depth */
+    background: linear-gradient(
+        135deg, 
+        rgba(220, 38, 38, 0.85) 0%, 
+        rgba(153, 27, 27, 0.75) 50%,
+        rgba(15, 23, 42, 0.85) 100%
+    );
     z-index: 1;
-    margin: auto;
-    width: 100%;
-    max-width: 460px;
-    
-    /* Glassmorphism effect */
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    
-    /* Smooth rounded borders */
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    /* Balanced internal padding */
-    padding: 3rem 2.75rem;
-    
-    /* Elegant shadow */
-    box-shadow: 
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(220, 38, 38, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    
-    /* Smooth transitions */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Subtle hover effect on card */
-.login-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-        0 25px 70px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(220, 38, 38, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Fallback for browsers without backdrop-filter support */
-@supports not (backdrop-filter: blur(20px)) {
-    .login-card {
-        background: rgba(15, 23, 42, 0.95);
-    }
-}
-
-/* Logo with proper spacing */
-.login-logo {
-    width: 180px;
-    height: auto;
-    margin: 0 auto 2.5rem;
-    display: block;
-    filter: drop-shadow(0 4px 12px rgba(220, 38, 38, 0.3));
-    transition: transform 0.3s ease, filter 0.3s ease;
-}
-
-.login-logo:hover {
-    transform: scale(1.05);
-    filter: drop-shadow(0 6px 16px rgba(220, 38, 38, 0.4));
-}
-
-/* Typography Hierarchy - Enhanced "Bem-vindo à Vamos" */
-.login-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
+/* Content on the image (optional text overlay) */
+.image-content {
+    position: relative;
+    z-index: 2;
+    color: white;
     text-align: center;
+    padding: 2rem;
+    max-width: 600px;
+}
+
+.image-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
     line-height: 1.2;
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.image-subtitle {
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Right Column: Login Form */
+.login-form-column {
+    flex: 0 0 480px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+/* Form wrapper to center content */
+.login-form-wrapper {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Logo at the top - centered */
+.login-logo {
+    width: 160px;
+    height: auto;
+    margin: 0 auto 2rem;
+    display: block;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Typography Hierarchy */
+.login-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
 }
 
 .login-subtitle {
-    font-size: 1rem;
-    color: #94a3b8;
-    margin-bottom: 2.5rem;
+    font-size: 0.9375rem;
+    color: #64748b;
+    margin-bottom: 2rem;
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
 }
 
 /* Form group with proper spacing */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     position: relative;
 }
 
-/* Input fields with icons and clear focus states */
+/* Minimalist input fields with thin borders */
 .form-control-modern {
     width: 100%;
-    padding: 1rem 1rem 1rem 3rem;
-    font-size: 1rem;
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    font-size: 0.9375rem;
     line-height: 1.5;
-    color: #ffffff;
+    color: #334155;
     
-    /* Subtle background */
-    background: rgba(30, 41, 59, 0.6);
+    /* Clean white background */
+    background: #ffffff;
     
-    /* Clear border */
-    border: 1.5px solid rgba(71, 85, 105, 0.5);
-    border-radius: 12px;
+    /* Thin border - 1px as specified */
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
     
     /* Smooth transitions */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s ease;
     
-    /* Inner shadow for depth */
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    /* No heavy shadows */
+    box-shadow: none;
 }
 
-/* Hover state */
+/* Hover state - subtle color change */
 .form-control-modern:hover {
-    border-color: rgba(100, 116, 139, 0.7);
-    background: rgba(30, 41, 59, 0.75);
+    border-color: #94a3b8;
 }
 
-/* Clear focus state with brand red */
+/* Focus state with smooth transition */
 .form-control-modern:focus {
     outline: none;
     border-color: #dc2626;
-    background: rgba(30, 41, 59, 0.85);
+    background: #ffffff;
     
-    /* Prominent glow effect */
-    box-shadow: 
-        0 0 0 4px rgba(220, 38, 38, 0.2),
-        0 4px 12px rgba(220, 38, 38, 0.15),
-        inset 0 1px 3px rgba(0, 0, 0, 0.15);
-    
-    transform: translateY(-1px);
+    /* Subtle focus ring */
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 /* Placeholder styling */
 .form-control-modern::placeholder {
-    color: #64748b;
-    font-size: 0.95rem;
+    color: #94a3b8;
+    font-size: 0.9375rem;
 }
 
-/* Discrete visual aid icons */
+/* Simple and discrete icons on the left */
 .input-icon {
     position: absolute;
     left: 1rem;
@@ -186,7 +183,7 @@ body, html {
     color: #94a3b8;
     font-size: 1.1rem;
     pointer-events: none;
-    transition: color 0.3s ease;
+    transition: color 0.25s ease;
 }
 
 /* Icon color change on focus */
@@ -194,79 +191,51 @@ body, html {
     color: #dc2626;
 }
 
-/* Full-width action button with brand red */
+/* Modern "ENTRAR" button with brand red */
 .btn-login {
     width: 100%;
-    padding: 1.125rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 700;
+    padding: 1rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: #ffffff;
     
-    /* Brand red gradient */
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    /* Brand red solid color */
+    background: #dc2626;
     
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     
-    /* Consistent rounding with inputs */
     cursor: pointer;
     
     /* Uppercase for emphasis */
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.5px;
     
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     
     /* Smooth transitions */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s ease;
     
-    /* Elegant shadow */
-    box-shadow: 
-        0 6px 20px rgba(220, 38, 38, 0.35),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    
-    position: relative;
-    overflow: hidden;
+    /* Subtle shadow */
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-/* Shimmer effect on button */
-.btn-login::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s ease;
-}
-
-/* Elegant hover effect */
+/* Elegant hover effect - slight scale and darker color */
 .btn-login:hover {
-    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-    transform: translateY(-2px);
-    box-shadow: 
-        0 10px 30px rgba(220, 38, 38, 0.5),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.btn-login:hover::before {
-    left: 100%;
+    background: #b91c1c;
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
 }
 
 /* Active state */
 .btn-login:active {
-    transform: translateY(0);
-    box-shadow: 
-        0 4px 12px rgba(220, 38, 38, 0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    transform: translateY(0) scale(0.99);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
 /* Footer links with harmonious spacing */
 .login-footer {
-    margin-top: 2rem;
+    margin-top: 1.75rem;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
@@ -274,7 +243,7 @@ body, html {
 }
 
 .login-footer a {
-    color: #94a3b8;
+    color: #64748b;
     text-decoration: none;
     transition: all 0.2s ease;
     position: relative;
@@ -289,7 +258,7 @@ body, html {
     width: 0;
     height: 2px;
     background-color: #dc2626;
-    transition: width 0.3s ease;
+    transition: width 0.25s ease;
 }
 
 .login-footer a:hover {
@@ -304,7 +273,7 @@ body, html {
 .alert {
     padding: 0.875rem 1rem;
     border-radius: 10px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     font-size: 0.875rem;
     border: 1px solid transparent;
     display: flex;
@@ -313,65 +282,98 @@ body, html {
 }
 
 .alert-danger {
-    background-color: rgba(220, 38, 38, 0.15);
-    border-color: rgba(220, 38, 38, 0.3);
-    color: #fca5a5;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.1);
 }
 
 .alert i {
     font-size: 1rem;
+    color: #dc2626;
 }
 
 /* Responsive Design */
 
-/* Tablets and smaller laptops */
+/* Tablets and smaller laptops - Adjust split proportions */
 @media (max-width: 1024px) {
-    .login-card {
-        max-width: 440px;
-        padding: 2.75rem 2.5rem;
+    .login-form-column {
+        flex: 0 0 420px;
     }
     
-    .login-title {
-        font-size: 1.875rem;
+    .image-title {
+        font-size: 2.25rem;
+    }
+    
+    .image-subtitle {
+        font-size: 1.125rem;
     }
 }
 
-/* Mobile landscape and small tablets */
+/* Tablets - Stack columns vertically */
 @media (max-width: 768px) {
-    .login-container {
-        padding: 1.5rem;
+    .login-split-container {
+        flex-direction: column;
     }
     
-    .login-card {
-        max-width: 100%;
-        padding: 2.5rem 2rem;
+    .login-image-column {
+        flex: 0 0 40%;
+        min-height: 250px;
     }
     
-    .login-logo {
-        width: 160px;
-        margin-bottom: 2rem;
+    .login-form-column {
+        flex: 1;
+        padding: 2rem 1.5rem;
     }
     
-    .login-title {
+    .image-title {
         font-size: 1.75rem;
     }
     
-    .login-subtitle {
-        font-size: 0.95rem;
+    .image-subtitle {
+        font-size: 1rem;
     }
-}
-
-/* Mobile portrait */
-@media (max-width: 480px) {
-    .login-card {
-        padding: 2rem 1.5rem;
-        border-radius: 20px;
+    
+    .login-form-wrapper {
+        max-width: 100%;
     }
     
     .login-logo {
         width: 140px;
-        margin-bottom: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .login-title {
+        font-size: 1.625rem;
+    }
+}
+
+/* Mobile portrait - Single column with small image header */
+@media (max-width: 480px) {
+    .login-image-column {
+        flex: 0 0 180px;
+        min-height: 180px;
+    }
+    
+    .image-content {
+        padding: 1rem;
+    }
+    
+    .image-title {
+        font-size: 1.25rem;
+    }
+    
+    .image-subtitle {
+        font-size: 0.875rem;
+    }
+    
+    .login-form-column {
+        padding: 1.5rem 1.25rem;
+    }
+    
+    .login-logo {
+        width: 120px;
+        margin-bottom: 1.25rem;
     }
     
     .login-title {
@@ -379,23 +381,27 @@ body, html {
     }
     
     .login-subtitle {
-        font-size: 0.9rem;
-        margin-bottom: 2rem;
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
     }
     
     .form-control-modern {
-        padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-        font-size: 0.95rem;
+        padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .input-icon {
+        font-size: 1rem;
     }
     
     .btn-login {
-        padding: 1rem 1.25rem;
-        font-size: 0.95rem;
+        padding: 0.875rem 1.25rem;
+        font-size: 0.875rem;
     }
     
     .login-footer {
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.625rem;
         text-align: center;
     }
 }
@@ -423,8 +429,8 @@ body, html {
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-    .login-card {
-        border: 2px solid rgba(255, 255, 255, 0.3);
+    .login-form-column {
+        border-left: 3px solid #1e293b;
     }
     
     .form-control-modern {
@@ -432,6 +438,6 @@ body, html {
     }
     
     .btn-login {
-        border: 2px solid #ffffff;
+        border: 2px solid #1e293b;
     }
 }
