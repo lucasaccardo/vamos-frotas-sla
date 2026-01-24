@@ -1,7 +1,16 @@
 /* 
  * Login Page Styles - Vamos Frotas SLA
- * Professional glassmorphism design with truck background
+ * Modern glassmorphism design with centered card
+ * Golden ratio proportions for elegant design
  */
+
+/* CSS Custom Properties */
+:root {
+    --brand-red: #D12119;
+    --brand-red-dark: #b01015;
+    --brand-red-shadow: rgba(209, 33, 25, 0.3);
+    --brand-red-shadow-hover: rgba(209, 33, 25, 0.4);
+}
 
 /* Reset and base styles */
 body, html {
@@ -9,264 +18,216 @@ body, html {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Main container - full viewport */
-.login-container {
-    height: 100vh;
+/* Full-screen background with truck image */
+.login-background {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100vw;
-    display: flex;
-    position: relative;
-    
-    /* Professional truck background with overlay */
-    background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-        url('../img/background.png');
+    height: 100vh;
+    background-image: url('../img/background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    z-index: 1;
 }
 
-/* Alternative overlay using blend mode for better contrast */
-.login-container::before {
+/* Dark gradient overlay using ::before pseudo-element */
+.login-background::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(0, 0, 0, 0.7) 100%);
-    z-index: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
+    z-index: 2;
 }
 
-/* Centered login card with glassmorphism */
-.login-card {
+/* Main container - centered with Flexbox */
+.login-container {
     position: relative;
-    z-index: 1;
-    margin: auto;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Glassmorphism login card - centered */
+.login-card {
     width: 100%;
-    max-width: 460px;
+    max-width: 400px;
     
-    /* Glassmorphism effect */
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    /* Authentic glassmorphism effect */
+    background: rgba(255, 255, 255, 0.05);
     
-    /* Smooth rounded borders */
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Fallback for browsers that don't support backdrop-filter */
+    background: rgba(20, 20, 30, 0.85);
     
-    /* Balanced internal padding */
-    padding: 3rem 2.75rem;
-    
-    /* Elegant shadow */
-    box-shadow: 
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(220, 38, 38, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    
-    /* Smooth transitions */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Subtle hover effect on card */
-.login-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-        0 25px 70px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(220, 38, 38, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Fallback for browsers without backdrop-filter support */
-@supports not (backdrop-filter: blur(20px)) {
-    .login-card {
-        background: rgba(15, 23, 42, 0.95);
+    /* Modern glassmorphism with backdrop blur */
+    @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
     }
+    
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+    
+    /* Subtle shadow for depth */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Logo with proper spacing */
+/* Logo at the top - centered with proportional sizing */
 .login-logo {
-    width: 180px;
+    width: 120px;
     height: auto;
-    margin: 0 auto 2.5rem;
+    margin: 0 auto 2rem;
     display: block;
-    filter: drop-shadow(0 4px 12px rgba(220, 38, 38, 0.3));
-    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
-.login-logo:hover {
-    transform: scale(1.05);
-    filter: drop-shadow(0 6px 16px rgba(220, 38, 38, 0.4));
-}
-
-/* Typography Hierarchy - Enhanced "Bem-vindo à Vamos" */
+/* Typography Hierarchy with white text for dark background */
 .login-title {
-    font-size: 2rem;
+    font-size: 1.875rem;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 0.5rem;
     text-align: center;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    line-height: 1.3;
+    letter-spacing: -0.025em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .login-subtitle {
-    font-size: 1rem;
-    color: #94a3b8;
-    margin-bottom: 2.5rem;
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 2rem;
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Form group with proper spacing */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     position: relative;
 }
 
-/* Input fields with icons and clear focus states */
+/* Modern input fields - 50px height, rounded borders, no solid white background */
 .form-control-modern {
     width: 100%;
-    padding: 1rem 1rem 1rem 3rem;
-    font-size: 1rem;
+    height: 50px;
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    font-size: 0.9375rem;
     line-height: 1.5;
     color: #ffffff;
     
-    /* Subtle background */
-    background: rgba(30, 41, 59, 0.6);
+    /* Slightly darkened background instead of solid white */
+    background: rgba(0, 0, 0, 0.3);
     
-    /* Clear border */
-    border: 1.5px solid rgba(71, 85, 105, 0.5);
-    border-radius: 12px;
+    /* Rounded borders */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
     
     /* Smooth transitions */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     
-    /* Inner shadow for depth */
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    /* No heavy shadows */
+    box-shadow: none;
+}
+
+/* Placeholder styling for white text */
+.form-control-modern::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9375rem;
 }
 
 /* Hover state */
 .form-control-modern:hover {
-    border-color: rgba(100, 116, 139, 0.7);
-    background: rgba(30, 41, 59, 0.75);
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.35);
 }
 
-/* Clear focus state with brand red */
+/* Focus state - border changes to brand red (#D12119) */
 .form-control-modern:focus {
     outline: none;
-    border-color: #dc2626;
-    background: rgba(30, 41, 59, 0.85);
+    border-color: var(--brand-red);
+    background: rgba(0, 0, 0, 0.4);
     
-    /* Prominent glow effect */
-    box-shadow: 
-        0 0 0 4px rgba(220, 38, 38, 0.2),
-        0 4px 12px rgba(220, 38, 38, 0.15),
-        inset 0 1px 3px rgba(0, 0, 0, 0.15);
-    
-    transform: translateY(-1px);
+    /* Subtle focus ring with brand color */
+    box-shadow: 0 0 0 3px rgba(209, 33, 25, 0.2);
 }
 
-/* Placeholder styling */
-.form-control-modern::placeholder {
-    color: #64748b;
-    font-size: 0.95rem;
-}
-
-/* Discrete visual aid icons */
+/* Input icons on the left */
 .input-icon {
     position: absolute;
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.6);
     font-size: 1.1rem;
     pointer-events: none;
     transition: color 0.3s ease;
 }
 
-/* Icon color change on focus */
+/* Icon color change on focus to brand red */
 .form-group:focus-within .input-icon {
-    color: #dc2626;
+    color: var(--brand-red);
 }
 
-/* Full-width action button with brand red */
+/* "ENTRAR" button - Brand color #D12119 with uppercase text */
 .btn-login {
     width: 100%;
-    padding: 1.125rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 700;
+    padding: 1rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: #ffffff;
     
-    /* Brand red gradient */
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    /* Brand red solid color using CSS custom property */
+    background: var(--brand-red);
     
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     
-    /* Consistent rounding with inputs */
     cursor: pointer;
     
-    /* Uppercase for emphasis */
+    /* Uppercase text with letter spacing */
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 1px;
     
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     
     /* Smooth transitions */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     
-    /* Elegant shadow */
-    box-shadow: 
-        0 6px 20px rgba(220, 38, 38, 0.35),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    
-    position: relative;
-    overflow: hidden;
+    /* Subtle shadow for depth */
+    box-shadow: 0 4px 12px var(--brand-red-shadow);
 }
 
-/* Shimmer effect on button */
-.btn-login::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s ease;
-}
-
-/* Elegant hover effect */
+/* Elevation effect on hover */
 .btn-login:hover {
-    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    background: var(--brand-red-dark);
     transform: translateY(-2px);
-    box-shadow: 
-        0 10px 30px rgba(220, 38, 38, 0.5),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.btn-login:hover::before {
-    left: 100%;
+    box-shadow: 0 8px 20px var(--brand-red-shadow-hover);
 }
 
 /* Active state */
 .btn-login:active {
     transform: translateY(0);
-    box-shadow: 
-        0 4px 12px rgba(220, 38, 38, 0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px var(--brand-red-shadow);
 }
 
 /* Footer links with harmonious spacing */
 .login-footer {
-    margin-top: 2rem;
+    margin-top: 1.75rem;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
@@ -274,9 +235,9 @@ body, html {
 }
 
 .login-footer a {
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
 }
 
@@ -288,90 +249,90 @@ body, html {
     left: 0;
     width: 0;
     height: 2px;
-    background-color: #dc2626;
+    background-color: var(--brand-red);
     transition: width 0.3s ease;
 }
 
 .login-footer a:hover {
-    color: #dc2626;
+    color: #ffffff;
 }
 
 .login-footer a:hover::after {
     width: 100%;
 }
 
-/* Alert messages */
+/* Alert messages with glassmorphism */
 .alert {
     padding: 0.875rem 1rem;
     border-radius: 10px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     font-size: 0.875rem;
-    border: 1px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    
+    /* Fallback for browsers without backdrop-filter */
+    background: rgba(255, 255, 255, 0.1);
+    
+    /* Modern glassmorphism with backdrop blur */
+    @supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
 }
 
 .alert-danger {
-    background-color: rgba(220, 38, 38, 0.15);
-    border-color: rgba(220, 38, 38, 0.3);
-    color: #fca5a5;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+    background-color: rgba(209, 33, 25, 0.2);
+    border-color: rgba(209, 33, 25, 0.3);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(209, 33, 25, 0.2);
 }
 
 .alert i {
     font-size: 1rem;
+    color: var(--brand-red);
 }
 
 /* Responsive Design */
 
-/* Tablets and smaller laptops */
-@media (max-width: 1024px) {
+/* Tablets and smaller devices */
+@media (max-width: 768px) {
     .login-card {
-        max-width: 440px;
-        padding: 2.75rem 2.5rem;
+        max-width: 360px;
+        padding: 32px 28px;
+    }
+    
+    .login-logo {
+        width: 100px;
+        margin-bottom: 1.5rem;
     }
     
     .login-title {
-        font-size: 1.875rem;
+        font-size: 1.625rem;
+    }
+    
+    .login-subtitle {
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
     }
 }
 
-/* Mobile landscape and small tablets */
-@media (max-width: 768px) {
+/* Mobile devices */
+@media (max-width: 480px) {
     .login-container {
-        padding: 1.5rem;
+        padding: 15px;
     }
     
     .login-card {
         max-width: 100%;
-        padding: 2.5rem 2rem;
+        padding: 28px 24px;
     }
     
     .login-logo {
-        width: 160px;
-        margin-bottom: 2rem;
-    }
-    
-    .login-title {
-        font-size: 1.75rem;
-    }
-    
-    .login-subtitle {
-        font-size: 0.95rem;
-    }
-}
-
-/* Mobile portrait */
-@media (max-width: 480px) {
-    .login-card {
-        padding: 2rem 1.5rem;
-        border-radius: 20px;
-    }
-    
-    .login-logo {
-        width: 140px;
-        margin-bottom: 1.75rem;
+        width: 90px;
+        margin-bottom: 1.25rem;
     }
     
     .login-title {
@@ -379,18 +340,23 @@ body, html {
     }
     
     .login-subtitle {
-        font-size: 0.9rem;
-        margin-bottom: 2rem;
+        font-size: 0.8125rem;
+        margin-bottom: 1.25rem;
     }
     
     .form-control-modern {
-        padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-        font-size: 0.95rem;
+        height: 48px;
+        padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .input-icon {
+        font-size: 1rem;
     }
     
     .btn-login {
-        padding: 1rem 1.25rem;
-        font-size: 0.95rem;
+        padding: 0.875rem 1.25rem;
+        font-size: 0.875rem;
     }
     
     .login-footer {
@@ -406,7 +372,7 @@ body, html {
 .form-control-modern:focus-visible,
 .btn-login:focus-visible,
 .login-footer a:focus-visible {
-    outline: 2px solid #dc2626;
+    outline: 2px solid var(--brand-red);
     outline-offset: 3px;
 }
 
@@ -424,7 +390,7 @@ body, html {
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .login-card {
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.4);
     }
     
     .form-control-modern {
@@ -432,6 +398,6 @@ body, html {
     }
     
     .btn-login {
-        border: 2px solid #ffffff;
+        border: 2px solid rgba(255, 255, 255, 0.3);
     }
 }

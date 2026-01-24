@@ -4,14 +4,6 @@
  * Golden ratio proportions for elegant design
  */
 
-/* CSS Custom Properties */
-:root {
-    --brand-red: #D12119;
-    --brand-red-dark: #b01015;
-    --brand-red-shadow: rgba(209, 33, 25, 0.3);
-    --brand-red-shadow-hover: rgba(209, 33, 25, 0.4);
-}
-
 /* Reset and base styles */
 body, html {
     height: 100%;
@@ -28,7 +20,7 @@ body, html {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url('../img/background.png');
+    background-image: url("../img/background.867ff5c55101.png");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -65,16 +57,8 @@ body, html {
     
     /* Authentic glassmorphism effect */
     background: rgba(255, 255, 255, 0.05);
-    
-    /* Fallback for browsers that don't support backdrop-filter */
-    background: rgba(20, 20, 30, 0.85);
-    
-    /* Modern glassmorphism with backdrop blur */
-    @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-    }
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
@@ -159,7 +143,7 @@ body, html {
 /* Focus state - border changes to brand red (#D12119) */
 .form-control-modern:focus {
     outline: none;
-    border-color: var(--brand-red);
+    border-color: #D12119;
     background: rgba(0, 0, 0, 0.4);
     
     /* Subtle focus ring with brand color */
@@ -180,7 +164,7 @@ body, html {
 
 /* Icon color change on focus to brand red */
 .form-group:focus-within .input-icon {
-    color: var(--brand-red);
+    color: #D12119;
 }
 
 /* "ENTRAR" button - Brand color #D12119 with uppercase text */
@@ -191,8 +175,8 @@ body, html {
     font-weight: 600;
     color: #ffffff;
     
-    /* Brand red solid color using CSS custom property */
-    background: var(--brand-red);
+    /* Brand red solid color #D12119 */
+    background: #D12119;
     
     border: none;
     border-radius: 10px;
@@ -209,20 +193,20 @@ body, html {
     transition: all 0.3s ease;
     
     /* Subtle shadow for depth */
-    box-shadow: 0 4px 12px var(--brand-red-shadow);
+    box-shadow: 0 4px 12px rgba(209, 33, 25, 0.3);
 }
 
 /* Elevation effect on hover */
 .btn-login:hover {
-    background: var(--brand-red-dark);
+    background: #b01015;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px var(--brand-red-shadow-hover);
+    box-shadow: 0 8px 20px rgba(209, 33, 25, 0.4);
 }
 
 /* Active state */
 .btn-login:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px var(--brand-red-shadow);
+    box-shadow: 0 2px 8px rgba(209, 33, 25, 0.3);
 }
 
 /* Footer links with harmonious spacing */
@@ -249,7 +233,7 @@ body, html {
     left: 0;
     width: 0;
     height: 2px;
-    background-color: var(--brand-red);
+    background-color: #D12119;
     transition: width 0.3s ease;
 }
 
@@ -271,16 +255,8 @@ body, html {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    
-    /* Fallback for browsers without backdrop-filter */
     background: rgba(255, 255, 255, 0.1);
-    
-    /* Modern glassmorphism with backdrop blur */
-    @supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
+    backdrop-filter: blur(8px);
 }
 
 .alert-danger {
@@ -292,7 +268,7 @@ body, html {
 
 .alert i {
     font-size: 1rem;
-    color: var(--brand-red);
+    color: #D12119;
 }
 
 /* Responsive Design */
@@ -372,7 +348,7 @@ body, html {
 .form-control-modern:focus-visible,
 .btn-login:focus-visible,
 .login-footer a:focus-visible {
-    outline: 2px solid var(--brand-red);
+    outline: 2px solid #D12119;
     outline-offset: 3px;
 }
 
