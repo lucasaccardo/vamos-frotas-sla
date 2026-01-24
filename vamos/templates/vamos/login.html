@@ -2,223 +2,87 @@
 {% load static %}
 
 {% block content %}
-<style>
-    /* --- LAYOUT DE TELA DIVIDIDA --- */
-    body, html {
-        height: 100%;
-        overflow: hidden;
-        background-color: #0f172a;
-        font-family: 'Inter', sans-serif;
-    }
-
-    .login-container {
-        height: 100vh;
-        width: 100vw;
-        display: flex;
-    }
-
-    /* LADO ESQUERDO: IMAGEM DE FUNDO */
-    .login-image-side {
-        flex: 1;
-        /* Imagem de fundo de alta qualidade (Caminhão/Estrada) */
-        background-image: url('{% static "img/background.png" %}'); 
-        background-size: cover;
-        background-position: center;
-        position: relative;
-        display: flex;
-        align-items: flex-end;
-        padding: 3rem;
-    }
-
-    .image-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.1));
-        z-index: 1;
-    }
-
-    .image-content {
-        position: relative;
-        z-index: 2;
-        color: white;
-        max-width: 550px;
-        margin-bottom: 2rem;
-    }
-    
-    .image-content h1 { font-size: 2.5rem; font-weight: 700; line-height: 1.1; margin-bottom: 1rem; }
-    .image-content p { font-size: 1rem; opacity: 0.8; }
-
-    /* LADO DIREITO: FORMULÁRIO (LATERAL) */
-    .login-form-side {
-        width: 400px;
-        background-color: #0b1120;
-        border-left: 1px solid #1e293b;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 2.5rem;
-        box-shadow: -10px 0 40px rgba(0,0,0,0.6);
-        position: relative;
-        z-index: 10;
-    }
-
-    /* LOGO (IMAGEM) */
-    .login-logo {
-        width: 160px; /* Tamanho ajustado */
-        height: auto;
-        margin-bottom: 2rem;
-        display: block;
-    }
-
-    /* Títulos */
-    .login-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: white;
-        margin-bottom: 0.3rem;
-    }
-
-    .login-subtitle {
-        color: #64748b;
-        margin-bottom: 1.5rem;
-        font-size: 0.85rem;
-    }
-
-    /* Inputs */
-    .form-group {
-        margin-bottom: 1rem;
-        position: relative;
-    }
-
-    .form-control-modern {
-        width: 100%;
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        color: white;
-        padding: 10px 10px 10px 40px;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-        height: 45px;
-    }
-
-    .form-control-modern:focus {
-        background-color: #1e293b;
-        border-color: #dc2626;
-        box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
-        outline: none;
-    }
-
-    .form-control-modern::placeholder { font-size: 0.85rem; color: #64748b; }
-
-    .input-icon {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #64748b;
-        font-size: 1rem;
-    }
-
-    /* Botão */
-    .btn-login {
-        width: 100%;
-        background-color: #dc2626;
-        color: white;
-        font-weight: 600;
-        padding: 10px;
-        border: none;
-        border-radius: 6px;
-        margin-top: 0.5rem;
-        transition: background 0.3s;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        height: 45px;
-    }
-
-    .btn-login:hover { background-color: #b91c1c; }
-
-    /* Links */
-    .login-footer {
-        margin-top: 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8rem;
-    }
-
-    .login-footer a { color: #64748b; text-decoration: none; transition: 0.2s; }
-    .login-footer a:hover { color: #dc2626; }
-    
-    @media (max-width: 768px) {
-        .login-image-side { display: none; }
-        .login-form-side { width: 100%; border: none; }
-    }
-</style>
-
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
 <div class="login-container">
-    
-    <div class="login-image-side">
-        <div class="image-overlay"></div>
-        <div class="image-content">
-            <h1>Gestão Inteligente<br>de Frotas</h1>
-            <p>Controle de SLA, custos e manutenção em um só lugar.</p>
-        </div>
-    </div>
-
-    <div class="login-form-side">
-        
+    <!-- Centered glassmorphism login card -->
+    <div class="login-card">
+        <!-- Logo -->
         <img src="{% static 'img/logo.png' %}" alt="Logo Vamos" class="login-logo">
 
-        <h2 class="login-title">Seja Bem-vindo à Vamos</h2>
-        <p class="login-subtitle">Insira suas credenciais para acessar.</p>
+        <!-- Enhanced typography hierarchy -->
+        <h2 class="login-title">Bem-vindo à Vamos</h2>
+        <p class="login-subtitle">Insira suas credenciais para acessar o sistema</p>
 
+        <!-- Alert messages -->
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-danger py-2 px-3 small mb-3 rounded-1 border-0 bg-danger bg-opacity-10 text-danger fw-bold">
-                    <i class="bi bi-exclamation-circle me-2"></i> {{ message }}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>{{ message }}</span>
                 </div>
             {% endfor %}
         {% endif %}
 
+        <!-- Login form -->
         <form method="post">
             {% csrf_token %}
             
+            <!-- Username field with icon -->
             <div class="form-group">
                 <i class="bi bi-person input-icon"></i>
-                <input type="text" name="username" class="form-control-modern" placeholder="Usuário" required autofocus>
+                <input 
+                    type="text" 
+                    name="username" 
+                    class="form-control-modern" 
+                    placeholder="Usuário" 
+                    required 
+                    autofocus
+                    autocomplete="username"
+                >
             </div>
 
+            <!-- Password field with icon -->
             <div class="form-group">
                 <i class="bi bi-lock input-icon"></i>
-                <input type="password" name="password" class="form-control-modern" placeholder="Senha" required>
+                <input 
+                    type="password" 
+                    name="password" 
+                    class="form-control-modern" 
+                    placeholder="Senha" 
+                    required
+                    autocomplete="current-password"
+                >
             </div>
 
+            <!-- Full-width submit button -->
             <button type="submit" class="btn-login">
-                Acessar Sistema
+                Entrar
             </button>
         </form>
 
+        <!-- Footer links -->
         <div class="login-footer">
             <a href="{% url 'reset_password' %}">Esqueceu a senha?</a>
             <a href="{% url 'signup' %}">Criar conta</a>
         </div>
     </div>
-
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Hide sidebar and adjust wrapper for login page
         const sidebar = document.querySelector('.sidebar');
         const wrapper = document.querySelector('.wrapper');
         if(sidebar) sidebar.style.display = 'none';
         if(wrapper) {
             wrapper.style.display = 'block';
             wrapper.style.padding = '0';
+            wrapper.style.margin = '0';
         }
+        
+        // Ensure body/html don't have unwanted overflow
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
     });
 </script>
 
