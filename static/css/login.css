@@ -13,6 +13,10 @@
 }
 
 /* Reset and base styles */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 body, html {
     height: 100%;
     margin: 0;
@@ -62,6 +66,10 @@ body, html {
 .login-card {
     width: 100%;
     max-width: 400px;
+    
+    /* Flexbox column layout for harmonious vertical alignment */
+    display: flex;
+    flex-direction: column;
     
     /* Authentic glassmorphism effect */
     background: rgba(255, 255, 255, 0.05);
@@ -399,5 +407,33 @@ body, html {
     
     .btn-login {
         border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Footer signature - "Created by Lucas Sureira" */
+.footer-signature {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: color 0.3s ease;
+}
+
+.footer-signature:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Alternative centered footer signature */
+@media (max-width: 768px) {
+    .footer-signature {
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
     }
 }
