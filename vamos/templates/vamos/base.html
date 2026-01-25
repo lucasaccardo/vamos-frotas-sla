@@ -8,153 +8,8 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            /* CORES BASE (Light Theme) */
-            --bg-body: #f3f4f6;       /* Cinza bem clarinho (Moderno) */
-            --bg-sidebar: #1e293b;    /* Azul/Cinza escuro profundo (Slate) */
-            --bg-card: #ffffff;       /* Branco puro */
-            
-            /* TEXTO */
-            --text-main: #334155;     /* Cinza escuro (não preto puro) */
-            --text-muted: #94a3b8;    /* Cinza médio */
-            
-            /* MARCA (VAMOS RED) */
-            --primary-color: #dc2626; /* Vermelho corporativo */
-            --primary-hover: #b91c1c;
-            --border-color: #e2e8f0;  /* Bordas sutis */
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif; /* Fonte mais limpa */
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* --- Sidebar (Menu Lateral) --- */
-        .wrapper {
-            display: flex;
-            flex: 1;
-        }
-
-        .sidebar {
-            min-width: 260px;
-            max-width: 260px;
-            background-color: var(--bg-sidebar);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.05);
-            z-index: 100;
-        }
-
-        .sidebar-brand {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            letter-spacing: -0.5px;
-        }
-
-        .nav-link {
-            color: #cbd5e1; /* Texto claro no menu escuro */
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .nav-link:hover {
-            background-color: rgba(255,255,255, 0.1);
-            color: #fff;
-            transform: translateX(5px); /* Efeito sutil de movimento */
-        }
-
-        .nav-link.active {
-            background-color: var(--primary-color);
-            color: #fff;
-            box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
-        }
-
-        /* --- Conteúdo Principal --- */
-        .main-content {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-
-        /* --- Cards Modernos (Brancos) --- */
-        .card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 12px; /* Cantos mais arredondados */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03); /* Sombra muito suave */
-            transition: transform 0.2s;
-        }
-        
-        .card:hover {
-            /* Efeito opcional: levanta um pouco o card ao passar o mouse */
-            /* transform: translateY(-2px); */
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-        }
-
-        .card-header {
-            background-color: transparent;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.2rem;
-            font-weight: 600;
-        }
-
-        /* --- Botões Personalizados --- */
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        .btn-primary:hover {
-            background-color: var(--primary-hover);
-            border-color: var(--primary-hover);
-        }
-
-        /* --- Tabelas Clean --- */
-        .table {
-            --bs-table-bg: transparent;
-        }
-        .table thead th {
-            background-color: #f8fafc;
-            color: #64748b;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        /* --- Inputs Clean --- */
-        .form-control, .form-select {
-            background-color: #fff;
-            border: 1px solid #cbd5e1;
-            color: var(--text-main);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'css/premium-dark.css' %}" rel="stylesheet">
 </head>
 <body>
 
@@ -163,130 +18,128 @@
         {% if user.is_authenticated %}
         <nav class="sidebar">
             
+            <div class="sidebar-toggle" title="Recolher/Expandir Menu">
+                <i class="bi bi-chevron-left"></i>
+            </div>
+
             <div class="mb-4 px-2">
                 <a href="{% url 'portal' %}" class="btn btn-outline-secondary w-100 btn-sm d-flex align-items-center justify-content-center gap-2" style="border-color: #475569; color: #cbd5e1;">
-                    <i class="bi bi-grid-3x3-gap-fill"></i> Trocar Módulo
+                    <i class="bi bi-grid-3x3-gap-fill"></i> <span>Trocar Módulo</span>
                 </a>
             </div>
 
             <div class="sidebar-brand">
                 {% if request.session.modulo_ativo == 'sinistros' %}
-                    <i class="bi bi-shield-exclamation text-danger"></i> SINISTROS
+                    <i class="bi bi-shield-exclamation text-danger"></i> <span>SINISTROS</span>
                 {% else %}
-                    <i class="bi bi-tools text-danger"></i> MANUTENÇÃO
+                    <i class="bi bi-tools text-danger"></i> <span>MANUTENÇÃO</span>
                 {% endif %}
             </div>
             
             <div class="nav flex-column">
                 
                 <a href="{% url 'minha_conta' %}" class="nav-link {% if 'perfil' in request.path %}active{% endif %}">
-                    <i class="bi bi-person-circle"></i> Minha Conta
+                    <i class="bi bi-person-circle"></i> <span>Minha Conta</span>
                 </a>
 
                 {% if request.session.modulo_ativo == 'manutencao' %}
-                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Operacional</small>
+                    <small class="sidebar-heading">Operacional</small>
                     <a href="{% url 'manutencao_home' %}" class="nav-link {% if request.path == '/manutencao/home/' %}active{% endif %}">
-                        <i class="bi bi-house-door"></i> Início
+                        <i class="bi bi-house-door"></i> <span>Início</span>
                     </a>
                     <a href="{% url 'sla_mensal' %}" class="nav-link {% if 'sla-mensal' in request.path %}active{% endif %}">
-                        <i class="bi bi-calculator"></i> SLA Mensal
+                        <i class="bi bi-calculator"></i> <span>SLA Mensal</span>
                     </a>
                     <a href="{% url 'cenarios' %}" class="nav-link {% if 'cenarios' in request.path %}active{% endif %}">
-                        <i class="bi bi-bar-chart-steps"></i> Cenários
+                        <i class="bi bi-bar-chart-steps"></i> <span>Cenários</span>
                     </a>
                     <a href="{% url 'buscar_clientes' %}" class="nav-link {% if 'buscar-clientes' in request.path %}active{% endif %}">
-                        <i class="bi bi-search"></i> Buscar Clientes
+                        <i class="bi bi-search"></i> <span>Buscar Clientes</span>
                     </a>
                     
-                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Gestão</small>
+                    <small class="sidebar-heading">Gestão</small>
                     <a href="{% url 'dashboard' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
-                        <i class="bi bi-graph-up"></i> Dashboard
+                        <i class="bi bi-graph-up"></i> <span>Dashboard</span>
                     </a>
                     <a href="{% url 'lista_analises' %}" class="nav-link {% if 'analises' in request.path %}active{% endif %}">
-                        <i class="bi bi-folder"></i> Relatórios
+                        <i class="bi bi-folder"></i> <span>Relatórios</span>
                     </a>
                 
                 {% elif request.session.modulo_ativo == 'sinistros' %}
                     
-                    <div class="sidebar-heading text-uppercase fw-bold mt-3 mb-2 ms-3" style="font-size: 0.75rem; color: #64748b; letter-spacing: 1px;">
-                        Gestão de Sinistros
-                    </div>
+                    <small class="sidebar-heading">Gestão de Sinistros</small>
                     
                     <a href="{% url 'dashboard_sinistros' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
-                        <i class="bi bi-graph-up-arrow text-success"></i> Dashboard BI
+                        <i class="bi bi-graph-up-arrow text-success"></i> <span>Dashboard BI</span>
                     </a>
 
                     <a href="{% url 'sinistros_home' %}" class="nav-link {% if request.resolver_match.url_name == 'sinistros_home' and not request.GET.segmento %}active{% endif %}">
-                        <i class="bi bi-speedometer2"></i> Visão Geral
+                        <i class="bi bi-speedometer2"></i> <span>Visão Geral</span>
                     </a>
 
                     <a href="{% url 'sinistros_home' %}?segmento=AGRO" class="nav-link {% if request.GET.segmento == 'AGRO' %}active{% endif %}">
-                        <i class="bi bi-tree text-success"></i> Agro
+                        <i class="bi bi-tree text-success"></i> <span>Agro</span>
                     </a>
                     
                     <a href="{% url 'sinistros_home' %}?segmento=PESADOS" class="nav-link {% if request.GET.segmento == 'PESADOS' %}active{% endif %}">
-                        <i class="bi bi-truck-front text-primary"></i> Pesados
+                        <i class="bi bi-truck-front text-primary"></i> <span>Pesados</span>
                     </a>
                     
                     <a href="{% url 'sinistros_home' %}?segmento=INTRA" class="nav-link {% if request.GET.segmento == 'INTRA' %}active{% endif %}">
-                        <i class="bi bi-box-seam text-warning"></i> Intra
+                        <i class="bi bi-box-seam text-warning"></i> <span>Intra</span>
                     </a>
 
                     {% if user.is_staff %}
                     <a href="{% url 'exportar_relatorios' %}" class="nav-link {% if request.resolver_match.url_name == 'exportar_relatorios' %}active{% endif %}">
-                        <i class="bi bi-file-earmark-spreadsheet text-info"></i> Relatórios
+                        <i class="bi bi-file-earmark-spreadsheet text-info"></i> <span>Relatórios</span>
                     </a>
                     {% endif %}
 
-                    <div class="sidebar-heading text-uppercase fw-bold mt-4 mb-2 ms-3" style="font-size: 0.75rem; color: #64748b; letter-spacing: 1px;">
-                        Ações
-                    </div>
+                    <small class="sidebar-heading">Ações</small>
                     
                     <a href="{% url 'novo_sinistro' %}" class="nav-link {% if request.resolver_match.url_name == 'novo_sinistro' %}active{% endif %}">
-                        <i class="bi bi-plus-circle-fill text-danger"></i> Novo Processo
+                        <i class="bi bi-plus-circle-fill text-danger"></i> <span>Novo Processo</span>
                     </a>
 
                 {% endif %}
 
-                <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Ajuda</small>
+                <small class="sidebar-heading">Ajuda</small>
                 <a href="{% url 'ticket_list' %}" class="nav-link {% if 'tickets' in request.path %}active{% endif %}">
-                    <i class="bi bi-ticket-perforated"></i> Tickets
+                    <i class="bi bi-ticket-perforated"></i> <span>Tickets</span>
                 </a>
                 <a href="{% url 'assistente_ia' %}" class="nav-link {% if 'assistente' in request.path %}active{% endif %}">
-                    <i class="bi bi-robot"></i> Assistente IA
+                    <i class="bi bi-robot"></i> <span>Assistente IA</span>
                 </a>
 
                 {% if user.is_staff %}
-                    <small class="text-uppercase fw-bold mb-2 mt-3 ms-2" style="font-size: 0.7rem; color: #64748b;">Administração</small>
+                    <small class="sidebar-heading">Administração</small>
                     <a href="{% url 'lista_usuarios' %}" class="nav-link {% if 'usuarios' in request.path %}active{% endif %}">
-                        <i class="bi bi-people"></i> Usuários
+                        <i class="bi bi-people"></i> <span>Usuários</span>
                     </a>
                     <a href="{% url 'delete_request_list' %}" class="nav-link {% if 'delete_requests' in request.path %}active{% endif %}">
-                        <i class="bi bi-trash"></i> Exclusões
+                        <i class="bi bi-trash"></i> <span>Exclusões</span>
                     </a>
                     <a href="{% url 'admin_upload_base' %}" class="nav-link {% if 'upload-bases' in request.path %}active{% endif %}">
-                        <i class="bi bi-database-up"></i> Atualizar Bases
+                        <i class="bi bi-database-up"></i> <span>Atualizar Bases</span>
                     </a>
                 {% endif %}
             
             </div>
 
-            <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
-                <div class="d-flex align-items-center text-decoration-none text-white dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+            <div class="sidebar-user-profile">
+                <div class="user-info dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                     
-                    <div class="me-2">
-                        {% if user.perfil.foto %}
-                            <img src="{{ user.perfil.foto.url }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;">
-                        {% else %}
-                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; font-size: 0.9rem;">
-                                {{ user.username|make_list|first|upper }}
-                            </div>
-                        {% endif %}
-                    </div>
+                    {% if user.perfil.foto %}
+                        <img src="{{ user.perfil.foto.url }}" class="user-avatar" alt="{{ user.first_name|default:user.username }}">
+                    {% else %}
+                        <div class="user-avatar bg-danger d-flex align-items-center justify-content-center" style="font-size: 0.9rem;">
+                            {{ user.username|make_list|first|upper }}
+                        </div>
+                    {% endif %}
 
-                    <div>
-                        <div class="fw-semibold" style="font-size: 0.9rem;">{{ user.first_name|default:user.username }}</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8;">
+                    <div class="user-details">
+                        <div class="user-name">{{ user.first_name|default:user.username }} {{ user.last_name|default:"" }}</div>
+                        <div class="user-role">
                             {% if user.is_staff %}Administrador{% else %}Colaborador{% endif %}
                         </div>
                     </div>
@@ -311,9 +164,14 @@
 
             {% block content %}
             {% endblock %}
+
+            <footer class="main-footer">
+                <div>Created by <a href="https://github.com/lucasaccardo" target="_blank">Lucas Sureira</a></div>
+            </footer>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/premium-dark.js' %}"></script>
 </body>
 </html>
