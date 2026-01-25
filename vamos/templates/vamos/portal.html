@@ -12,17 +12,29 @@
     /* Full-screen Premium Background */
     .premium-portal {
         min-height: 100vh;
+        /* Fallback solid background for older browsers or if external image fails */
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        /* Premium background with image overlay */
         background: 
             linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%),
             url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070') center/cover;
-        background-attachment: fixed;
         position: relative;
         display: flex;
         flex-direction: column;
     }
     
+    /* Fixed background only on desktop for better performance */
+    @media (min-width: 769px) {
+        .premium-portal {
+            background-attachment: fixed;
+        }
+    }
+    
     /* Translucent Top Navigation Bar */
     .top-navbar {
+        /* Fallback for browsers without backdrop-filter support */
+        background: rgba(30, 41, 59, 0.85);
+        /* Modern glassmorphism effect */
         background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
@@ -126,6 +138,9 @@
     
     /* Glassmorphism Module Cards */
     .module-card {
+        /* Fallback for browsers without backdrop-filter support */
+        background: rgba(51, 65, 85, 0.7);
+        /* Modern glassmorphism effect */
         background: rgba(255, 255, 255, 0.10);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
@@ -235,15 +250,9 @@
         border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     
-    .footer-signature a {
+    .footer-signature .author-name {
         color: rgba(255, 255, 255, 0.7);
-        text-decoration: none;
         font-weight: 600;
-        transition: color 0.3s ease;
-    }
-    
-    .footer-signature a:hover {
-        color: #D12119;
     }
     
     /* Animations */
@@ -346,7 +355,7 @@
     
     <!-- Footer Signature -->
     <div class="footer-signature">
-        Created by <a href="#">Lucas Sureira</a>
+        Created by <span class="author-name">Lucas Sureira</span>
     </div>
 </div>
 
