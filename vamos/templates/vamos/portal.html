@@ -3,85 +3,355 @@
 
 {% block content %}
 <style>
-    .portal-container {
-        min-height: 80vh;
+    /* Premium Tech Design - Vamos Frotas SLA */
+    
+    /* Hide sidebar on portal page */
+    .sidebar { display: none !important; }
+    .main-content { padding: 0 !important; }
+    
+    /* Full-screen Premium Background */
+    .premium-portal {
+        min-height: 100vh;
+        background: 
+            linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%),
+            url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070') center/cover;
+        background-attachment: fixed;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Translucent Top Navigation Bar */
+    .top-navbar {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .navbar-brand-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand-text i {
+        color: #D12119;
+    }
+    
+    .user-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .user-name {
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .logout-btn {
+        background: rgba(209, 33, 25, 0.15);
+        border: 1px solid rgba(209, 33, 25, 0.3);
+        color: white;
+        padding: 0.5rem 1.2rem;
+        border-radius: 25px;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(209, 33, 25, 0.25);
+        border-color: rgba(209, 33, 25, 0.5);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(209, 33, 25, 0.3);
+    }
+    
+    /* Main Content Container */
+    .portal-content {
+        flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        padding: 3rem 2rem;
     }
-    .module-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 2.5rem;
+    
+    /* Enterprise Typography */
+    .welcome-title {
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
         text-align: center;
-        width: 300px;
-        transition: all 0.3s ease;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        letter-spacing: -0.5px;
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    .welcome-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+        text-align: center;
+        margin-bottom: 3rem;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        animation: fadeInUp 0.8s ease-out 0.2s backwards;
+    }
+    
+    /* Module Cards Container */
+    .modules-container {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 900px;
+    }
+    
+    /* Glassmorphism Module Cards */
+    .module-card {
+        background: rgba(255, 255, 255, 0.10);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 20px;
+        padding: 2.5rem;
+        width: 320px;
+        text-align: center;
         text-decoration: none;
-        color: #334155;
+        color: white;
         cursor: pointer;
         position: relative;
         overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        animation: fadeInUp 0.8s ease-out backwards;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
+    
+    .module-card:nth-child(1) { animation-delay: 0.3s; }
+    .module-card:nth-child(2) { animation-delay: 0.4s; }
+    
+    /* Glow Effect on Hover */
     .module-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #dc2626;
+        transform: translateY(-10px) scale(1.02);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(209, 33, 25, 0.6);
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 0 40px rgba(209, 33, 25, 0.4),
+            inset 0 0 20px rgba(209, 33, 25, 0.1);
     }
+    
+    .module-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(209, 33, 25, 0.15) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+    
+    .module-card:hover::before {
+        opacity: 1;
+    }
+    
+    /* Module Icons */
     .module-icon {
-        font-size: 3rem;
+        font-size: 4rem;
         margin-bottom: 1.5rem;
-        color: #dc2626;
+        color: #D12119;
+        transition: all 0.3s ease;
+        filter: drop-shadow(0 4px 8px rgba(209, 33, 25, 0.3));
     }
+    
+    .module-card:hover .module-icon {
+        transform: scale(1.1);
+        filter: drop-shadow(0 8px 16px rgba(209, 33, 25, 0.5));
+    }
+    
     .module-title {
-        font-size: 1.25rem;
+        font-size: 1.4rem;
         font-weight: 700;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
+        color: white;
     }
+    
     .module-desc {
-        font-size: 0.9rem;
-        color: #64748b;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.5;
     }
+    
+    /* Module Tag/Badge */
     .module-tag {
         position: absolute;
-        top: 10px; right: 10px;
+        top: 15px;
+        right: 15px;
         font-size: 0.7rem;
-        font-weight: bold;
-        padding: 2px 8px;
-        border-radius: 10px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 12px;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    .tag-active { background: #dcfce7; color: #166534; }
-    .tag-new { background: #dbeafe; color: #1e40af; }
+    
+    .tag-active {
+        background: rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+    
+    .tag-new {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+    
+    /* Footer Signature */
+    .footer-signature {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .footer-signature a {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+    
+    .footer-signature a:hover {
+        color: #D12119;
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .welcome-title {
+            font-size: 2rem;
+        }
+        
+        .welcome-subtitle {
+            font-size: 0.95rem;
+        }
+        
+        .module-card {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .top-navbar {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .user-section {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .welcome-title {
+            font-size: 1.5rem;
+        }
+        
+        .module-card {
+            padding: 2rem 1.5rem;
+        }
+        
+        .portal-content {
+            padding: 2rem 1rem;
+        }
+    }
 </style>
 
-<div class="portal-container">
-    <div class="text-center mb-5">
-        <h1 class="fw-bold text-dark">Bem-vindo ao Sistema Vamos</h1>
-        <p class="text-muted">Selecione o módulo que deseja acessar hoje.</p>
+<div class="premium-portal">
+    <!-- Translucent Top Navigation -->
+    <div class="top-navbar">
+        <div class="navbar-brand-text">
+            <i class="bi bi-truck-front-fill"></i>
+            Vamos Frotas
+        </div>
+        <div class="user-section">
+            <span class="user-name">{{ user.first_name|default:user.username }}</span>
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i>
+                Sair
+            </a>
+        </div>
     </div>
-
-    <div class="d-flex gap-4 flex-wrap justify-content-center">
+    
+    <!-- Main Content -->
+    <div class="portal-content">
+        <h1 class="welcome-title">Bem-vindo ao Sistema Vamos</h1>
+        <p class="welcome-subtitle">Selecione o módulo que deseja acessar hoje.</p>
         
-        <a href="{% url 'selecionar_modulo' 'manutencao' %}" class="module-card">
-            <span class="module-tag tag-active">Ativo</span>
-            <div class="module-icon"><i class="bi bi-tools"></i></div>
-            <div class="module-title">Gestão de Manutenção</div>
-            <div class="module-desc">Cálculo de SLA, Cenários de Peças e Histórico de Reparos.</div>
-        </a>
-
-        <a href="{% url 'selecionar_modulo' 'sinistros' %}" class="module-card">
-            <span class="module-tag tag-new">Novo</span>
-            <div class="module-icon"><i class="bi bi-car-front-fill"></i></div>
-            <div class="module-title">Gestão de Sinistros</div>
-            <div class="module-desc">Controle de acidentes, franquias, terceiros e seguradoras.</div>
-        </a>
-
+        <div class="modules-container">
+            <!-- Module 1: Maintenance -->
+            <a href="{% url 'selecionar_modulo' 'manutencao' %}" class="module-card">
+                <span class="module-tag tag-active">Ativo</span>
+                <div class="module-icon">
+                    <i class="bi bi-tools"></i>
+                </div>
+                <div class="module-title">Gestão de Manutenção</div>
+                <div class="module-desc">Cálculo de SLA, Cenários de Peças e Histórico de Reparos.</div>
+            </a>
+            
+            <!-- Module 2: Claims -->
+            <a href="{% url 'selecionar_modulo' 'sinistros' %}" class="module-card">
+                <span class="module-tag tag-new">Novo</span>
+                <div class="module-icon">
+                    <i class="bi bi-car-front-fill"></i>
+                </div>
+                <div class="module-title">Gestão de Sinistros</div>
+                <div class="module-desc">Controle de acidentes, franquias, terceiros e seguradoras.</div>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Footer Signature -->
+    <div class="footer-signature">
+        Created by <a href="#">Lucas Sureira</a>
     </div>
 </div>
 
 <script>
+    // Ensure sidebar is hidden on portal page
     document.addEventListener("DOMContentLoaded", function() {
         const sidebar = document.querySelector('.sidebar');
         if(sidebar) sidebar.style.display = 'none';
