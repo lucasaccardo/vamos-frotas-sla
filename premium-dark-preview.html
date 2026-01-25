@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Dark Theme - Preview</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="static/css/premium-dark.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="wrapper">
+        
+        <nav class="sidebar">
+            
+            <div class="sidebar-toggle" title="Recolher/Expandir Menu">
+                <i class="bi bi-chevron-left"></i>
+            </div>
+
+            <div class="mb-4 px-2">
+                <a href="#" class="btn btn-outline-secondary w-100 btn-sm d-flex align-items-center justify-content-center gap-2" style="border-color: #475569; color: #cbd5e1;">
+                    <i class="bi bi-grid-3x3-gap-fill"></i> <span>Trocar Módulo</span>
+                </a>
+            </div>
+
+            <div class="sidebar-brand">
+                <i class="bi bi-shield-exclamation text-danger"></i> <span>SINISTROS</span>
+            </div>
+            
+            <div class="nav flex-column">
+                
+                <a href="#" class="nav-link">
+                    <i class="bi bi-person-circle"></i> <span>Minha Conta</span>
+                </a>
+
+                <small class="sidebar-heading">Gestão de Sinistros</small>
+                
+                <a href="#" class="nav-link active">
+                    <i class="bi bi-graph-up-arrow text-success"></i> <span>Dashboard BI</span>
+                </a>
+
+                <a href="#" class="nav-link">
+                    <i class="bi bi-speedometer2"></i> <span>Visão Geral</span>
+                </a>
+
+                <a href="#" class="nav-link">
+                    <i class="bi bi-tree text-success"></i> <span>Agro</span>
+                </a>
+                
+                <a href="#" class="nav-link">
+                    <i class="bi bi-truck-front text-primary"></i> <span>Pesados</span>
+                </a>
+                
+                <a href="#" class="nav-link">
+                    <i class="bi bi-box-seam text-warning"></i> <span>Intra</span>
+                </a>
+
+                <a href="#" class="nav-link">
+                    <i class="bi bi-file-earmark-spreadsheet text-info"></i> <span>Relatórios</span>
+                </a>
+
+                <small class="sidebar-heading">Ações</small>
+                
+                <a href="#" class="nav-link">
+                    <i class="bi bi-plus-circle-fill text-danger"></i> <span>Novo Processo</span>
+                </a>
+
+                <small class="sidebar-heading">Ajuda</small>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-ticket-perforated"></i> <span>Tickets</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-robot"></i> <span>Assistente IA</span>
+                </a>
+
+                <small class="sidebar-heading">Administração</small>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-people"></i> <span>Usuários</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-trash"></i> <span>Exclusões</span>
+                </a>
+            
+            </div>
+
+            <div class="sidebar-user-profile">
+                <div class="user-info">
+                    <div class="user-avatar bg-danger d-flex align-items-center justify-content-center" style="font-size: 0.9rem;">
+                        L
+                    </div>
+
+                    <div class="user-details">
+                        <div class="user-name">Lucas Mateus Sureira</div>
+                        <div class="user-role">Administrador</div>
+                    </div>
+                </div>
+            </div>
+
+        </nav>
+
+        <main class="main-content">
+            
+            <div class="container-fluid">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-1">
+                            <i class="bi bi-shield-exclamation text-danger me-2"></i>Gestão de Sinistros
+                        </h2>
+                        <p class="text-muted">
+                            Visão geral de todos os segmentos. Selecione um abaixo.
+                        </p>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-danger fw-bold shadow-sm px-4 py-2">
+                            <i class="bi bi-plus-lg me-2"></i> Novo Processo
+                        </a>
+                    </div>
+                </div>
+
+                <form class="d-flex gap-2 align-items-end mb-3">
+                    <div>
+                        <label class="small text-muted d-block mb-1 fw-bold">Filtrar por Setor</label>
+                        <select class="form-select form-select-sm shadow-sm" style="min-width: 200px;">
+                            <option>TODOS OS SETORES</option>
+                            <option>Aprovação</option>
+                            <option>Financeiro</option>
+                            <option>Manutenção</option>
+                        </select>
+                    </div>
+                </form>
+                
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header py-3">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item">
+                                <button class="nav-link active">
+                                    <i class="bi bi-list-task me-2"></i>Processos em Andamento
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px" class="ps-3">
+                                            <input type="checkbox" class="form-check-input">
+                                        </th>
+                                        <th class="ps-3">Placa / Chamado</th>
+                                        <th>Cliente</th>
+                                        <th>Status / Setor</th>
+                                        <th>SLA (dias)</th>
+                                        <th>SLA (Dias Parado)</th>
+                                        <th>Prazo (Retorno)</th>
+                                        <th class="text-end pe-4">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="ps-3">
+                                            <input type="checkbox" class="form-check-input">
+                                        </td>
+                                        <td class="ps-3">
+                                            <div class="fw-bold">ABC-1234</div>
+                                            <small class="text-muted">#12345</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 250px;">
+                                                Cliente Exemplo LTDA
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Manutenção</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light border">5 dias</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-success">2 dias</span>
+                                        </td>
+                                        <td>
+                                            <div>25/01/2026</div>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="#" class="btn btn-sm btn-outline-primary fw-bold">
+                                                <i class="bi bi-pencil-square me-1"></i> Tratar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="ps-3">
+                                            <input type="checkbox" class="form-check-input">
+                                        </td>
+                                        <td class="ps-3">
+                                            <div class="fw-bold">XYZ-5678</div>
+                                            <small class="text-muted">#12346</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 250px;">
+                                                Empresa Teste S.A.
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Aprovação</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light border">3 dias</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-warning">4 dias</span>
+                                        </td>
+                                        <td>
+                                            <div>26/01/2026</div>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="#" class="btn btn-sm btn-outline-primary fw-bold">
+                                                <i class="bi bi-pencil-square me-1"></i> Tratar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr class="table-danger">
+                                        <td class="ps-3">
+                                            <input type="checkbox" class="form-check-input">
+                                        </td>
+                                        <td class="ps-3">
+                                            <div class="fw-bold">DEF-9012</div>
+                                            <small class="text-muted">#12347</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 250px;">
+                                                Transportadora ABC
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">Financeiro</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light border">8 dias</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-danger"><i class="bi bi-alarm-fill me-1"></i>7 dias</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-danger">
+                                                20/01/2026 <i class="bi bi-exclamation-triangle-fill"></i>
+                                            </div>
+                                            <small class="text-danger">Vencido!</small>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="#" class="btn btn-sm btn-outline-primary fw-bold">
+                                                <i class="bi bi-pencil-square me-1"></i> Tratar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="main-footer">
+                <div>Created by <a href="https://github.com/lucasaccardo" target="_blank">Lucas Sureira</a></div>
+            </footer>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/premium-dark.js"></script>
+</body>
+</html>
