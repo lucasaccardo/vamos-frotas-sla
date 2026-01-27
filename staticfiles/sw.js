@@ -11,7 +11,11 @@ const STATIC_ASSETS = [
     '/static/css/premium-dark.css',
     '/static/css/pwa-mobile.css',
     '/static/js/pwa-mobile.js',
-    '/static/manifest.json',
+    '/static/manifest.json'
+];
+
+// CDN assets to cache (with no-cors mode)
+const CDN_ASSETS = [
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
@@ -25,11 +29,20 @@ self.addEventListener('install', (event) => {
         caches.open(STATIC_CACHE)
             .then((cache) => {
                 console.log('[Service Worker] Caching static assets');
-                return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { mode: 'no-cors' })))
-                    .catch(err => {
-                        console.warn('[Service Worker] Some assets failed to cache:', err);
-                        // Continue installation even if some assets fail
-                    });
+                
+                // Cache same-origin assets normally
+                const sameOriginPromise = cache.addAll(STATIC_ASSETS)
+                    .catch(err => console.warn('[Service Worker] Some same-origin assets failed:', err));
+                
+                // Cache CDN assets with no-cors mode
+                const cdnPromise = Promise.all(
+                    CDN_ASSETS.map(url => 
+                        cache.add(new Request(url, { mode: 'no-cors' }))
+                            .catch(err => console.warn('[Service Worker] Failed to cache:', url))
+                    )
+                );
+                
+                return Promise.all([sameOriginPromise, cdnPromise]);
             })
             .then(() => {
                 console.log('[Service Worker] Installed successfully');
@@ -67,8 +80,16 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip cross-origin requests except for CDN assets
-    if (url.origin !== location.origin && !url.hostname.includes('cdn.jsdelivr.net') && !url.hostname.includes('fonts.googleapis.com')) {
+    // Allowed CDN domains
+    const allowedCDNs = [
+        'cdn.jsdelivr.net',
+        'fonts.googleapis.com',
+        'fonts.gstatic.com'
+    ];
+
+    // Skip cross-origin requests except for allowed CDN assets
+    const isAllowedCDN = allowedCDNs.some(cdn => url.hostname.includes(cdn));
+    if (url.origin !== location.origin && !isAllowedCDN) {
         return;
     }
 
