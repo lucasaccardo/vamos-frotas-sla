@@ -80,7 +80,7 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Allowed CDN domains
+    // Allowed CDN domains (exact hostnames)
     const allowedCDNs = [
         'cdn.jsdelivr.net',
         'fonts.googleapis.com',
@@ -88,7 +88,7 @@ self.addEventListener('fetch', (event) => {
     ];
 
     // Skip cross-origin requests except for allowed CDN assets
-    const isAllowedCDN = allowedCDNs.some(cdn => url.hostname.includes(cdn));
+    const isAllowedCDN = allowedCDNs.includes(url.hostname);
     if (url.origin !== location.origin && !isAllowedCDN) {
         return;
     }
