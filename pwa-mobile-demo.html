@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Vamos Frotas SLA - PWA Demo</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#D12119">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --dark-bg-main: #0f1419;
+            --dark-bg-secondary: #1a1f2e;
+            --brand-red: #D12119;
+            --brand-red-hover: #b91c1c;
+            --brand-red-glow: rgba(209, 33, 25, 0.4);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--dark-bg-main);
+            background-image: 
+                linear-gradient(135deg, rgba(26, 31, 46, 0.9) 0%, rgba(15, 20, 25, 0.95) 100%);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        .mobile-preview {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            padding: 20px;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        /* Mobile Bottom Tab Bar */
+        .mobile-tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(26, 31, 46, 0.98) 0%, rgba(15, 20, 25, 0.98) 100%);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 0;
+            z-index: 9999;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .mobile-tab-bar .tab-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .mobile-tab-bar .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            padding: 8px 4px;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .mobile-tab-bar .tab-item i {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-tab-bar .tab-item .tab-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-tab-bar .tab-item.active {
+            color: var(--brand-red);
+        }
+
+        .mobile-tab-bar .tab-item.active i {
+            transform: scale(1.1);
+            text-shadow: 0 0 12px var(--brand-red-glow);
+        }
+
+        .mobile-tab-bar .tab-item.active::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: var(--brand-red);
+            border-radius: 0 0 3px 3px;
+            box-shadow: 0 2px 8px var(--brand-red-glow);
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.08) 50%,
+                transparent 100%
+            );
+            animation: skeletonLoading 1.5s infinite;
+        }
+
+        @keyframes skeletonLoading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-text.large {
+            height: 24px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .badge-danger {
+            background: rgba(220, 38, 38, 0.2);
+            color: var(--brand-red);
+            border: 1px solid rgba(220, 38, 38, 0.4);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .lucas-signature {
+            text-align: center;
+            padding: 16px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 20px;
+        }
+
+        .lucas-signature .author-name {
+            color: var(--brand-red);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-preview">
+        <h4 class="text-center mb-4" style="color: var(--brand-red);">
+            <i class="bi bi-phone-fill me-2"></i>
+            PWA Mobile Preview
+        </h4>
+
+        <!-- Cards demonstrating the interface -->
+        <div class="card">
+            <h5 style="margin-bottom: 12px;">
+                <i class="bi bi-shield-exclamation" style="color: var(--brand-red);"></i>
+                Sinistro #12345
+            </h5>
+            <div style="margin-bottom: 8px;">
+                <span class="badge badge-danger">Em Análise</span>
+            </div>
+            <p style="margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary);">
+                Acidente envolvendo veículo de terceiros
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0;">
+                <i class="bi bi-clock me-1"></i>
+                27/01/2026 - 16:45
+            </p>
+        </div>
+
+        <div class="card">
+            <h5 style="margin-bottom: 12px;">
+                <i class="bi bi-shield-exclamation" style="color: var(--brand-red);"></i>
+                Sinistro #12344
+            </h5>
+            <div style="margin-bottom: 8px;">
+                <span class="badge badge-success">Concluído</span>
+            </div>
+            <p style="margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary);">
+                Colisão em manobra de estacionamento
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0;">
+                <i class="bi bi-clock me-1"></i>
+                25/01/2026 - 10:30
+            </p>
+        </div>
+
+        <!-- Skeleton loading example -->
+        <div style="margin-top: 32px; margin-bottom: 16px;">
+            <h6 style="color: var(--text-secondary);">Loading State Example:</h6>
+        </div>
+        
+        <div class="card">
+            <div class="skeleton skeleton-text large"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%;"></div>
+        </div>
+
+        <!-- Signature -->
+        <div class="lucas-signature">
+            Created by <span class="author-name">Lucas Sureira</span>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Tab Bar -->
+    <nav class="mobile-tab-bar">
+        <div class="tab-container">
+            <a href="#" class="tab-item active">
+                <i class="bi bi-shield-exclamation"></i>
+                <span class="tab-label">Sinistros</span>
+            </a>
+            <a href="#" class="tab-item">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span class="tab-label">SLA</span>
+            </a>
+            <a href="#" class="tab-item">
+                <i class="bi bi-person-circle"></i>
+                <span class="tab-label">Perfil</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Add haptic feedback on card clicks
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', function() {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+            });
+        });
+
+        // Tab switching animation
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

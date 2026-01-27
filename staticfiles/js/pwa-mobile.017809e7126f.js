@@ -13,22 +13,10 @@
     // Check if browser supports service workers
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            // Register service worker
-            navigator.serviceWorker.register('/static/sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered successfully:', registration.scope);
-                    
-                    // Check for updates
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('New service worker available, will update on next visit');
-                            }
-                        });
-                    });
-                })
-                .catch(err => console.log('Service Worker registration failed:', err));
+            // Register service worker (to be implemented later)
+            // navigator.serviceWorker.register('/sw.js')
+            //     .then(registration => console.log('SW registered:', registration))
+            //     .catch(err => console.log('SW registration failed:', err));
         });
     }
 
