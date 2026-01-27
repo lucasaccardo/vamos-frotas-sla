@@ -1,0 +1,28 @@
+{
+  "name": "Vamos Frotas SLA",
+  "short_name": "Vamos SLA",
+  "description": "Sistema de Gestão de Sinistros e SLA da Vamos Frotas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1419",
+  "theme_color": "#D12119",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://github.com/lucasaccardo/vamos-frotas-sla/blob/main/assets/logo.png?raw=true",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR",
+  "dir": "ltr"
+}
