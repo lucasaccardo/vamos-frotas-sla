@@ -1,6 +1,6 @@
 """
 Django settings for vamos_frotas_sla project.
-Versão Final - Segura para Produção
+Versão Final - Segura para Produção e Auditada (Projeto Integrador)
 """
 
 from pathlib import Path
@@ -8,19 +8,21 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 
+# Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA BÁSICA ===
+# A SECRET_KEY nunca deve ser exposta. Em produção, ela vem do ambiente.
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
 
-# Por padrão é FALSE (Seguro). Para debugar, altere nas variáveis de ambiente.
+# DEBUG deve ser False em produção para evitar vazamento de informações do sistema.
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*"] # Em produção real, especifique o domínio (ex: ['vamos-frotas.com'])
 
-# === APPS ===
+# === APPS INSTALADOS ===
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -35,6 +37,7 @@ INSTALLED_APPS = [
     "accounts",
     "sinistros",
     "procedures",
+    # Para o Tópico 3, recomenda-se adicionar 'django_axes' após a instalação
 ]
 
 # === MIDDLEWARE ===
@@ -44,13 +47,10 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    
-    # OBS: Middleware de timeout removido para evitar erro de importação
-    # "sinistros.middleware.SessionIdleTimeout",
-    
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # 'axes.middleware.AxesMiddleware', # Adicionar para proteção contra Força Bruta
 ]
 
 ROOT_URLCONF = "vamos_frotas_sla.urls"
@@ -67,7 +67,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                # Context processor de notificações removido conforme solicitado
             ],
         },
     },
@@ -83,7 +82,7 @@ DATABASES = {
     )
 }
 
-# === SENHAS ===
+# === SENHAS E VALIDAÇÃO ===
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -91,7 +90,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# === GERAL ===
+# === TÓPICO 1: HASH E SALT (GESTÃO DE CREDENCIAIS) ===
+# Configuração explícita dos algoritmos de hash permitidos.
+# O Django utiliza PBKDF2 com salt aleatório por padrão para cada usuário.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher", # Requisito opcional de alta segurança
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
+
+# === INTERNACIONALIZAÇÃO ===
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
@@ -101,9 +110,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # Deprecated in Django 4.2+, use STORAGES instead
 
-# Configuração AWS S3 (se as variáveis existirem, usa S3, senão usa local/whitenoise)
 if os.getenv('AWS_ACCESS_KEY_ID'):
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
@@ -119,7 +126,6 @@ if os.getenv('AWS_ACCESS_KEY_ID'):
     }
     MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 else:
-    # Fallback para desenvolvimento local
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
@@ -127,7 +133,7 @@ else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# === LOGIN ===
+# === AUTENTICAÇÃO E LOGIN ===
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "portal" 
 LOGOUT_REDIRECT_URL = "login"
@@ -146,8 +152,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
 }
 
-# === I.A. E EMAIL ===
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyA821yX6bOVatN5bf2BNikhAhngRSlo6p4") 
+# === INTEGRAÇÕES E EMAIL ===
+# As chaves sensíveis devem estar APENAS no arquivo .env
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") 
 GEMINI_MODEL = "gemini-2.0-flash"
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -159,41 +166,31 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
 # ==============================================================================
-# === CONFIGURAÇÕES DE SESSÃO E SEGURANÇA AVANÇADA ===
+# === TÓPICO 3: CONFIGURAÇÕES DE SESSÃO E SEGURANÇA AVANÇADA ===
 # ==============================================================================
 
-# 1. Configuração de Timeout/Inatividade
-SESSION_COOKIE_AGE = 1800           # 30 minutos em segundos (Sessão do Django)
-SESSION_SAVE_EVERY_REQUEST = True   # True = Renova o tempo a cada clique (Inatividade)
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Fecha sessão ao fechar navegador
+# 1. Gestão de Sessão (Timeouts)
+SESSION_COOKIE_AGE = 1800            # 30 minutos (Sessão expira por inatividade)
+SESSION_SAVE_EVERY_REQUEST = True    # Renova o tempo a cada interação do usuário
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Encerra a sessão ao fechar o navegador
 
-# Configuração específica para o middleware customizado (Sinistros) - Mantido para uso futuro
-IDLE_TIMEOUT_SECONDS = 1800  # 30 minutos de inatividade para logout forçado
-
-# 2. Configurações de Segurança HTTPS/Cookies
-# Aplicar regras estritas APENAS se não estiver em modo DEBUG (Produção)
+# 2. Segurança de Cookies e Proteção HTTPS (Para Entrega 4)
+# Estas regras garantem que os dados não sejam interceptados.
 if not DEBUG:
-    # Força cookies apenas via HTTPS
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    
-    # Proteção contra XSS e Sniffing
-    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = True     # Cookies enviados apenas via HTTPS
+    CSRF_COOKIE_SECURE = True        # Proteção contra ataques CSRF via HTTPS
+    SESSION_COOKIE_HTTPONLY = True   # Impede acesso aos cookies via Scripts (Proteção XSS)
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     
-    # HSTS (HTTP Strict Transport Security) - Força navegadores a usarem HTTPS
-    SECURE_HSTS_SECONDS = 31536000  # 1 ano
+    # HSTS - Força o uso de HTTPS no navegador
+    SECURE_HSTS_SECONDS = 31536000   # 1 ano
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    
-    # Redirecionamento SSL
     SECURE_SSL_REDIRECT = True
-    
-    # Essencial para Render/Heroku/AWS (Identifica HTTPS através do proxy)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 else:
-    # Em desenvolvimento (localhost), relaxamos essas regras
+    # Configurações relaxadas para desenvolvimento local
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SECURE_SSL_REDIRECT = False
