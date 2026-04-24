@@ -20,7 +20,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
 # DEBUG deve ser False em produção para evitar vazamento de informações do sistema.
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"] # Em produção real, especifique o domínio (ex: ['vamos-frotas.com'])
+ALLOWED_HOSTS = ['vamos-frotas-sla.onrender.com'] # Em produção real, especifique o domínio (ex: ['vamos-frotas.com'])
 
 # === APPS INSTALADOS ===
 INSTALLED_APPS = [
