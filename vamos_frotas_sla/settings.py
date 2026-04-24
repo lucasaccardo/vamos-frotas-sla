@@ -177,18 +177,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Encerra a sessão ao fechar o navegador
 # 2. Segurança de Cookies e Proteção HTTPS (Para Entrega 4)
 # Estas regras garantem que os dados não sejam interceptados.
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True     # Cookies enviados apenas via HTTPS
-    CSRF_COOKIE_SECURE = True        # Proteção contra ataques CSRF via HTTPS
-    SESSION_COOKIE_HTTPONLY = True   # Impede acesso aos cookies via Scripts (Proteção XSS)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
     SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_CONTENT_TYPE_NOSNIFF
     
-    # HSTS - Força o uso de HTTPS no navegador
-    SECURE_HSTS_SECONDS = 31536000   # 1 ano
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
 else:
     # Configurações relaxadas para desenvolvimento local
     SESSION_COOKIE_SECURE = False
