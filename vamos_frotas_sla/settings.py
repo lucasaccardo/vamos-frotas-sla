@@ -14,12 +14,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA BÁSICA ===
-# A SECRET_KEY nunca deve ser exposta. Em produção, ela vem do ambiente.
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
-
-# DEBUG deve ser False em produção para evitar vazamento de informações do sistema.
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-
 ALLOWED_HOSTS = ['*']
 
 # === APPS INSTALADOS ===
@@ -37,7 +33,13 @@ INSTALLED_APPS = [
     "accounts",
     "sinistros",
     "procedures",
-    # Para o Tópico 3, recomenda-se adicionar 'django_axes' após a instalação
+    
+    # --- ADICIONADO: Bibliotecas do Tópico 2 (2FA) ---
+    'django_otp',
+    'django_otp.plugins.otp_static',
+    'django_otp.plugins.otp_totp',
+    'two_factor',
+    'two_factor.plugins.phonenumber',
 ]
 
 # === MIDDLEWARE ===
@@ -48,9 +50,12 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    
+    # --- ADICIONADO: Middleware que obriga a checagem do Token 2FA ---
+    "django_otp.middleware.OTPMiddleware",
+    
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # 'axes.middleware.AxesMiddleware', # Adicionar para proteção contra Força Bruta
 ]
 
 ROOT_URLCONF = "vamos_frotas_sla.urls"
@@ -91,12 +96,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # === TÓPICO 1: HASH E SALT (GESTÃO DE CREDENCIAIS) ===
-# Configuração explícita dos algoritmos de hash permitidos.
-# O Django utiliza PBKDF2 com salt aleatório por padrão para cada usuário.
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
-    "django.contrib.auth.hashers.Argon2PasswordHasher", # Requisito opcional de alta segurança
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
 ]
 
@@ -134,7 +137,8 @@ else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # === AUTENTICAÇÃO E LOGIN ===
-LOGIN_URL = "login"
+# --- ALTERADO: Rota de login redirecionada para o sistema de 2FA ---
+LOGIN_URL = 'two_factor:login'
 LOGIN_REDIRECT_URL = "portal" 
 LOGOUT_REDIRECT_URL = "login"
 
@@ -153,7 +157,6 @@ REST_FRAMEWORK = {
 }
 
 # === INTEGRAÇÕES E EMAIL ===
-# As chaves sensíveis devem estar APENAS no arquivo .env
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") 
 GEMINI_MODEL = "gemini-2.0-flash"
 
@@ -168,21 +171,16 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 # ==============================================================================
 # === TÓPICO 3: CONFIGURAÇÕES DE SESSÃO E SEGURANÇA AVANÇADA ===
 # ==============================================================================
+SESSION_COOKIE_AGE = 1800            
+SESSION_SAVE_EVERY_REQUEST = True    
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
 
-# 1. Gestão de Sessão (Timeouts)
-SESSION_COOKIE_AGE = 1800            # 30 minutos (Sessão expira por inatividade)
-SESSION_SAVE_EVERY_REQUEST = True    # Renova o tempo a cada interação do usuário
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Encerra a sessão ao fechar o navegador
-
-# 2. Segurança de Cookies e Proteção HTTPS (Para Entrega 4)
-# Estas regras garantem que os dados não sejam interceptados.
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
@@ -190,7 +188,6 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     USE_X_FORWARDED_HOST = True
 else:
-    # Configurações relaxadas para desenvolvimento local
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SECURE_SSL_REDIRECT = False
