@@ -139,7 +139,6 @@ else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # === AUTENTICAÇÃO E LOGIN ===
-# --- ALTERADO: Rota de login redirecionada para o sistema de 2FA ---
 LOGIN_URL = 'two_factor:login'
 LOGIN_REDIRECT_URL = "portal" 
 LOGOUT_REDIRECT_URL = "login"
@@ -202,3 +201,7 @@ AUTHENTICATION_BACKENDS = [
 AXES_FAILURE_LIMIT = 5 # Bloqueia após 5 tentativas erradas
 AXES_COOLOFF_TIME = 1  # Bloqueia por 1 hora
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' # Opcional: página de erro
+
+# --- RECUPERAÇÃO DE SENHA (Tópico 3 da Entrega 3) ---
+# O token de redefinição de senha expira em 1 hora (3600 segundos)
+PASSWORD_RESET_TIMEOUT = 3600
