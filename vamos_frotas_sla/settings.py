@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_totp',
     'two_factor',
     'two_factor.plugins.phonenumber',
+    'axes',
 ]
 
 # === MIDDLEWARE ===
@@ -56,6 +57,7 @@ MIDDLEWARE = [
     
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = "vamos_frotas_sla.urls"
@@ -191,3 +193,12 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SECURE_SSL_REDIRECT = False
+
+# --- PROTEÇÃO CONTRA FORÇA BRUTA (django-axes) ---
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+AXES_FAILURE_LIMIT = 5 # Bloqueia após 5 tentativas erradas
+AXES_COOLOFF_TIME = 1  # Bloqueia por 1 hora
+AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' # Opcional: página de erro
