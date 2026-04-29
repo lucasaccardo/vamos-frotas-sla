@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from two_factor.urls import urlpatterns as tf_urls
 
 # --- ADICIONADO: Importação do sistema 2FA ---
 from two_factor.urls import urlpatterns as tf_urls
@@ -12,6 +11,9 @@ urlpatterns = [
     
     # --- ADICIONADO: Rotas de Autenticação do 2FA ---
     path('', include(tf_urls)),
+    
+    # --- ADICIONADO: Rotas Nativas do Django para Recuperação de Senha (Tópico 3) ---
+    path('accounts/', include('django.contrib.auth.urls')), 
     
     path('', include('vamos.urls')),        # Manda para o app principal
     path('sinistros/', include('sinistros.urls')), # Manda para o NOVO app
