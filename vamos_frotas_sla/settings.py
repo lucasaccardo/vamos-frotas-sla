@@ -124,6 +124,9 @@ if os.getenv('AWS_ACCESS_KEY_ID'):
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_DEFAULT_ACL = None
     AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {
+        'ServerSideEncryption': 'AES256',
+    }
 
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage"},
