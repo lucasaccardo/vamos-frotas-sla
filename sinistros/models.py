@@ -1,4 +1,5 @@
 from django.db import models
+from django_cryptography.fields import encrypt
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -31,11 +32,11 @@ class Sinistro(models.Model):
     ]
 
     # --- DADOS DO ATIVO ---
-    placa = models.CharField(max_length=20)
-    cliente = models.CharField(max_length=100)
+    placa = encrypt(models.CharField(max_length=20))
+    cliente = encrypt(models.CharField(max_length=100))
     modelo_ativo = models.CharField(max_length=100)
-    chassi = models.CharField(max_length=50, blank=True, null=True)
-    n_contrato = models.CharField(max_length=50, blank=True, null=True)
+    chassi = encrypt(models.CharField(max_length=50, blank=True, null=True))
+    n_contrato = encrypt(models.CharField(max_length=50, blank=True, null=True))
     segmento = models.CharField(max_length=20, choices=SEGMENTOS, default='PESADOS')
     
     # --- DADOS DA OCORRÊNCIA ---
@@ -43,7 +44,7 @@ class Sinistro(models.Model):
     data_ocorrencia = models.DateField()
     motivo = models.CharField(max_length=20, choices=MOTIVOS)
     endereco_ativo = models.CharField(max_length=200, blank=True, null=True)
-    telefone_contato = models.CharField(max_length=20, blank=True, null=True)
+    telefone_contato = encrypt(models.CharField(max_length=20, blank=True, null=True))
     
     # --- FINANCEIRO (OPCIONAIS NA ABERTURA) ---
     valor_fipe = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -190,11 +191,11 @@ class HistoricoSinistro(models.Model):
 
 # === NOVA TABELA DE FROTA ===
 class Frota(models.Model):
-    placa = models.CharField(max_length=20, unique=True, db_index=True)
-    cliente = models.CharField(max_length=200, blank=True, null=True)
+    placa = encrypt(models.CharField(max_length=20, unique=True, db_index=True))
+    cliente = encrypt(models.CharField(max_length=200, blank=True, null=True))
     modelo = models.CharField(max_length=200, blank=True, null=True)
-    chassi = models.CharField(max_length=100, blank=True, null=True)
-    contrato = models.CharField(max_length=100, blank=True, null=True)
+    chassi = encrypt(models.CharField(max_length=100, blank=True, null=True))
+    contrato = encrypt(models.CharField(max_length=100, blank=True, null=True))
     centro_custo = models.CharField(max_length=50, blank=True, null=True)
     segmento = models.CharField(max_length=50, blank=True, null=True)
     
