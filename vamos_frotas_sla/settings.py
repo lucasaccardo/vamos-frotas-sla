@@ -5,8 +5,10 @@ Versão Final - Segura para Produção e Auditada (Projeto Integrador)
 
 from pathlib import Path
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -14,9 +16,39 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA BÁSICA ===
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-ALLOWED_HOSTS = ['*']
+DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "dev-only-insecure-secret-key-change-me"
+    else:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY é obrigatório quando DJANGO_DEBUG=False."
+        )
+
+_allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts_env.split(",") if host.strip()]
+if not ALLOWED_HOSTS:
+    if DEBUG:
+        ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+    else:
+        raise ImproperlyConfigured(
+            "DJANGO_ALLOWED_HOSTS é obrigatório quando DJANGO_DEBUG=False."
+        )
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+_render_external_url = os.getenv("RENDER_EXTERNAL_URL", "").strip()
+if _render_external_url:
+    parsed = urlparse(_render_external_url)
+    if parsed.scheme and parsed.netloc:
+        render_origin = f"{parsed.scheme}://{parsed.netloc}"
+        if render_origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 # === APPS INSTALADOS ===
 INSTALLED_APPS = [
@@ -98,12 +130,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # === TÓPICO 1: HASH E SALT (GESTÃO DE CREDENCIAIS) ===
+# Argon2 é o hasher primário em produção por resistência superior a brute force.
+# Os demais hashers permanecem para compatibilidade com hashes legados.
 PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
-    "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
 ]
+ARGON2_TIME_COST = int(os.getenv("DJANGO_ARGON2_TIME_COST", "3"))
+ARGON2_MEMORY_COST = int(os.getenv("DJANGO_ARGON2_MEMORY_COST", "102400"))
+ARGON2_PARALLELISM = int(os.getenv("DJANGO_ARGON2_PARALLELISM", "8"))
 
 # === INTERNACIONALIZAÇÃO ===
 LANGUAGE_CODE = "pt-br"
@@ -145,6 +182,7 @@ else:
 LOGIN_URL = 'two_factor:login'
 LOGIN_REDIRECT_URL = "portal" 
 LOGOUT_REDIRECT_URL = "login"
+TERMOS_VERSAO = os.getenv("TERMOS_VERSAO", "2026-05")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -208,3 +246,37 @@ AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' # Opcional: página de erro
 # --- RECUPERAÇÃO DE SENHA (Tópico 3 da Entrega 3) ---
 # O token de redefinição de senha expira em 1 hora (3600 segundos)
 PASSWORD_RESET_TIMEOUT = 3600
+
+# --- LOGS DE SEGURANÇA E AUDITORIA ---
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        }
+    },
+    "loggers": {
+        "vamos.security": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.contrib.auth": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "axes.watch_login": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}

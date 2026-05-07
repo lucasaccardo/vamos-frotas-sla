@@ -2,7 +2,10 @@ import re
 import markdown 
 import json 
 import os
+import logging
+import hashlib
 from datetime import datetime
+from pathlib import Path
 import pandas as pd
 
 # --- IMPORTS DO DJANGO ---
@@ -21,6 +24,7 @@ from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils.text import slugify
 
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest, Perfil
@@ -40,6 +44,9 @@ try:
 except ImportError:
     get_gemini_model = None
     get_ia_context_summary = lambda: "IA indisponível"
+
+
+security_logger = logging.getLogger("vamos.security")
 
 
 # =============================================================================
@@ -72,6 +79,12 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
         errors.append("A senha não pode conter partes do seu e-mail.")
           
     return (len(errors) == 0), errors
+
+
+def _termos_metadata():
+    termos_path = Path(settings.BASE_DIR) / "vamos" / "templates" / "vamos" / "termos.html"
+    termos_hash = hashlib.sha256(termos_path.read_bytes()).hexdigest()
+    return settings.TERMOS_VERSAO, termos_hash
 
 
 # =============================================================================
@@ -125,16 +138,24 @@ def reset_password_confirm_view(request, uidb64, token): return redirect("login"
 @login_required(login_url='login')
 def termos_uso_view(request):
     """Exibe os termos e registra o aceite."""
+    termos_versao, termos_hash = _termos_metadata()
     if request.method == 'POST':
         if hasattr(request.user, 'perfil'):
             request.user.perfil.termos_aceitos_em = timezone.now()
-            request.user.perfil.save()
+            request.user.perfil.termos_versao = termos_versao
+            request.user.perfil.termos_hash = termos_hash
+            request.user.perfil.save(update_fields=["termos_aceitos_em", "termos_versao", "termos_hash"])
+            security_logger.info(
+                "lgpd_terms_accepted user_id=%s versao=%s",
+                request.user.id,
+                termos_versao,
+            )
             messages.success(request, "Termos aceitos com sucesso. Bem-vindo!")
             return redirect('portal')
         else:
             messages.error(request, "Erro ao localizar perfil do usuário.")
     
-    return render(request, "vamos/termos.html")
+    return render(request, "vamos/termos.html", {"termos_versao": termos_versao})
 
 # --- NOVO: TELA DO PORTAL (ESCOLHA DE MÓDULO) ---
 @login_required(login_url='login')
@@ -958,6 +979,75 @@ def minha_conta_view(request):
 
     return render(request, "vamos/profile.html", {"user": request.user, "form": form})
 
+
+def _montar_payload_titular(user):
+    perfil = getattr(user, "perfil", None)
+    analises = Analise.objects.filter(usuario=user).values(
+        "id", "protocolo", "tipo", "data_criacao", "placa", "cliente"
+    )
+    tickets = Ticket.objects.filter(usuario=user).values(
+        "id", "protocolo", "titulo", "status", "created_at", "updated_at"
+    )
+
+    return {
+        "usuario": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "nome_completo": user.get_full_name(),
+            "is_active": user.is_active,
+            "date_joined": user.date_joined,
+            "last_login": user.last_login,
+        },
+        "perfil": {
+            "matricula": getattr(perfil, "matricula", None),
+            "termos_aceitos_em": getattr(perfil, "termos_aceitos_em", None),
+            "termos_versao": getattr(perfil, "termos_versao", None),
+            "termos_hash": getattr(perfil, "termos_hash", None),
+        },
+        "analises": list(analises),
+        "tickets": list(tickets),
+    }
+
+
+@login_required(login_url='login')
+def meus_dados_view(request):
+    payload = _montar_payload_titular(request.user)
+    return render(request, "vamos/meus_dados.html", {"dados": payload})
+
+
+@login_required(login_url='login')
+def exportar_meus_dados_view(request):
+    payload = _montar_payload_titular(request.user)
+    response = HttpResponse(
+        json.dumps(payload, ensure_ascii=False, default=str, indent=2),
+        content_type="application/json; charset=utf-8",
+    )
+    filename = f"dados_titular_{slugify(request.user.username)}.json"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    security_logger.info("lgpd_data_export user_id=%s", request.user.id)
+    return response
+
+
+@login_required(login_url='login')
+def solicitar_exclusao_dados_view(request):
+    if request.method == "POST":
+        Ticket.objects.create(
+            usuario=request.user,
+            titulo="Solicitação LGPD - exclusão de dados",
+            descricao=(
+                "Solicitação de exclusão de dados pessoais conforme LGPD. "
+                "Favor validar identidade e executar fluxo administrativo."
+            ),
+        )
+        security_logger.info("lgpd_data_deletion_requested user_id=%s", request.user.id)
+        messages.success(
+            request,
+            "Solicitação registrada com sucesso. O time administrativo dará continuidade ao processo.",
+        )
+    return redirect("meus_dados")
+
+
 @login_required(login_url='login')
 def delete_foto_perfil_view(request):
     """Remove a foto de perfil do usuário."""
@@ -970,4 +1060,3 @@ def delete_foto_perfil_view(request):
         messages.warning(request, "Você não tem foto para remover.")
     
     return redirect("minha_conta")
-

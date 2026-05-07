@@ -1,0 +1,38 @@
+{% extends 'vamos/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold">Meus dados (LGPD)</h2>
+            <p class="text-muted mb-0">Consulta, exportação e solicitação de exclusão dos seus dados.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Resumo cadastral</h5>
+            <ul class="mb-3">
+                <li><strong>Usuário:</strong> {{ dados.usuario.username }}</li>
+                <li><strong>E-mail:</strong> {{ dados.usuario.email|default:"-" }}</li>
+                <li><strong>Matrícula:</strong> {{ dados.perfil.matricula|default:"-" }}</li>
+                <li><strong>Termos aceitos em:</strong> {{ dados.perfil.termos_aceitos_em|default:"-" }}</li>
+                <li><strong>Versão dos termos:</strong> {{ dados.perfil.termos_versao|default:"-" }}</li>
+            </ul>
+            <p class="mb-1"><strong>Registros vinculados:</strong></p>
+            <ul>
+                <li>Análises: {{ dados.analises|length }}</li>
+                <li>Tickets: {{ dados.tickets|length }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'exportar_meus_dados' %}" class="btn btn-success">Exportar meus dados (JSON)</a>
+        <form method="post" action="{% url 'solicitar_exclusao_dados' %}" onsubmit="return confirm('Deseja registrar solicitação de exclusão de dados?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Solicitar exclusão de dados</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

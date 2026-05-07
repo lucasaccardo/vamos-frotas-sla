@@ -107,6 +107,8 @@ class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     matricula = models.CharField(max_length=20, blank=True, null=True)
     termos_aceitos_em = models.DateTimeField(null=True, blank=True)
+    termos_versao = models.CharField(max_length=20, blank=True, default="")
+    termos_hash = models.CharField(max_length=64, blank=True, default="")
     foto = models.ImageField(upload_to='perfil_fotos/', blank=True, null=True)
 
     def __str__(self):

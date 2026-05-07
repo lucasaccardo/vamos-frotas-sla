@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .auth_views import LoggedPasswordResetView, LoggedPasswordResetConfirmView
 
 urlpatterns = [
     # === Autenticação ===
@@ -10,15 +11,15 @@ urlpatterns = [
 
     # === Reset de Senha ===
     path('reset_password/', 
-         auth_views.PasswordResetView.as_view(
-             template_name="vamos/password_reset.html",
-             html_email_template_name="vamos/password_reset_email.html"
-         ), 
+         LoggedPasswordResetView.as_view(
+              template_name="vamos/password_reset.html",
+              html_email_template_name="vamos/password_reset_email.html"
+          ), 
          name='reset_password'
     ),
     path('reset_password_sent/', auth_views.PasswordResetDoneView.as_view(template_name="vamos/password_reset_sent.html"), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name="vamos/password_reset_form.html"), name='password_reset_confirm'),
-    path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view(template_name="vamos/password_reset_done.html"), name='password_reset_complete'),
+    path('reset/<uidb64>/<token>/', LoggedPasswordResetConfirmView.as_view(template_name="vamos/password_reset_form.html"), name='password_reset_confirm'),
+    path('reset_password_complete/', auth_views.PasswordResetCompleteView.as_view(template_name="vamos/password_reset_complete.html"), name='password_reset_complete'),
 
     # === PORTAL & SELEÇÃO DE MÓDULO (NOVO) ===
     path("", views.portal_view, name="portal"),  # A Raiz agora é o Portal
@@ -42,6 +43,9 @@ urlpatterns = [
     # === Perfil do Usuário ===
     path("perfil/", views.minha_conta_view, name="minha_conta"),
     path("perfil/foto/delete/", views.delete_foto_perfil_view, name="delete_foto_perfil"),
+    path("perfil/meus-dados/", views.meus_dados_view, name="meus_dados"),
+    path("perfil/meus-dados/exportar/", views.exportar_meus_dados_view, name="exportar_meus_dados"),
+    path("perfil/meus-dados/solicitar-exclusao/", views.solicitar_exclusao_dados_view, name="solicitar_exclusao_dados"),
     
     # === Tickets, Usuários, Detalhes de Análise ===
     path("tickets/", views.ticket_list_view, name="ticket_list"),
