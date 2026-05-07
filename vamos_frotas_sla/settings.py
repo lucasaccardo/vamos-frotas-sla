@@ -16,7 +16,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === SEGURANÇA BÁSICA ===
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+_is_production_environment = bool(os.getenv("RENDER_EXTERNAL_URL")) or os.getenv("RENDER", "").lower() == "true"
+_default_debug = "False" if _is_production_environment else "True"
+DEBUG = os.getenv("DJANGO_DEBUG", _default_debug).lower() == "true"
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
@@ -133,14 +135,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Argon2 é o hasher primário em produção por resistência superior a brute force.
 # Os demais hashers permanecem para compatibilidade com hashes legados.
 PASSWORD_HASHERS = [
-    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "vamos.hashers.ConfigurableArgon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
     "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
 ]
-ARGON2_TIME_COST = int(os.getenv("DJANGO_ARGON2_TIME_COST", "3"))
-ARGON2_MEMORY_COST = int(os.getenv("DJANGO_ARGON2_MEMORY_COST", "102400"))
-ARGON2_PARALLELISM = int(os.getenv("DJANGO_ARGON2_PARALLELISM", "8"))
 
 # === INTERNACIONALIZAÇÃO ===
 LANGUAGE_CODE = "pt-br"

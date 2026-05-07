@@ -43,5 +43,5 @@ try:
             device.__class__.__name__,
             _client_ip(request),
         )
-except Exception:
-    pass
+except ImportError:
+    logger.info("two_factor signal user_verified indisponível para logging de 2FA.")

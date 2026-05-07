@@ -47,6 +47,12 @@ except ImportError:
 
 
 security_logger = logging.getLogger("vamos.security")
+LGPD_DELETION_TICKET_TITLE = "Solicitação LGPD - exclusão de dados"
+LGPD_DELETION_TICKET_DESCRIPTION = (
+    "Solicitação de exclusão de dados pessoais conforme LGPD. "
+    "Favor validar identidade e executar fluxo administrativo."
+)
+PERFIL_TERMOS_UPDATE_FIELDS = ["termos_aceitos_em", "termos_versao", "termos_hash"]
 
 
 # =============================================================================
@@ -83,7 +89,13 @@ def validate_password_policy(password: str, username: str = "", email: str = "")
 
 def _termos_metadata():
     termos_path = Path(settings.BASE_DIR) / "vamos" / "templates" / "vamos" / "termos.html"
-    termos_hash = hashlib.sha256(termos_path.read_bytes()).hexdigest()
+    try:
+        termos_hash = hashlib.sha256(termos_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise RuntimeError(
+            "Não foi possível calcular hash dos termos de uso "
+            f"(arquivo ausente ou sem permissão de leitura): {exc}."
+        ) from exc
     return settings.TERMOS_VERSAO, termos_hash
 
 
@@ -144,7 +156,7 @@ def termos_uso_view(request):
             request.user.perfil.termos_aceitos_em = timezone.now()
             request.user.perfil.termos_versao = termos_versao
             request.user.perfil.termos_hash = termos_hash
-            request.user.perfil.save(update_fields=["termos_aceitos_em", "termos_versao", "termos_hash"])
+            request.user.perfil.save(update_fields=PERFIL_TERMOS_UPDATE_FIELDS)
             security_logger.info(
                 "lgpd_terms_accepted user_id=%s versao=%s",
                 request.user.id,
@@ -1034,11 +1046,8 @@ def solicitar_exclusao_dados_view(request):
     if request.method == "POST":
         Ticket.objects.create(
             usuario=request.user,
-            titulo="Solicitação LGPD - exclusão de dados",
-            descricao=(
-                "Solicitação de exclusão de dados pessoais conforme LGPD. "
-                "Favor validar identidade e executar fluxo administrativo."
-            ),
+            titulo=LGPD_DELETION_TICKET_TITLE,
+            descricao=LGPD_DELETION_TICKET_DESCRIPTION,
         )
         security_logger.info("lgpd_data_deletion_requested user_id=%s", request.user.id)
         messages.success(
