@@ -1,30 +1,31 @@
-import re 
-import markdown 
-import json 
+import json
+import os
+import re
 import os
 import logging
 import hashlib
 from datetime import datetime
 from pathlib import Path
+
 import pandas as pd
 
 # --- IMPORTS DO DJANGO ---
+from django.contrib import messages
 from django.db.models import Count
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.contrib import messages
-from django.core.files.base import ContentFile 
-from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger 
+from django.core.files.base import ContentFile
+from django.core.management import call_command
+from django.core.mail import EmailMessage, send_mail
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
-from django.core.mail import EmailMessage
-from django.core.management import call_command
-from django.core.mail import send_mail
-from django.conf import settings
+from django.utils import timezone
 from django.utils.text import slugify
+from django_otp.decorators import otp_required
 
 # Importações dos Modelos e Formulários
 from .models import Ticket, Analise, DeleteRequest, Perfil
@@ -97,6 +98,54 @@ def _termos_metadata():
             f"(arquivo ausente ou sem permissão de leitura): {exc}."
         ) from exc
     return settings.TERMOS_VERSAO, termos_hash
+
+
+def _anonimizar_dados_titular(user):
+    """Anonimiza os dados pessoais do titular ao aprovar solicitação LGPD."""
+    sufixo = timezone.now().strftime("%Y%m%d%H%M%S")
+    identificador_anonimo = f"anon_{user.id}_{sufixo}"
+
+    user.username = identificador_anonimo[:150]
+    user.first_name = "Titular"
+    user.last_name = "Anonimizado"
+    user.email = f"{identificador_anonimo}@anon.invalid"
+    user.is_active = False
+    user.set_unusable_password()
+    user.save(
+        update_fields=[
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "password",
+        ]
+    )
+
+    perfil = getattr(user, "perfil", None)
+    if perfil:
+        if perfil.foto:
+            perfil.foto.delete(save=False)
+        perfil.matricula = None
+        perfil.termos_aceitos_em = None
+        perfil.termos_versao = ""
+        perfil.termos_hash = ""
+        perfil.save(
+            update_fields=[
+                "foto",
+                "matricula",
+                "termos_aceitos_em",
+                "termos_versao",
+                "termos_hash",
+            ]
+        )
+
+    Analise.objects.filter(usuario=user).update(placa=None, cliente="Anonimizado", dados={})
+    Ticket.objects.filter(usuario=user).update(
+        titulo="Registro anonimizado (LGPD)",
+        descricao="Dados pessoais removidos por solicitação do titular.",
+        resposta_admin="",
+    )
 
 
 # =============================================================================
