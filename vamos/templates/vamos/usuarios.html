@@ -74,7 +74,7 @@
                             <td>
                                 {% if u.perfil.termos_aceitos_em %}
                                     <span class="badge bg-info text-dark" title="{{ u.perfil.termos_aceitos_em }}">
-                                        Aceito em {{ u.perfil.termos_aceitos_em|date:"d/m/y" }}
+                                        Aceito em {{ u.perfil.termos_aceitos_em|date:"d/m/y" }}{% if u.perfil.termos_versao %} (v{{ u.perfil.termos_versao }}){% endif %}
                                     </span>
                                 {% else %}
                                     <span class="badge bg-warning text-dark">Pendente</span>

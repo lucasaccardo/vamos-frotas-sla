@@ -92,6 +92,11 @@
                             <label class="small text-muted fw-bold">MATRÍCULA</label>
                             <div class="fs-6 text-dark">{{ user.perfil.matricula|default:"-" }}</div>
                         </div>
+                        <div class="mt-4 d-grid gap-2">
+                            <a href="{% url 'meus_dados' %}" class="btn btn-outline-primary">
+                                Consultar dados pessoais (LGPD)
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
