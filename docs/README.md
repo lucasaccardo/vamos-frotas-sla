@@ -14,3 +14,9 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Banco PostgreSQL
+
+Veja `docs/POSTGRESQL.md` para configurar `DATABASE_URL`, aplicar migrations e migrar dados existentes para PostgreSQL.
+
+Veja tambem `docs/ALTERACOES_POSTGRESQL.md` para o resumo das alteracoes feitas e proximos passos.

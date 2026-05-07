@@ -116,12 +116,46 @@ TEMPLATES = [
 WSGI_APPLICATION = "vamos_frotas_sla.wsgi.application"
 
 # === BANCO DE DADOS ===
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600
+# Em producao, use PostgreSQL via DATABASE_URL. O fallback para SQLite existe
+# apenas para desenvolvimento local sem banco configurado.
+_database_url = os.getenv("DATABASE_URL", "").strip()
+_database_ssl_required = os.getenv("DATABASE_SSL_REQUIRE", "False").lower() == "true"
+
+if _database_url:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=_database_url,
+            conn_max_age=600,
+            ssl_require=_database_ssl_required,
+        )
+    }
+elif os.getenv("POSTGRES_DB"):
+    _database_options = {}
+    if _database_ssl_required:
+        _database_options["sslmode"] = "require"
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB"),
+            "USER": os.getenv("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+            "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+            "OPTIONS": _database_options,
+        }
+    }
+elif DEBUG:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default="sqlite:///db.sqlite3",
+            conn_max_age=600,
+        )
+    }
+else:
+    raise ImproperlyConfigured(
+        "Configure DATABASE_URL ou POSTGRES_DB para usar PostgreSQL em producao."
     )
-}
 
 # === SENHAS E VALIDAÇÃO ===
 AUTH_PASSWORD_VALIDATORS = [

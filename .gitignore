@@ -22,6 +22,7 @@ wheels/
 
 # Virtual environments
 venv/
+.venv/
 venv_stable/
 venv_test/
 ENV/
@@ -55,3 +56,4 @@ Thumbs.db
 *.bak
 .env
 .env.test
+.pip-tmp/
