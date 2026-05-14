@@ -2,10 +2,6 @@
 
 - `docs/LGPD.md`: políticas e fluxo mínimo de atendimento aos direitos do titular.
 - `AUDITORIA_SEGURANCA_LGPD.md`: checklist técnico-acadêmico de segurança e LGPD.
-- `docs/SEGURANCA_E_ARQUITETURA.md`: visão técnica, arquitetura, riscos e contramedidas.
-- `docs/EVIDENCIAS_SEGURANCA.md`: evidências operacionais de HTTPS e logs.
-- `docs/RESUMO_CIENTIFICO.md`: resumo científico (200–300 palavras).
-- `docs/POSTER_TEMPLATE.md`: base para pôster científico.
 
 ## Observações de segurança de repositório
 

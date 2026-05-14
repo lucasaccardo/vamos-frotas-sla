@@ -46,8 +46,6 @@ urlpatterns = [
     path("perfil/meus-dados/", views.meus_dados_view, name="meus_dados"),
     path("perfil/meus-dados/exportar/", views.exportar_meus_dados_view, name="exportar_meus_dados"),
     path("perfil/meus-dados/solicitar-exclusao/", views.solicitar_exclusao_dados_view, name="solicitar_exclusao_dados"),
-    path("perfil/meus-dados/revogar-consentimento/", views.revogar_consentimento_view, name="revogar_consentimento"),
-    path("perfil/meus-dados/excluir/", views.excluir_meus_dados_view, name="excluir_meus_dados"),
     
     # === Tickets, Usuários, Detalhes de Análise ===
     path("tickets/", views.ticket_list_view, name="ticket_list"),
