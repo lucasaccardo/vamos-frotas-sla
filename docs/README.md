@@ -11,3 +11,4 @@
 - `docs/abstract.md`
 - `docs/poster.md`
 - `docs/checklist.md`
+- `docs/archive/` (materiais legados e históricos)
