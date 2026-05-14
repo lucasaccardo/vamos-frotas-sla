@@ -1,3 +1,0 @@
-username,password,role,full_name,matricula,email,status,accepted_terms_on,reset_token,reset_expires_at,last_password_change,force_password_reset
-lucas.sureira,6249e3a0541dbd05b16bdcb5954cc1ec96aa97a12f100b5a47ce8f43b362c6b7,superadmin,Lucas Mateus Sureira,30159179,fleetvamossla@gmail.com,aprovado,2025-11-03 20:11:32,,,2025-11-13 01:13:25,
-teste.123,77ba8db8ef999610c9c5af52d093fd486344271f017ec8c26ba41bb81e1b47e3,user,Teste Teste,12341234,lucasmateussureira1999@gmail.com,aprovado,2025-11-03 20:13:02,,,2025-11-04 16:51:30,

@@ -4,7 +4,7 @@ O **Vamos Frotas SLA** é uma aplicação Django para gestão operacional com au
 
 ## Componentes principais
 
-- **Aplicação web Django** (`vamos_frotas_sla`, `vamos`, `sinistros`, `accounts`, `tickets`, `analyses`, `procedures`)
+- **Aplicação web Django** (`vamos_frotas_sla`, `vamos`, `sinistros`, `accounts`, `procedures`) com módulos de tickets e análises dentro de `vamos`
 - **Autenticação**: login com 2FA (`django-two-factor-auth` + `django-otp`)
 - **Proteção de credenciais**: Argon2 configurável por ambiente (`vamos/hashers.py`)
 - **Proteção contra brute-force**: `django-axes` com limites configuráveis
@@ -17,8 +17,11 @@ O **Vamos Frotas SLA** é uma aplicação Django para gestão operacional com au
 
 - `vamos_frotas_sla/`: configuração global
 - `vamos/`: autenticação, páginas principais, fluxo LGPD
+- `accounts/`: perfil e dados complementares de usuário
 - `sinistros/`: módulo de sinistros e dados sensíveis
+- `procedures/`: orquestração de fluxos procedimentais (API)
 - `docs/`: documentação técnica e científica
+- `docs/archive/`: materiais legados e históricos
 - `infra/`: artefatos de infraestrutura (TLS local)
 
 ## Fluxo de segurança resumido
