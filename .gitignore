@@ -35,10 +35,13 @@ db.sqlite3
 *.sqlite3
 db.sqlite3-journal
 media/
+staticfiles/
+logs/
 
 # Environment
 .env
 .env.local
+.env.example.local
 
 # IDE
 .vscode/
