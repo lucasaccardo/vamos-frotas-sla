@@ -5,6 +5,7 @@ Versão Final - Segura para Produção e Auditada (Projeto Integrador)
 
 from pathlib import Path
 import os
+import sys
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import dj_database_url
@@ -14,6 +15,11 @@ from django.core.exceptions import ImproperlyConfigured
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+RUNNING_TESTS = "test" in sys.argv
+SECURITY_AUDIT_LOG_PATH = os.getenv(
+    "SECURITY_AUDIT_LOG_PATH",
+    str(BASE_DIR / "logs" / "security_audit.log"),
+)
 
 # === SEGURANÇA BÁSICA ===
 _is_production_environment = bool(os.getenv("RENDER_EXTERNAL_URL")) or os.getenv("RENDER", "").lower() == "true"
@@ -200,13 +206,21 @@ if os.getenv('AWS_ACCESS_KEY_ID'):
 
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage"},
-        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        },
     }
     MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 else:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        },
     }
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -275,6 +289,7 @@ AUTHENTICATION_BACKENDS = [
 AXES_FAILURE_LIMIT = 5 # Bloqueia após 5 tentativas erradas
 AXES_COOLOFF_TIME = 1  # Bloqueia por 1 hora
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' # Opcional: página de erro
+AXES_ENABLED = not RUNNING_TESTS
 
 # --- RECUPERAÇÃO DE SENHA (Tópico 3 da Entrega 3) ---
 # O token de redefinição de senha expira em 1 hora (3600 segundos)
@@ -293,21 +308,26 @@ LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-        }
+        },
+        "security_chain": {
+            "class": "vamos.logging_handlers.HashChainAuditHandler",
+            "formatter": "standard",
+            "filename": SECURITY_AUDIT_LOG_PATH,
+        },
     },
     "loggers": {
         "vamos.security": {
-            "handlers": ["console"],
+            "handlers": ["console", "security_chain"],
             "level": "INFO",
             "propagate": False,
         },
         "django.contrib.auth": {
-            "handlers": ["console"],
+            "handlers": ["console", "security_chain"],
             "level": "INFO",
             "propagate": False,
         },
         "axes.watch_login": {
-            "handlers": ["console"],
+            "handlers": ["console", "security_chain"],
             "level": "WARNING",
             "propagate": False,
         },

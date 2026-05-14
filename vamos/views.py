@@ -53,6 +53,7 @@ LGPD_DELETION_TICKET_DESCRIPTION = (
     "Favor validar identidade e executar fluxo administrativo."
 )
 PERFIL_TERMOS_UPDATE_FIELDS = ["termos_aceitos_em", "termos_versao", "termos_hash"]
+PERFIL_TERMOS_REVOGAR_UPDATE_FIELDS = ["termos_aceitos_em", "termos_versao", "termos_hash"]
 
 
 # =============================================================================
@@ -105,18 +106,8 @@ def _termos_metadata():
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect("portal") 
-          
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("portal")
-        else:
-            messages.error(request, "Usuário ou senha inválidos.")
-    return render(request, "account/login.html")
+        return redirect("portal")
+    return redirect("two_factor:login")
 
 def signup_view(request):
     if request.method == "POST":
@@ -1055,6 +1046,42 @@ def solicitar_exclusao_dados_view(request):
             "Solicitação registrada com sucesso. O time administrativo dará continuidade ao processo.",
         )
     return redirect("meus_dados")
+
+
+@login_required(login_url='login')
+def revogar_consentimento_view(request):
+    if request.method == "POST":
+        if not hasattr(request.user, "perfil"):
+            Perfil.objects.create(user=request.user)
+        request.user.perfil.termos_aceitos_em = None
+        request.user.perfil.termos_versao = ""
+        request.user.perfil.termos_hash = ""
+        request.user.perfil.save(update_fields=PERFIL_TERMOS_REVOGAR_UPDATE_FIELDS)
+        security_logger.info("lgpd_terms_revoked user_id=%s", request.user.id)
+        messages.success(
+            request,
+            "Consentimento revogado. Você pode aceitar novamente os termos quando necessário.",
+        )
+    return redirect("meus_dados")
+
+
+@login_required(login_url='login')
+def excluir_meus_dados_view(request):
+    if request.method != "POST":
+        return redirect("meus_dados")
+
+    user = request.user
+    user_id = user.id
+    security_logger.info("lgpd_data_erasure_started user_id=%s", user_id)
+    try:
+        logout(request)
+        user.delete()
+        security_logger.info("lgpd_data_erasure_completed user_id=%s", user_id)
+        return redirect("login")
+    except Exception as exc:
+        security_logger.error("lgpd_data_erasure_failed user_id=%s error=%s", user_id, exc)
+        messages.error(request, "Não foi possível concluir a exclusão dos dados.")
+        return redirect("meus_dados")
 
 
 @login_required(login_url='login')
