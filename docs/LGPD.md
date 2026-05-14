@@ -26,17 +26,13 @@
   - `termos_aceitos_em`
   - `termos_versao`
   - `termos_hash`
-- Revogação de consentimento disponível em `POST /perfil/meus-dados/revogar-consentimento/` (limpa registro de aceite para novo consentimento explícito).
-- Exclusão de dados disponível em:
-  - `POST /perfil/meus-dados/solicitar-exclusao/` (fluxo administrativo com ticket);
-  - `POST /perfil/meus-dados/excluir/` (exclusão imediata da conta e dados pessoais associados no app).
+- A revogação/exclusão é tratada via solicitação formal do titular (fluxo administrativo) pela UI em `perfil/meus-dados/solicitar-exclusao/`.
 
 ## 5) Direitos do titular (consulta, exportação, exclusão)
 
 - **Consulta:** `GET /perfil/meus-dados/`
 - **Exportação:** `GET /perfil/meus-dados/exportar/` (JSON)
 - **Exclusão:** `POST /perfil/meus-dados/solicitar-exclusao/` (abre ticket LGPD para tratativa)
-- **Exclusão imediata:** `POST /perfil/meus-dados/excluir/`
 
 ## 6) Como solicitar atendimento
 
