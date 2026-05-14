@@ -787,8 +787,7 @@ def exportar_xlsx(request):
     if apenas_pagos:
         qs = qs.filter(total_pago__gt=0)
     
-    if cliente:
-        qs = qs.filter(cliente__icontains=cliente)
+    cliente_filter = (cliente or "").strip().lower()
     
     if segmento and segmento != 'TODOS':
         qs = qs.filter(segmento=segmento)
@@ -822,6 +821,8 @@ def exportar_xlsx(request):
     # Prepare data for Excel
     data = []
     for s in qs:
+        if cliente_filter and cliente_filter not in (s.cliente or "").lower():
+            continue
         # Get SLA info
         dias_sla, label_sla = s.sla_por_setor()
         

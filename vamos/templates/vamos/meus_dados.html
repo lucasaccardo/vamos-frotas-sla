@@ -29,9 +29,17 @@
 
     <div class="d-flex flex-wrap gap-2">
         <a href="{% url 'exportar_meus_dados' %}" class="btn btn-success">Exportar meus dados (JSON)</a>
+        <form method="post" action="{% url 'revogar_consentimento' %}" onsubmit="return confirm('Deseja revogar seu consentimento LGPD?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning">Revogar consentimento</button>
+        </form>
         <form method="post" action="{% url 'solicitar_exclusao_dados' %}" onsubmit="return confirm('Deseja registrar solicitação de exclusão de dados?');">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger">Solicitar exclusão de dados</button>
+        </form>
+        <form method="post" action="{% url 'excluir_meus_dados' %}" onsubmit="return confirm('Esta ação excluirá sua conta e seus dados pessoais. Deseja continuar?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Excluir meus dados agora</button>
         </form>
     </div>
 </div>

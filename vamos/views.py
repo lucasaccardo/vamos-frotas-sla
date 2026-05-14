@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 # --- IMPORTS DO DJANGO ---
+from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -105,18 +106,8 @@ def _termos_metadata():
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect("portal") 
-          
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("portal")
-        else:
-            messages.error(request, "Usuário ou senha inválidos.")
-    return render(request, "account/login.html")
+        return redirect("portal")
+    return redirect("two_factor:login")
 
 def signup_view(request):
     if request.method == "POST":
@@ -1054,6 +1045,33 @@ def solicitar_exclusao_dados_view(request):
             request,
             "Solicitação registrada com sucesso. O time administrativo dará continuidade ao processo.",
         )
+    return redirect("meus_dados")
+
+
+@login_required(login_url='login')
+def revogar_consentimento_view(request):
+    if request.method == "POST" and hasattr(request.user, "perfil"):
+        request.user.perfil.termos_aceitos_em = None
+        request.user.perfil.termos_versao = ""
+        request.user.perfil.termos_hash = ""
+        request.user.perfil.save(update_fields=PERFIL_TERMOS_UPDATE_FIELDS)
+        security_logger.info("lgpd_consent_revoked user_id=%s", request.user.id)
+        messages.success(request, "Consentimento revogado com sucesso.")
+    return redirect("meus_dados")
+
+
+@login_required(login_url='login')
+def excluir_meus_dados_view(request):
+    if request.method == "POST":
+        user = request.user
+        user_id = user.id
+        username = user.username
+        with transaction.atomic():
+            logout(request)
+            user.delete()
+        security_logger.info("lgpd_data_deleted user_id=%s username=%s", user_id, username)
+        messages.success(request, "Seus dados pessoais foram excluídos com sucesso.")
+        return redirect("login")
     return redirect("meus_dados")
 
 

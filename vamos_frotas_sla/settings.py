@@ -5,6 +5,7 @@ Versão Final - Segura para Produção e Auditada (Projeto Integrador)
 
 from pathlib import Path
 import os
+import sys
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import dj_database_url
@@ -14,6 +15,7 @@ from django.core.exceptions import ImproperlyConfigured
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+TESTING = "test" in sys.argv
 
 # === SEGURANÇA BÁSICA ===
 _is_production_environment = bool(os.getenv("RENDER_EXTERNAL_URL")) or os.getenv("RENDER", "").lower() == "true"
@@ -200,13 +202,25 @@ if os.getenv('AWS_ACCESS_KEY_ID'):
 
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage"},
-        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+        "staticfiles": {
+            "BACKEND": (
+                "django.contrib.staticfiles.storage.StaticFilesStorage"
+                if TESTING
+                else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            )
+        },
     }
     MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 else:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+        "staticfiles": {
+            "BACKEND": (
+                "django.contrib.staticfiles.storage.StaticFilesStorage"
+                if TESTING
+                else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            )
+        },
     }
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -275,12 +289,22 @@ AUTHENTICATION_BACKENDS = [
 AXES_FAILURE_LIMIT = 5 # Bloqueia após 5 tentativas erradas
 AXES_COOLOFF_TIME = 1  # Bloqueia por 1 hora
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' # Opcional: página de erro
+AXES_FAILURE_LIMIT = int(os.getenv("AXES_FAILURE_LIMIT", str(AXES_FAILURE_LIMIT)))
+AXES_COOLOFF_TIME = int(os.getenv("AXES_COOLOFF_TIME", str(AXES_COOLOFF_TIME)))
+AXES_ENABLED = os.getenv(
+    "AXES_ENABLED",
+    "False" if "test" in sys.argv else "True",
+).lower() == "true"
 
 # --- RECUPERAÇÃO DE SENHA (Tópico 3 da Entrega 3) ---
 # O token de redefinição de senha expira em 1 hora (3600 segundos)
-PASSWORD_RESET_TIMEOUT = 3600
+PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", "3600"))
 
 # --- LOGS DE SEGURANÇA E AUDITORIA ---
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+SECURITY_LOG_FILE = os.getenv("SECURITY_LOG_FILE", str(LOG_DIR / "security_audit.log"))
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -293,11 +317,17 @@ LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-        }
+        },
+        "security_file": {
+            "class": "logging.FileHandler",
+            "filename": SECURITY_LOG_FILE,
+            "mode": "a",
+            "formatter": "standard",
+        },
     },
     "loggers": {
         "vamos.security": {
-            "handlers": ["console"],
+            "handlers": ["console", "security_file"],
             "level": "INFO",
             "propagate": False,
         },

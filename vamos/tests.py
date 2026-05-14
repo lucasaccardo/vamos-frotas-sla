@@ -38,3 +38,28 @@ class LGPDViewsTestCase(TestCase):
                 titulo="Solicitação LGPD - exclusão de dados",
             ).exists()
         )
+
+    def test_revogar_consentimento_limpa_metadados(self):
+        self.client.post(reverse("termos_uso"))
+        response = self.client.post(reverse("revogar_consentimento"))
+        self.assertEqual(response.status_code, 302)
+
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.perfil.termos_aceitos_em)
+        self.assertEqual(self.user.perfil.termos_versao, "")
+        self.assertEqual(self.user.perfil.termos_hash, "")
+
+    def test_excluir_meus_dados_remove_usuario(self):
+        response = self.client.post(reverse("excluir_meus_dados"))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(username="lgpduser").exists())
+
+
+class AuthFlowSecurityTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_login_view_redireciona_para_fluxo_2fa(self):
+        response = self.client.get(reverse("login"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/account/login", response.url)
