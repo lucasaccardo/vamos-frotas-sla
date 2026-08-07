@@ -22,3 +22,5 @@ pandas
 openpyxl
 reportlab
 numpy
+
+google-generativeai==0.8.3

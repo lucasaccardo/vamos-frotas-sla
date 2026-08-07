@@ -11,4 +11,5 @@
 - `docs/abstract.md`
 - `docs/poster.md`
 - `docs/checklist.md`
+- `docs/deploy-railway.md` (passo a passo de deploy no Railway)
 - `docs/archive/` (materiais legados e históricos)

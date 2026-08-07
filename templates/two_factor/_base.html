@@ -1,0 +1,101 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Vamos Frotas SLA{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Gestão de Frotas - Autenticação">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <link rel="icon" href="{% static 'img/logo.png' %}">
+  {% block extra_media %}{% endblock %}
+  <style>
+    /*
+      As telas de dois fatores (login, cadastro de token, backup tokens,
+      perfil) são renderizadas pelo pacote django-two-factor-auth usando
+      `form.as_table` puro, sem as classes usadas em auth.css (que foram
+      pensadas para formulários customizados como o de login simples).
+      Os seletores abaixo reaproveitam a mesma linguagem visual (auth.css)
+      para os elementos genéricos gerados pelo pacote (table/input/select/
+      button), em vez de depender do Bootstrap via CDN.
+    */
+    body { font-family: 'Inter', sans-serif; }
+    .login-page { overflow-y: auto; padding: 2rem 0; }
+    .auth-panel table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+    .auth-panel table tr { display: block; margin-bottom: 1.25rem; }
+    .auth-panel table th { display: block; text-align: left; font-size: 0.875rem; font-weight: 500; color: #cbd5e1; margin-bottom: 0.5rem; font-weight: 500; }
+    .auth-panel table td { display: block; }
+    .auth-panel table th label { font-weight: 500; }
+    .auth-panel input[type="text"],
+    .auth-panel input[type="password"],
+    .auth-panel input[type="tel"],
+    .auth-panel input[type="number"],
+    .auth-panel select {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      font-size: 1rem;
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%);
+      border: 1.5px solid rgba(71, 85, 105, 0.8);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    .auth-panel input:focus, .auth-panel select:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25);
+    }
+    .auth-panel ul.errorlist { color: #fca5a5; font-size: 0.8rem; margin: 0.25rem 0 0; padding-left: 1rem; }
+    .auth-panel p { color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; }
+    .auth-panel h1 { font-size: 1.75rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem; }
+    .auth-panel hr { border-color: rgba(148, 163, 184, 0.2); margin: 1.5rem 0; }
+    .auth-panel .btn, .auth-panel button[type="submit"], .auth-panel button[name="wizard_goto_step"], .auth-panel button[name="challenge_device"] {
+      padding: 0.85rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0.25rem 0.5rem 0.25rem 0;
+      transition: all 0.2s ease;
+    }
+    .auth-panel .btn:hover, .auth-panel button[type="submit"]:hover { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
+    .auth-panel .btn-secondary, .auth-panel button[disabled] { background: rgba(71, 85, 105, 0.6); }
+    .auth-panel .btn-link { background: none; color: #94a3b8; text-decoration: underline; text-transform: none; box-shadow: none; padding: 0.5rem 0; }
+    .auth-panel .btn-block { display: block; width: 100%; }
+    .auth-panel a { color: #94a3b8; }
+    .auth-panel a:hover { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="hero-section">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <h1>Vamos Frotas SLA</h1>
+        <p>Gestão inteligente de sinistros, manutenção e SLA de frotas.</p>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <img src="{% static 'img/logo.png' %}" alt="Logo Vamos Frotas" class="auth-logo">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% block content_wrapper %}
+        {% block content %}{% endblock %}
+      {% endblock %}
+    </div>
+  </div>
+</body>
+</html>

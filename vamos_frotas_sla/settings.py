@@ -18,7 +18,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 TESTING = "test" in sys.argv
 
 # === SEGURANÇA BÁSICA ===
-_is_production_environment = bool(os.getenv("RENDER_EXTERNAL_URL")) or os.getenv("RENDER", "").lower() == "true"
+# RENDER_EXTERNAL_URL/RENDER: setados automaticamente pelo Render.
+# RAILWAY_ENVIRONMENT: setado automaticamente pelo Railway em todo deploy
+# (inclusive ambientes de preview), então também conta como "produção" por padrão.
+_is_production_environment = (
+    bool(os.getenv("RENDER_EXTERNAL_URL"))
+    or os.getenv("RENDER", "").lower() == "true"
+    or bool(os.getenv("RAILWAY_ENVIRONMENT"))
+)
 _default_debug = "False" if _is_production_environment else "True"
 DEBUG = os.getenv("DJANGO_DEBUG", _default_debug).lower() == "true"
 
@@ -31,8 +38,16 @@ if not SECRET_KEY:
             "DJANGO_SECRET_KEY é obrigatório quando DJANGO_DEBUG=False."
         )
 
+# RAILWAY_PUBLIC_DOMAIN: hostname público (sem esquema) que o Railway atribui
+# automaticamente ao serviço, ex. "meu-app.up.railway.app". Adicionamos aqui
+# para que o deploy funcione "out of the box" sem precisar configurar
+# DJANGO_ALLOWED_HOSTS manualmente a cada novo domínio gerado.
+_railway_public_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+
 _allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts_env.split(",") if host.strip()]
+if _railway_public_domain and _railway_public_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_railway_public_domain)
 if not ALLOWED_HOSTS:
     if DEBUG:
         ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
@@ -53,6 +68,10 @@ if _render_external_url:
         render_origin = f"{parsed.scheme}://{parsed.netloc}"
         if render_origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(render_origin)
+if _railway_public_domain:
+    railway_origin = f"https://{_railway_public_domain}"
+    if railway_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(railway_origin)
 
 # === APPS INSTALADOS ===
 INSTALLED_APPS = [
@@ -304,6 +323,13 @@ PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", "3600"))
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 SECURITY_LOG_FILE = os.getenv("SECURITY_LOG_FILE", str(LOG_DIR / "security_audit.log"))
+# Garante que o diretório de destino exista mesmo quando SECURITY_LOG_FILE é
+# sobrescrito por variável de ambiente (ex.: um caminho customizado no host de
+# deploy). Sem isso, o logging.config.dictConfig() abaixo é executado por
+# django.setup() ANTES de qualquer AppConfig.ready(), então criar o diretório
+# em ready() chega tarde demais e a aplicação falha ao subir com
+# "FileNotFoundError" caso o diretório não exista.
+Path(SECURITY_LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     "version": 1,
