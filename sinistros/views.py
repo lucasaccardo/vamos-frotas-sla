@@ -708,7 +708,7 @@ def sinistro_timeline_api(request, pk):
     timeline = []
     for idx, ev in enumerate(eventos):
         start = ev.data_mudanca
-        end = events[idx+1].data_mudanca if idx+1 < len(eventos) else now
+        end = eventos[idx+1].data_mudanca if idx+1 < len(eventos) else now
         dur = max(0, int((end - start).total_seconds()))
         timeline.append({
             'data_mudanca': start.isoformat(),
@@ -934,10 +934,13 @@ def exportar_csv(request):
     
     if apenas_pagos:
         qs = qs.filter(total_pago__gt=0)
-    
-    if cliente:
-        qs = qs.filter(cliente__icontains=cliente)
-    
+
+    # NOTA: 'cliente' é um campo criptografado (django_cryptography.fields.encrypt),
+    # que só suporta o lookup 'isnull' no banco de dados — um filter(cliente__icontains=...)
+    # levanta FieldError. Por isso o filtro é aplicado em Python após a busca (mesma
+    # abordagem já usada em exportar_xlsx), decodificando o valor em memória.
+    cliente_filter = (cliente or "").strip().lower()
+
     if segmento and segmento != 'TODOS':
         qs = qs.filter(segmento=segmento)
     
@@ -983,8 +986,10 @@ def exportar_csv(request):
     
     # Data rows
     for s in qs:
+        if cliente_filter and cliente_filter not in (s.cliente or "").lower():
+            continue
         dias_sla, label_sla = s.sla_por_setor()
-        
+
         row = [
             s.id,
             s.n_chamado,

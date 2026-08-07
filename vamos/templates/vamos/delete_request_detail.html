@@ -46,7 +46,7 @@
   <div class="card">
     <div class="card-body">
       <h3 class="mb-3">Revisar Solicitação</h3>
-      <form method="post" action="{% url 'delete_request_review' dr.id %}">
+      <form method="post" action="{% url 'delete_request_update_status' dr.id %}">
         {% csrf_token %}
         <div class="mb-3">
           <label for="status" class="form-label">Novo Status</label>

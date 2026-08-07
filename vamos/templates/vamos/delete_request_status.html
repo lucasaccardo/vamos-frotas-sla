@@ -1,6 +1,6 @@
 <span class="badge bg-info">{{ dr.get_status_display|default:dr.status }}</span>
 <form
-  hx-post="{% url 'delete_request_review' dr.id %}"
+  hx-post="{% url 'delete_request_update_status' dr.id %}"
   hx-target="#status-{{ dr.id }}"
   hx-swap="outerHTML"
   class="d-inline-block ms-2"

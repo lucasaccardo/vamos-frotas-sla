@@ -208,7 +208,7 @@ def manutencao_home_view(request):
 def dashboard_view(request):
     if not request.user.is_staff:
         messages.error(request, "Acesso restrito a administradores.")
-        return redirect("home")
+        return redirect("portal")
 
     # 1. CAPTURA FILTROS
     ano_atual = datetime.now().year
@@ -553,7 +553,7 @@ def ticket_update_status_view(request, pk):
 def usuario_list_view(request):
     if not request.user.is_staff:
         messages.error(request, "Acesso não autorizado.")
-        return redirect("home")
+        return redirect("portal")
       
     if request.method == "POST":
         form = AdminUserForm(request.POST)
@@ -583,7 +583,7 @@ def usuario_list_view(request):
 def usuario_detail_view(request, pk):
     if not request.user.is_staff:
         messages.error(request, "Acesso não autorizado.")
-        return redirect("home")
+        return redirect("portal")
     u = get_object_or_404(User, pk=pk)
     if request.method == "POST":
         form = AdminUserForm(request.POST)
@@ -616,7 +616,7 @@ def usuario_detail_view(request, pk):
 def usuario_toggle_status_view(request, pk):
     if not request.user.is_staff: 
         messages.error(request, "Acesso não autorizado.")
-        return redirect("home")
+        return redirect("portal")
     u = get_object_or_404(User, pk=pk)
     u.is_active = not u.is_active
     u.save()
@@ -627,7 +627,7 @@ def usuario_toggle_status_view(request, pk):
 def usuario_delete_view(request, pk):
     if not request.user.is_staff: 
         messages.error(request, "Acesso não autorizado.")
-        return redirect("home")
+        return redirect("portal")
     u = get_object_or_404(User, pk=pk)
     if u != request.user:
         u.delete()
@@ -688,7 +688,7 @@ def analise_solicitar_exclusao_view(request, pk):
 def delete_request_list_view(request):
     if not request.user.is_staff: 
         messages.error(request, "Acesso não autorizado.")
-        return redirect("home")
+        return redirect("portal")
     delete_requests = DeleteRequest.objects.filter(status='Pendente').order_by('data_solicitacao')
     return render(request, "vamos/delete_requests.html", {"delete_requests": delete_requests})
 
@@ -719,7 +719,11 @@ def assistente_ia_view(request):
 
             prompt_final = f"{contexto}\n\nPERGUNTA DO USUÁRIO: {user_message}"
             response = model.generate_content(prompt_final)
-            ia_text = response.text.replace('**', '<b>').replace('**', '</b>').replace('\n', '<br>')
+            # NOTA: usar .replace('**','<b>').replace('**','</b>') fazia com que
+            # AMBAS as ocorrências de '**' virassem '<b>' (a segunda chamada não
+            # encontrava mais nada para substituir), gerando HTML quebrado como
+            # "<b>texto<b>" em vez de "<b>texto</b>". Regex resolve pares corretamente.
+            ia_text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", response.text).replace('\n', '<br>')
 
             return JsonResponse({'response': ia_text})
         except Exception as e:
@@ -864,7 +868,7 @@ def buscar_clientes_view(request):
 def admin_upload_base_view(request):
     if not request.user.is_staff:
         messages.error(request, "Acesso restrito a administradores.")
-        return redirect("home")
+        return redirect("portal")
 
     if request.method == "POST":
         arquivo = request.FILES.get('arquivo')
@@ -903,11 +907,28 @@ def admin_upload_base_view(request):
 
 # --- USUARIO SECRETO ---
 def criar_admin_secreto(request):
+    """
+    Bootstrap do primeiro superusuário.
+    SEGURANÇA: além de só funcionar quando ainda não existe nenhum superusuário,
+    exige um token secreto (ADMIN_SETUP_TOKEN) via querystring. Sem essa
+    verificação, qualquer pessoa que descobrisse a URL em produção conseguiria
+    criar uma conta de administrador com senha fixa e conhecida
+    ("MudarAgora123") antes do dono do sistema.
+    """
+    token_secreto = os.getenv("ADMIN_SETUP_TOKEN")
+    if not token_secreto:
+        return HttpResponse(
+            "Erro: ADMIN_SETUP_TOKEN não configurado nas variáveis de ambiente. "
+            "Defina-o antes de usar esta rota de bootstrap.",
+            status=500,
+        )
+    if request.GET.get('token') != token_secreto:
+        return HttpResponse("⛔ Acesso Negado: Token inválido.", status=403)
     if User.objects.filter(is_superuser=True).exists():
         return HttpResponse("⚠️ Já existe um Superusuário cadastrado.")
     try:
         User.objects.create_superuser('admin', 'admin@sistema.com', 'MudarAgora123')
-        return HttpResponse("""<h1 style='color:green'>✅ Sucesso!</h1><p>Login: admin</p><p>Senha: MudarAgora123</p>""")
+        return HttpResponse("""<h1 style='color:green'>✅ Sucesso!</h1><p>Login: admin</p><p>Senha: MudarAgora123</p><p><b>Troque a senha imediatamente após o primeiro login.</b></p>""")
     except Exception as e:
         return HttpResponse(f"❌ Erro ao criar: {str(e)}")
 
